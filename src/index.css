@@ -1,0 +1,133 @@
+@import "tailwindcss";
+
+@theme {
+  --color-uber: #06C167;
+  --color-didi: #FF7800;
+  --color-rappi: #FF424D;
+  --color-dark-bg: #0F172A;
+  --color-dark-panel: #1E293B;
+}
+
+@layer base {
+  body {
+    background-color: theme('colors.slate.950');
+    color: theme('colors.slate.100');
+    font-family: 'Inter', 'Outfit', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@media print {
+  @page {
+    size: auto;
+    margin: 5mm;
+  }
+
+  /* Force white background on the document itself */
+  html, body {
+    background: white !important;
+    background-color: white !important;
+    color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    min-width: unset !important;
+  }
+
+  /* Step 1: Hide all visible UI elements */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Step 2: Make the correct print container VISIBLE and DISPLAYED */
+  .printing-ticket .print-only-ticket {
+    display: block !important;
+    visibility: visible !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: auto !important;
+    background: white !important;
+    z-index: 99999 !important;
+  }
+
+  .printing-corte .print-only-corte {
+    display: block !important;
+    visibility: visible !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: auto !important;
+    background: white !important;
+    z-index: 99999 !important;
+  }
+
+  /* Step 3: Make all children of those containers visible too */
+  .printing-ticket .print-only-ticket *,
+  .printing-corte .print-only-corte * {
+    visibility: visible !important;
+    color: black !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  /* Thermal roll formatting */
+  .paper-58mm {
+    width: 56mm !important;
+    max-width: 56mm !important;
+    padding: 1mm !important;
+    font-size: 8pt !important;
+    line-height: 1.2 !important;
+    font-family: 'Courier New', monospace !important;
+    background: white !important;
+  }
+
+  /* Standard paper formatting */
+  .paper-standard {
+    width: 170mm !important;
+    padding: 10mm !important;
+    font-size: 11pt !important;
+    line-height: 1.4 !important;
+    background: white !important;
+  }
+
+  /* Flex row layout for key:value pairs */
+  .flex-row-print {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    width: 100% !important;
+    gap: 4px !important;
+  }
+
+  .flex-row-print > span:last-child {
+    text-align: right !important;
+    font-weight: bold !important;
+    word-break: break-word !important;
+  }
+}
+
+.print-only-ticket, .print-only-corte {
+  display: none;
+}
