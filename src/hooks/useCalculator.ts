@@ -83,6 +83,10 @@ export function useCalculator(initialRows: ProductRowData[] = []) {
         ]);
     };
 
+    const addProducts = (newProducts: ProductRowData[]) => {
+        setRows(prev => [...prev, ...newProducts]);
+    };
+
     const updateRow = (id: string, updates: Partial<ProductRowData>) => {
         setRows((prev) =>
             prev.map((r) => (r.id === id ? { ...r, ...updates } : r))
@@ -320,6 +324,7 @@ export function useCalculator(initialRows: ProductRowData[] = []) {
         updateSetting,
         rows,
         addRow,
+        addProducts,
         updateRow,
         removeRow,
         results,

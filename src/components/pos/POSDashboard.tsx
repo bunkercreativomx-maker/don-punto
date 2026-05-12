@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { usePOS } from '../../hooks/usePOS';
 import { useCalculator } from '../../hooks/useCalculator'; 
 import type { CartItem, POSPaymentMethod, OrderDestination, OpenTicket } from '../../types/pos';
-import { Plus, Trash2, ShoppingCart, Minus, CreditCard, Save, History, Bike } from 'lucide-react';
+import { Plus, Trash2, ShoppingCart, Minus, CreditCard, Save, History, Bike, Lock } from 'lucide-react';
 import { POSTicket } from './POSTicket';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -34,6 +34,30 @@ export function POSDashboard() {
   const [isChangeModalOpen, setIsChangeModalOpen] = useState(false);
   const [receivedAmount, setReceivedAmount] = useState<string>('');
   const [orderCustomerName, setOrderCustomerName] = useState(''); // Customer name for the whole order
+
+  // Security / PIN State
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState(false);
+  const [pinAction, setPinAction] = useState<(() => void) | null>(null);
+
+  const requirePin = (action: () => void) => {
+    setPinAction(() => action);
+    setPinInput('');
+    setPinError(false);
+    setIsPinModalOpen(true);
+  };
+
+  const handlePinSubmit = () => {
+    const validPin = settings.adminPin || '1234';
+    if (pinInput === validPin) {
+        pinAction?.();
+        setIsPinModalOpen(false);
+    } else {
+        setPinError(true);
+        setPinInput('');
+    }
+  };
 
   // Print state
   const [lastOrder, setLastOrder] = useState<{
@@ -353,11 +377,11 @@ export function POSDashboard() {
                                     <div className="flex items-center justify-between mt-1">
                                         <span className="text-[10px] text-slate-600">${unitPrice.toFixed(2)} c/u</span>
                                         <div className="flex items-center gap-2 bg-slate-900 px-2 py-1 rounded-lg border border-white/5">
-                                            <button onClick={() => updateCartQuantity(item.cartId, -1)} className="text-slate-500 hover:text-white"><Minus size={14}/></button>
+                                            <button onClick={() => requirePin(() => updateCartQuantity(item.cartId, -1))} className="text-slate-500 hover:text-white"><Minus size={14}/></button>
                                             <span className="text-xs font-black text-white w-4 text-center">{item.quantity}</span>
                                             <button onClick={() => updateCartQuantity(item.cartId, 1)} className="text-slate-500 hover:text-white"><Plus size={14}/></button>
                                             <div className="w-px h-3 bg-white/10 mx-1"></div>
-                                            <button onClick={() => removeFromCart(item.cartId)} className="text-rose-500/50 hover:text-rose-400"><Trash2 size={14}/></button>
+                                            <button onClick={() => requirePin(() => removeFromCart(item.cartId))} className="text-rose-500/50 hover:text-rose-400"><Trash2 size={14}/></button>
                                         </div>
                                     </div>
                                 </div>
@@ -553,6 +577,41 @@ export function POSDashboard() {
         </div>
     )}
 
+    {/* --- PIN SECURITY MODAL --- */}
+    {isPinModalOpen && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-md no-print">
+            <div className="bg-slate-900 border border-white/10 rounded-3xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="p-6 bg-slate-800/30 border-b border-white/10 text-center">
+                    <div className="w-12 h-12 bg-pink-500/20 text-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Lock size={24} />
+                    </div>
+                    <h3 className="text-xl font-bold text-white">Autorización Requerida</h3>
+                    <p className="text-slate-400 text-xs mt-2">Ingresa el PIN de administrador para continuar.</p>
+                </div>
+                <div className="p-6">
+                    <input 
+                        type="password"
+                        autoFocus
+                        value={pinInput}
+                        onChange={(e) => setPinInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handlePinSubmit()}
+                        placeholder="••••"
+                        className={cn(
+                            "w-full bg-slate-950 border-2 rounded-2xl text-center text-4xl tracking-[0.5em] font-black text-white py-4 outline-none transition-all",
+                            pinError ? "border-rose-500 text-rose-500" : "border-white/10 focus:border-indigo-500"
+                        )}
+                    />
+                    {pinError && <div className="text-rose-500 text-xs font-bold text-center mt-3 animate-pulse">PIN INCORRECTO</div>}
+                    
+                    <div className="grid grid-cols-2 gap-3 mt-6">
+                        <button onClick={() => setIsPinModalOpen(false)} className="py-3 rounded-xl font-bold text-slate-500 hover:text-white transition-all bg-slate-800/50">CANCELAR</button>
+                        <button onClick={handlePinSubmit} className="py-3 rounded-xl font-black text-white bg-pink-500 hover:bg-pink-400 transition-all shadow-lg shadow-pink-500/20 active:scale-95">AUTORIZAR</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )}
+
     {/* --- TICKETS ABIERTOS MODAL --- */}
     {isTicketsModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md no-print">
@@ -589,7 +648,7 @@ export function POSDashboard() {
                                     </div>
                                     <div className="flex gap-2">
                                         <button 
-                                            onClick={() => deleteOpenTicket(ticket.id)}
+                                            onClick={() => requirePin(() => deleteOpenTicket(ticket.id))}
                                             className="p-2 text-slate-700 hover:text-rose-500 transition-colors"
                                         >
                                             <Trash2 size={18}/>

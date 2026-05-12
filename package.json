@@ -1,5 +1,5 @@
 {
-  "name": "delivery-calculator",
+  "name": "don-punto",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@supabase/supabase-js": "^2.105.4",
     "@tailwindcss/vite": "^4.2.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.576.0",

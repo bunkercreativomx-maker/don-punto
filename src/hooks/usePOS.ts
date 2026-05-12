@@ -18,11 +18,14 @@ export function usePOS() {
 
   const [settings, setSettings] = useState<POSSettings>(() => {
     const saved = localStorage.getItem(SETTINGS_KEY);
-    return saved ? JSON.parse(saved) : { 
+    const parsed = saved ? JSON.parse(saved) : {};
+    return { 
       ivaPercentage: 16,
       printCustomerTicket: true,
       printKitchenTicket: true,
-      paperSize: '58mm'
+      paperSize: '58mm',
+      adminPin: '1234',
+      ...parsed
     };
   });
 

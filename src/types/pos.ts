@@ -51,4 +51,5 @@ export interface POSSettings {
   businessName?: string;
   businessPhone?: string;
   businessAddress?: string;
+  adminPin: string;
 }
