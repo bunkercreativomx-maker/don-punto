@@ -33,16 +33,27 @@ function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
         if (session) {
             setIsAuthenticated(true);
-            // Buscar el restaurante del dueño
-            const { data: restaurant, error } = await supabase
-                .from('restaurants')
-                .select('subscription_status')
-                .eq('owner_id', session.user.id)
-                .single();
-            
-            if (restaurant && restaurant.subscription_status === 'active') {
-                setSubscriptionStatus('active');
-            } else {
+            try {
+                // Buscar el restaurante del dueño
+                const { data: restaurant, error } = await supabase
+                    .from('restaurants')
+                    .select('subscription_status')
+                    .eq('owner_id', session.user.id)
+                    .single();
+                
+                if (error) {
+                    console.warn("Advertencia al buscar restaurante (puede no existir aún):", error);
+                    setSubscriptionStatus('inactive');
+                    return;
+                }
+                
+                if (restaurant && restaurant.subscription_status === 'active') {
+                    setSubscriptionStatus('active');
+                } else {
+                    setSubscriptionStatus('inactive');
+                }
+            } catch (err) {
+                console.error("Error crítico al validar sesión de restaurante:", err);
                 setSubscriptionStatus('inactive');
             }
         } else {
