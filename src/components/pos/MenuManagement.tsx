@@ -42,6 +42,7 @@ export function MenuManagement({
     const [modGroupName, setModGroupName] = useState('');
     const [modGroupOptions, setModGroupOptions] = useState<Omit<Modifier, 'id'>[]>([]);
     const [selectionType, setSelectionType] = useState<'single' | 'multiple'>('multiple');
+    const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
     // Categoría Management
     const handleAddCategory = () => {
@@ -69,11 +70,13 @@ export function MenuManagement({
             setModGroupName(group.name);
             setModGroupOptions(group.options);
             setSelectionType(group.selectionType);
+            setSelectedCategories(group.appliedToCategories || []);
         } else {
             setEditingModGroupId(null);
             setModGroupName('');
             setModGroupOptions([]);
             setSelectionType('multiple');
+            setSelectedCategories([]);
         }
         setIsModGroupModalOpen(true);
     };
@@ -104,13 +107,15 @@ export function MenuManagement({
             updateModifierGroup(editingModGroupId, {
                 name: modGroupName,
                 options: optionsWithIds,
-                selectionType
+                selectionType,
+                appliedToCategories: selectedCategories
             });
         } else {
             addModifierGroup({
                 name: modGroupName,
                 options: optionsWithIds,
-                selectionType
+                selectionType,
+                appliedToCategories: selectedCategories
             });
         }
         setIsModGroupModalOpen(false);
@@ -222,6 +227,19 @@ export function MenuManagement({
                                         </span>
                                     ))}
                                 </div>
+                                {group.appliedToCategories && group.appliedToCategories.length > 0 && (
+                                    <div className="mt-3 pt-2 border-t border-white/5 flex flex-wrap gap-1 items-center">
+                                        <span className="text-[9px] text-slate-500 uppercase font-black mr-1">Aplicado a:</span>
+                                        {group.appliedToCategories.map(catId => {
+                                            const cat = categories.find(c => c.id === catId);
+                                            return cat ? (
+                                                <span key={catId} className="text-[9px] bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded font-bold">
+                                                    {cat.name}
+                                                </span>
+                                            ) : null;
+                                        })}
+                                    </div>
+                                )}
                             </div>
                         ))
                     )}
@@ -254,25 +272,32 @@ export function MenuManagement({
                                 <label className="text-[10px] uppercase font-black text-slate-500">Modificadores</label>
                                 <div className="flex flex-wrap gap-1.5">
                                     {modifierGroups.map(group => {
-                                        const isSelected = prod.modifierGroupIds?.includes(group.id);
+                                        const isDirect = prod.modifierGroupIds?.includes(group.id);
+                                        const isByCat = prod.categoryId && group.appliedToCategories?.includes(prod.categoryId);
+                                        const isSelected = isDirect || isByCat;
                                         return (
                                             <button
                                                 key={group.id}
+                                                disabled={!!isByCat}
                                                 onClick={() => {
                                                     const current = prod.modifierGroupIds || [];
-                                                    const next = isSelected 
+                                                    const next = isDirect 
                                                         ? current.filter(id => id !== group.id)
                                                         : [...current, group.id];
                                                     updateProduct(prod.id, { modifierGroupIds: next });
                                                 }}
                                                 className={cn(
-                                                    "px-2 py-1 rounded-lg text-[10px] font-bold border transition-all",
-                                                    isSelected 
-                                                        ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-300" 
-                                                        : "bg-slate-900 border-white/5 text-slate-500 hover:text-slate-300"
+                                                    "px-2 py-1 rounded-lg text-[10px] font-bold border transition-all flex items-center gap-1",
+                                                    isByCat 
+                                                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 cursor-not-allowed"
+                                                        : isDirect
+                                                            ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-300" 
+                                                            : "bg-slate-900 border-white/5 text-slate-500 hover:text-slate-300"
                                                 )}
+                                                title={isByCat ? "Aplicado automáticamente por categoría" : undefined}
                                             >
                                                 {group.name}
+                                                {isByCat && <span className="text-[8px] bg-emerald-500/20 px-1 rounded font-black uppercase">Auto</span>}
                                             </button>
                                         );
                                     })}
@@ -315,6 +340,41 @@ export function MenuManagement({
                                         className={cn("py-2 rounded-xl text-xs font-bold border transition-all", selectionType === 'multiple' ? "bg-indigo-500 border-indigo-400 text-white shadow-lg" : "bg-slate-950 border-white/5 text-slate-500")}
                                     >VARIAS (Checkbox)</button>
                                 </div>
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Aplicar Automáticamente a Categorías</label>
+                                <div className="flex flex-wrap gap-2 bg-slate-950/50 p-3 rounded-xl border border-white/5">
+                                    {categories.map(cat => {
+                                        const isChecked = selectedCategories.includes(cat.id);
+                                        return (
+                                            <button
+                                                key={cat.id}
+                                                type="button"
+                                                onClick={() => {
+                                                    if (isChecked) {
+                                                        setSelectedCategories(selectedCategories.filter(id => id !== cat.id));
+                                                    } else {
+                                                        setSelectedCategories([...selectedCategories, cat.id]);
+                                                    }
+                                                }}
+                                                className={cn(
+                                                    "px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5",
+                                                    isChecked 
+                                                        ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-300" 
+                                                        : "bg-slate-900 border-white/5 text-slate-500 hover:text-slate-400"
+                                                )}
+                                            >
+                                                {isChecked && <Check size={12} />}
+                                                {cat.name}
+                                            </button>
+                                        );
+                                    })}
+                                    {categories.length === 0 && (
+                                        <p className="text-[11px] text-slate-600 italic">No hay categorías creadas. Agrégalas primero.</p>
+                                    )}
+                                </div>
+                                <p className="text-[10px] text-slate-500 mt-1.5">Los productos en las categorías seleccionadas tendrán este modificador de forma automática.</p>
                             </div>
 
                             <div className="space-y-3">

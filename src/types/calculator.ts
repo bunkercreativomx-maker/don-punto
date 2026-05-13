@@ -20,6 +20,7 @@ export interface ModifierGroup {
     selectionType: 'single' | 'multiple';
     minSelect?: number;
     maxSelect?: number;
+    appliedToCategories?: string[];
 }
 
 export interface CalculatorState {

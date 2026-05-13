@@ -335,11 +335,15 @@ export function POSDashboard() {
                         >
                             <div className="font-bold text-slate-200 group-hover:text-indigo-300 text-sm leading-tight line-clamp-2">{p.name}</div>
                             <div className="font-black text-white text-lg tracking-tighter">${getItemPrice(p.id, []).toFixed(2)}</div>
-                            {p.modifierGroupIds && p.modifierGroupIds.length > 0 && (
-                                <div className="absolute top-2 right-2 text-indigo-400 bg-indigo-500/10 p-1 rounded-md">
-                                    <Plus size={12}/>
-                                </div>
-                            )}
+                            {(() => {
+                                const hasMods = (p.modifierGroupIds && p.modifierGroupIds.length > 0) || 
+                                    modifierGroups.some(g => p.categoryId && g.appliedToCategories?.includes(p.categoryId));
+                                return hasMods && (
+                                    <div className="absolute top-2 right-2 text-indigo-400 bg-indigo-500/10 p-1 rounded-md">
+                                        <Plus size={12}/>
+                                    </div>
+                                );
+                            })()}
                         </button>
                     ))}
                 </div>
@@ -437,51 +441,56 @@ export function POSDashboard() {
                 </div>
                 
                 <div className="p-6 space-y-6 overflow-y-auto max-h-[60vh] no-scrollbar">
-                    {selectedProduct.modifierGroupIds?.map(gid => {
-                        const group = modifierGroups.find(g => g.id === gid);
-                        if (!group) return null;
-                        const selection = pendingModifiers.find(pm => pm.groupId === gid)?.modifiers || [];
-
-                        return (
-                            <div key={gid} className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                    <h5 className="font-bold text-slate-200 text-sm">{group.name}</h5>
-                                    <span className="text-[10px] bg-slate-950 text-slate-500 px-2 py-0.5 rounded-full border border-white/5 uppercase font-black">
-                                        {group.selectionType === 'single' ? 'Unica' : 'Múltiple'}
-                                    </span>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {group.options.map(opt => {
-                                        const isSelected = selection.some(m => m.id === opt.id);
-                                        return (
-                                            <button
-                                                key={opt.id}
-                                                onClick={() => {
-                                                    const nextMods = group.selectionType === 'single' 
-                                                        ? [opt] 
-                                                        : isSelected ? selection.filter(m => m.id !== opt.id) : [...selection, opt];
-                                                    
-                                                    setPendingModifiers(prev => {
-                                                        const filtered = prev.filter(pm => pm.groupId !== gid);
-                                                        return [...filtered, { groupId: gid, modifiers: nextMods }];
-                                                    });
-                                                }}
-                                                className={cn(
-                                                    "p-3 rounded-2xl border text-left transition-all",
-                                                    isSelected 
-                                                        ? "bg-indigo-500 border-indigo-400 text-white shadow-lg shadow-indigo-500/20" 
-                                                        : "bg-slate-950 border-white/5 text-slate-400 hover:text-white"
-                                                )}
-                                            >
-                                                <div className="text-xs font-bold leading-tight">{opt.name}</div>
-                                                {opt.extraPrice > 0 && <div className={cn("text-[10px] font-bold mt-1", isSelected ? "text-indigo-200" : "text-emerald-500")}>+${opt.extraPrice}</div>}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
+                    {(() => {
+                        const activeGroups = modifierGroups.filter(g => 
+                            selectedProduct.modifierGroupIds?.includes(g.id) ||
+                            (selectedProduct.categoryId && g.appliedToCategories?.includes(selectedProduct.categoryId))
                         );
-                    })}
+                        return activeGroups.map(group => {
+                            const gid = group.id;
+                            const selection = pendingModifiers.find(pm => pm.groupId === gid)?.modifiers || [];
+
+                            return (
+                                <div key={gid} className="space-y-3">
+                                    <div className="flex justify-between items-center">
+                                        <h5 className="font-bold text-slate-200 text-sm">{group.name}</h5>
+                                        <span className="text-[10px] bg-slate-950 text-slate-500 px-2 py-0.5 rounded-full border border-white/5 uppercase font-black">
+                                            {group.selectionType === 'single' ? 'Unica' : 'Múltiple'}
+                                        </span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {group.options.map(opt => {
+                                            const isSelected = selection.some(m => m.id === opt.id);
+                                            return (
+                                                <button
+                                                    key={opt.id}
+                                                    onClick={() => {
+                                                        const nextMods = group.selectionType === 'single' 
+                                                            ? [opt] 
+                                                            : isSelected ? selection.filter(m => m.id !== opt.id) : [...selection, opt];
+                                                        
+                                                        setPendingModifiers(prev => {
+                                                            const filtered = prev.filter(pm => pm.groupId !== gid);
+                                                            return [...filtered, { groupId: gid, modifiers: nextMods }];
+                                                        });
+                                                    }}
+                                                    className={cn(
+                                                        "p-3 rounded-2xl border text-left transition-all",
+                                                        isSelected 
+                                                            ? "bg-indigo-500 border-indigo-400 text-white shadow-lg shadow-indigo-500/20" 
+                                                            : "bg-slate-950 border-white/5 text-slate-400 hover:text-white"
+                                                    )}
+                                                >
+                                                    <div className="text-xs font-bold leading-tight">{opt.name}</div>
+                                                    {opt.extraPrice > 0 && <div className={cn("text-[10px] font-bold mt-1", isSelected ? "text-indigo-200" : "text-emerald-500")}>+${opt.extraPrice}</div>}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        });
+                    })()}
 
                     <div className="pt-4 border-t border-white/5 space-y-2">
                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Nombre del Cliente / Notas</label>
