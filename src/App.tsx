@@ -34,6 +34,13 @@ function App() {
         if (session) {
             setIsAuthenticated(true);
             try {
+                // Si es el correo de prueba, le damos acceso PRO automáticamente
+                if (session.user.email === 'pakovipteam@gmail.com') {
+                    await supabase.from('restaurants').update({ subscription_status: 'active' }).eq('owner_id', session.user.id);
+                    setSubscriptionStatus('active');
+                    return;
+                }
+
                 // Buscar el restaurante del dueño
                 const { data: restaurant, error } = await supabase
                     .from('restaurants')
@@ -41,8 +48,17 @@ function App() {
                     .eq('owner_id', session.user.id)
                     .single();
                 
+                if (error && error.code === 'PGRST116') {
+                    // No existe el restaurante (cuenta legacy), lo creamos
+                    await supabase.from('restaurants').insert([
+                        { name: 'Mi Restaurante', owner_id: session.user.id, subscription_status: 'inactive' }
+                    ]);
+                    setSubscriptionStatus('inactive');
+                    return;
+                }
+
                 if (error) {
-                    console.warn("Advertencia al buscar restaurante (puede no existir aún):", error);
+                    console.warn("Advertencia al buscar restaurante:", error);
                     setSubscriptionStatus('inactive');
                     return;
                 }
@@ -81,11 +97,25 @@ function App() {
                       return;
                   }
                   
+                  if (session.user.email === 'pakovipteam@gmail.com') {
+                      await supabase.from('restaurants').update({ subscription_status: 'active' }).eq('owner_id', session.user.id);
+                      if (isMounted) setSubscriptionStatus('active');
+                      return;
+                  }
+
                   const { data: restaurant, error } = await supabase
                       .from('restaurants')
                       .select('subscription_status')
                       .eq('owner_id', session.user.id)
                       .single();
+                      
+                  if (error && error.code === 'PGRST116') {
+                      await supabase.from('restaurants').insert([
+                          { name: 'Mi Restaurante', owner_id: session.user.id, subscription_status: 'inactive' }
+                      ]);
+                      if (isMounted) setSubscriptionStatus('inactive');
+                      return;
+                  }
                       
                   if (isMounted) {
                       if (restaurant && restaurant.subscription_status === 'active') {
