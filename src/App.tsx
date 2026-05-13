@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useCalculator } from './hooks/useCalculator';
 import type { Platform, PaymentMethod } from './types/calculator';
-import { BarChart3, ShoppingBasket, Calculator, Layers, User, LineChart, Settings, Plus, Lock, Key, Sparkles } from 'lucide-react';
+import { BarChart3, ShoppingBasket, Calculator, Layers, User, LineChart, Settings, Plus, Lock, Key, Sparkles, Receipt } from 'lucide-react';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { ProfitGrid } from './components/ProfitGrid';
@@ -9,6 +9,7 @@ import { PricingGrid } from './components/PricingGrid';
 import { POSDashboard } from './components/pos/POSDashboard';
 import { MenuManagement } from './components/pos/MenuManagement';
 import { POSReports } from './components/pos/POSReports';
+import { POSTicketsHistory } from './components/pos/POSTicketsHistory';
 import { LandingPage } from './components/landing/LandingPage';
 import { AuthPage } from './components/auth/AuthPage';
 import { SubscriptionGate } from './components/auth/SubscriptionGate';
@@ -27,7 +28,7 @@ function App() {
   const [showAuthFlow, setShowAuthFlow] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<'active' | 'inactive' | 'checking'>('checking');
   
-  const [activeTab, setActiveTab] = useState<'profits' | 'pricing' | 'pos' | 'menu' | 'reports' | 'settings'>(() => {
+  const [activeTab, setActiveTab] = useState<'profits' | 'pricing' | 'pos' | 'menu' | 'reports' | 'tickets' | 'settings'>(() => {
     const saved = localStorage.getItem('donPuntoActiveTab');
     return (saved as any) || 'profits';
   });
@@ -286,6 +287,11 @@ function App() {
             {activeTab === 'pos' && <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-pink-500 rounded-r-full" />}
           </button>
 
+          <button onClick={() => setActiveTab('tickets')} className={cn("p-3 rounded-2xl transition-all duration-300 relative group", activeTab === 'tickets' ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20" : "text-slate-500 hover:text-slate-300")}>
+            <Receipt size={24} />
+            {activeTab === 'tickets' && <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-indigo-500 rounded-r-full" />}
+          </button>
+
           <button onClick={() => setActiveTab('reports')} className={cn("p-3 rounded-2xl transition-all duration-300 relative group", activeTab === 'reports' ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20" : "text-slate-500 hover:text-slate-300")}>
             <LineChart size={24} />
             {activeTab === 'reports' && <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-cyan-500 rounded-r-full" />}
@@ -323,7 +329,8 @@ function App() {
                   {activeTab === 'profits' && 'Análisis de Ganancias'}
                   {activeTab === 'pricing' && 'Estrategia de Precios'}
                   {activeTab === 'pos' && 'Punto de Venta POS'}
-                  {activeTab === 'reports' && 'Reportes e Historial'}
+                  {activeTab === 'reports' && 'Reportes Financieros'}
+                  {activeTab === 'tickets' && 'Historial de Tickets'}
                   {activeTab === 'menu' && 'Catálogo de Productos'}
                   {activeTab === 'settings' && 'Ajustes del Sistema'}
                 </h1>
@@ -331,7 +338,8 @@ function App() {
                   {activeTab === 'profits' && `Desglose matemático de retorno para ${settings.platform}.`}
                   {activeTab === 'pricing' && 'Calcula precios sugeridos para no perder ni un peso en plataformas.'}
                   {activeTab === 'pos' && 'Registra tus ventas y personaliza pedidos en tiempo real.'}
-                  {activeTab === 'reports' && 'Analiza tu IVA y revisa el historial de transacciones pasadas.'}
+                  {activeTab === 'reports' && 'Analiza tu IVA y revisa los desgloses generales de ganancias.'}
+                  {activeTab === 'tickets' && 'Busca folios pasados, reimprime recibos de cliente o comandas de cocina.'}
                   {activeTab === 'menu' && 'Administra tus categorías, modificadores y catálogo.'}
                   {activeTab === 'settings' && 'Personaliza tu plataforma, régimen y métodos de pago.'}
                 </p>
@@ -378,6 +386,7 @@ function App() {
               )}
               {activeTab === 'pos' && <POSDashboard />}
               {activeTab === 'reports' && <POSReports />}
+              {activeTab === 'tickets' && <POSTicketsHistory />}
               {activeTab === 'menu' && (
                 <MenuManagement 
                     categories={categories}

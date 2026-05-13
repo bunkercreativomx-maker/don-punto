@@ -41,7 +41,16 @@ export function usePOS() {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   }, [settings]);
 
-  const addTransaction = (amount: number, paymentMethod: POSPaymentMethod, destination: OrderDestination, notes?: string, customerName?: string, dateStr?: string) => {
+  const addTransaction = (
+    amount: number, 
+    paymentMethod: POSPaymentMethod, 
+    destination: OrderDestination, 
+    notes?: string, 
+    customerName?: string, 
+    dateStr?: string,
+    items?: CartItem[],
+    discountAmount?: number
+  ) => {
     const newTx: POSTransaction = {
       id: crypto.randomUUID(),
       date: dateStr || new Date().toISOString(),
@@ -49,7 +58,9 @@ export function usePOS() {
       paymentMethod,
       destination,
       notes,
-      customerName
+      customerName,
+      items,
+      discountAmount
     };
     setTransactions((prev) => [newTx, ...prev]);
   };

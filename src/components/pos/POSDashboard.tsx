@@ -196,7 +196,7 @@ export function POSDashboard() {
     const discountStr = discountAmount > 0 
         ? ` (Desc: ${discountType === 'percent' ? `${discountInput}%` : `$${discountInput}`})` 
         : '';
-    addTransaction(finalTotal, paymentMethod, orderDestination, detail + discountStr, customerName);
+    addTransaction(finalTotal, paymentMethod, orderDestination, detail + discountStr, customerName, undefined, [...cart], discountAmount);
     
     // Set for printing
     const isCash = paymentMethod === 'Efectivo' || paymentMethod === 'Didi Efectivo';

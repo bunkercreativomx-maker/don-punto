@@ -22,6 +22,8 @@ export interface POSTransaction {
   destination: OrderDestination;
   notes?: string;
   customerName?: string;
+  items?: CartItem[];
+  discountAmount?: number;
 }
 
 export interface OpenTicket {
