@@ -20,11 +20,13 @@ interface POSTicketProps {
   businessName?: string;
   businessPhone?: string;
   businessAddress?: string;
+  discountAmount?: number;
 }
 
-export function POSTicket({ items, total, paymentMethod, destination, customerName, date, isKitchen = false, paperSize = '58mm', receivedAmount, businessName, businessPhone, businessAddress }: POSTicketProps) {
+export function POSTicket({ items, total, paymentMethod, destination, customerName, date, isKitchen = false, paperSize = '58mm', receivedAmount, businessName, businessPhone, businessAddress, discountAmount }: POSTicketProps) {
   const { rows } = useCalculator();
   const printDate = date ? new Date(date) : new Date();
+  const subtotal = total + (discountAmount || 0);
 
   return (
     <div className={cn(
@@ -97,6 +99,18 @@ export function POSTicket({ items, total, paymentMethod, destination, customerNa
 
       {!isKitchen && (
         <div className="space-y-1 pt-2 border-t border-black mb-4">
+          {discountAmount !== undefined && discountAmount > 0 && (
+            <>
+              <div className="flex-row-print">
+                <span>Subtotal:</span>
+                <span>${subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex-row-print">
+                <span>Descuento:</span>
+                <span>-${discountAmount.toFixed(2)}</span>
+              </div>
+            </>
+          )}
           <div className="flex-row-print text-sm font-bold">
             <span>TOTAL:</span>
             <span>${total.toFixed(2)}</span>

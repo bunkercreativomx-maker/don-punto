@@ -35,6 +35,10 @@ export function POSDashboard() {
   const [receivedAmount, setReceivedAmount] = useState<string>('');
   const [orderCustomerName, setOrderCustomerName] = useState(''); // Customer name for the whole order
 
+  // Manual Discount State
+  const [discountInput, setDiscountInput] = useState<number>(0);
+  const [discountType, setDiscountType] = useState<'amount' | 'percent'>('amount');
+
   // Security / PIN State
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [pinInput, setPinInput] = useState('');
@@ -67,6 +71,7 @@ export function POSDashboard() {
     destination: OrderDestination;
     customerName: string;
     receivedAmount?: number;
+    discountAmount?: number;
   } | null>(null);
 
   // Filtering products by category
@@ -152,6 +157,18 @@ export function POSDashboard() {
     return cart.reduce((acc, item) => acc + (getItemPrice(item.rowId, item.selectedModifiers) * item.quantity), 0);
   }, [cart, paymentMethod]);
 
+  const discountAmount = useMemo(() => {
+    if (discountType === 'percent') {
+        return cartTotal * (discountInput / 100);
+    } else {
+        return discountInput;
+    }
+  }, [cartTotal, discountInput, discountType]);
+
+  const finalTotal = useMemo(() => {
+    return Math.max(0, cartTotal - discountAmount);
+  }, [cartTotal, discountAmount]);
+
   const handleCheckout = () => {
     if (cart.length === 0) return;
     
@@ -174,21 +191,28 @@ export function POSDashboard() {
     }).join(', ');
     
     const customerName = orderCustomerName.trim() || cart.find(i => i.customerNote)?.customerNote || 'Venta Mostrador';
-    addTransaction(cartTotal, paymentMethod, orderDestination, detail, customerName);
+    
+    // Include discount details in transactions table for reporting
+    const discountStr = discountAmount > 0 
+        ? ` (Desc: ${discountType === 'percent' ? `${discountInput}%` : `$${discountInput}`})` 
+        : '';
+    addTransaction(finalTotal, paymentMethod, orderDestination, detail + discountStr, customerName);
     
     // Set for printing
     const isCash = paymentMethod === 'Efectivo' || paymentMethod === 'Didi Efectivo';
     setLastOrder({
         items: [...cart],
-        total: cartTotal,
+        total: finalTotal,
         paymentMethod,
         destination: orderDestination,
         customerName,
         receivedAmount: isCash && receivedAmount ? Number(receivedAmount) : undefined,
+        discountAmount: discountAmount,
     });
 
     setCart([]);
     setOrderCustomerName('');
+    setDiscountInput(0);
 
     // Trigger print dialog if any ticket is enabled
     if (settings.printCustomerTicket || settings.printKitchenTicket) {
@@ -203,9 +227,10 @@ export function POSDashboard() {
   const handleSaveTicket = () => {
       if (cart.length === 0) return;
       const customerName = orderCustomerName.trim() || cart.find(i => i.customerNote)?.customerNote || 'Sin Nombre';
-      saveTicket(customerName, orderDestination, cart, cartTotal);
+      saveTicket(customerName, orderDestination, cart, finalTotal);
       setCart([]);
       setOrderCustomerName('');
+      setDiscountInput(0);
   };
 
   const handleResumeTicket = (ticket: OpenTicket) => {
@@ -404,9 +429,60 @@ export function POSDashboard() {
                                 className="flex-grow bg-transparent text-white text-xs font-medium outline-none placeholder:text-slate-700"
                             />
                         </div>
-                        <div className="flex justify-between items-end mb-2">
+                        {/* Discount Field - always visible */}
+                        <div className="flex items-center gap-2 bg-slate-950/50 border border-white/5 rounded-xl px-3 py-1.5">
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Descuento:</span>
+                            <div className="flex items-center gap-2 flex-grow justify-end">
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={discountInput === 0 ? '' : discountInput}
+                                    onChange={(e) => {
+                                        const val = e.target.value === '' ? 0 : Number(e.target.value);
+                                        setDiscountInput(val);
+                                    }}
+                                    placeholder="0"
+                                    className="w-16 bg-transparent text-white text-xs font-bold outline-none placeholder:text-slate-700 text-right"
+                                />
+                                <div className="flex bg-slate-900 rounded-lg p-0.5 border border-white/10 shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => setDiscountType('amount')}
+                                        className={cn(
+                                            "px-2 py-0.5 rounded text-[10px] font-black transition-all",
+                                            discountType === 'amount' ? "bg-indigo-500 text-white" : "text-slate-500 hover:text-slate-300"
+                                        )}
+                                    >
+                                        $
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setDiscountType('percent')}
+                                        className={cn(
+                                            "px-2 py-0.5 rounded text-[10px] font-black transition-all",
+                                            discountType === 'percent' ? "bg-indigo-500 text-white" : "text-slate-500 hover:text-slate-300"
+                                        )}
+                                    >
+                                        %
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {discountAmount > 0 && (
+                            <div className="flex justify-between items-center text-xs font-bold text-slate-500 px-1">
+                                <span>Subtotal</span>
+                                <span>${cartTotal.toFixed(2)}</span>
+                            </div>
+                        )}
+                        {discountAmount > 0 && (
+                            <div className="flex justify-between items-center text-xs font-bold text-emerald-500 px-1">
+                                <span>Descuento</span>
+                                <span>-${discountAmount.toFixed(2)}</span>
+                            </div>
+                        )}
+                        <div className="flex justify-between items-end mb-2 pt-1 px-1">
                             <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Total Cobrar</span>
-                            <span className="text-3xl font-black text-white tracking-tighter">${cartTotal.toFixed(2)}</span>
+                            <span className="text-3xl font-black text-white tracking-tighter">${finalTotal.toFixed(2)}</span>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <button 
@@ -527,7 +603,7 @@ export function POSDashboard() {
                 <div className="p-8 space-y-8">
                     <div className="flex justify-between items-baseline">
                         <span className="text-sm font-bold text-slate-500">Total a Cobrar:</span>
-                        <span className="text-3xl font-black text-white">${cartTotal.toFixed(2)}</span>
+                        <span className="text-3xl font-black text-white">${finalTotal.toFixed(2)}</span>
                     </div>
 
                     <div className="space-y-4">
@@ -555,18 +631,18 @@ export function POSDashboard() {
                                 </button>
                             ))}
                             <button 
-                                onClick={() => setReceivedAmount(cartTotal.toFixed(2))}
+                                onClick={() => setReceivedAmount(finalTotal.toFixed(2))}
                                 className="col-span-3 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-[10px] font-black text-indigo-400 hover:bg-indigo-500/20 transition-all"
                             >
-                                EXACTO (${cartTotal.toFixed(2)})
+                                EXACTO (${finalTotal.toFixed(2)})
                             </button>
                         </div>
                     </div>
 
-                    {Number(receivedAmount) >= cartTotal && (
+                    {Number(receivedAmount) >= finalTotal && (
                         <div className="p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex justify-between items-center animate-in fade-in slide-in-from-top-2">
                             <span className="text-xs font-bold text-emerald-500/80 uppercase">Cambio a entregar:</span>
-                            <span className="text-3xl font-black text-emerald-400">${(Number(receivedAmount) - cartTotal).toFixed(2)}</span>
+                            <span className="text-3xl font-black text-emerald-400">${(Number(receivedAmount) - finalTotal).toFixed(2)}</span>
                         </div>
                     )}
                 </div>
@@ -574,7 +650,7 @@ export function POSDashboard() {
                 <div className="p-6 bg-slate-800/10 border-t border-white/10 flex gap-4">
                     <button onClick={() => setIsChangeModalOpen(false)} className="flex-grow py-4 rounded-2xl font-bold text-slate-500 hover:text-white transition-all">CANCELAR</button>
                     <button 
-                        disabled={!receivedAmount || Number(receivedAmount) < cartTotal}
+                        disabled={!receivedAmount || Number(receivedAmount) < finalTotal}
                         onClick={() => {
                             setIsChangeModalOpen(false);
                             processCheckout();
