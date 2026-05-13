@@ -1,9 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Reemplazar con las credenciales reales de Supabase
-// En producción, esto debería venir de variables de entorno (.env)
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'public-anon-key';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Se inicializa el cliente (si las llaves son los placeholders, las llamadas a la BD fallarán pero la app no se romperá)
-export const supabase = createClient(supabaseUrl, supabaseKey);
+if (!supabaseUrl || !supabaseKey) {
+  console.warn(
+    "⚠️ [Don Punto] Las variables de entorno de Supabase no están cargadas. " +
+    "Asegúrate de que el archivo .env.local existe y de reiniciar el servidor de desarrollo de Vite (Ctrl+C y npm run dev)."
+  );
+}
+
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseKey || 'public-anon-key'
+);
+
