@@ -8,8 +8,8 @@ function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
 
-// Clave API proporcionada para el prototipo
-const API_KEY = "AIzaSyA1VXJrXQjVb0qRCKlJSiyarV26J-hDxjI";
+// Clave API de Google Gemini (se lee de variables de entorno para evitar filtraciones de seguridad)
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
 
 interface MenuScannerModalProps {
     onClose: () => void;
