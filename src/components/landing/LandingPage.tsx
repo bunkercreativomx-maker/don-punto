@@ -24,7 +24,11 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
     removeRow,
     addRow,
     syncWithStorePrices,
-  } = useCalculator();
+  } = useCalculator([
+    { id: '1', name: 'Pizza Suprema Grande', costPrice: 90, salePrice: 240, targetProfit: 150 },
+    { id: '2', name: 'Hamburguesa Especial', costPrice: 45, salePrice: 125, targetProfit: 80 },
+    { id: '3', name: 'Alitas BBQ (10 pzas)', costPrice: 60, salePrice: 160, targetProfit: 100 }
+  ], { persist: false });
 
   return (
     <div className="min-h-screen bg-[#020617] text-slate-200 font-sans selection:bg-indigo-500/30 overflow-y-auto no-scrollbar relative w-full">

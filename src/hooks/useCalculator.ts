@@ -16,56 +16,78 @@ const DEFAULT_STATE: CalculatorState = {
     baseCommissionPct: 30, // Default 30% commission
 };
 
-export function useCalculator(initialRows: ProductRowData[] = []) {
+export function useCalculator(
+    initialRows: ProductRowData[] = [],
+    options: { storageKeyPrefix?: string; persist?: boolean } = { persist: true }
+) {
+    const persist = options.persist ?? true;
+    const prefix = options.storageKeyPrefix || 'deliveryCalc';
+
     // Initialize from localStorage or use defaults
     const [settings, setSettings] = useState<CalculatorState>(() => {
-        const savedSettings = localStorage.getItem('deliveryCalcSettings');
-        if (savedSettings) {
-            try { return JSON.parse(savedSettings); } catch (e) { }
+        if (persist) {
+            const savedSettings = localStorage.getItem(`${prefix}Settings`);
+            if (savedSettings) {
+                try { return JSON.parse(savedSettings); } catch (e) { }
+            }
         }
         return DEFAULT_STATE;
     });
 
     const [rows, setRows] = useState<ProductRowData[]>(() => {
-        const savedRows = localStorage.getItem('deliveryCalcRows');
-        if (savedRows) {
-            try { return JSON.parse(savedRows); } catch (e) { }
+        if (persist) {
+            const savedRows = localStorage.getItem(`${prefix}Rows`);
+            if (savedRows) {
+                try { return JSON.parse(savedRows); } catch (e) { }
+            }
         }
         return initialRows;
     });
 
     const [categories, setCategories] = useState<Category[]>(() => {
-        const saved = localStorage.getItem('deliveryCalcCategories');
-        if (saved) {
-            try { return JSON.parse(saved); } catch (e) { }
+        if (persist) {
+            const saved = localStorage.getItem(`${prefix}Categories`);
+            if (saved) {
+                try { return JSON.parse(saved); } catch (e) { }
+            }
         }
         return [];
     });
 
     const [modifierGroups, setModifierGroups] = useState<ModifierGroup[]>(() => {
-        const saved = localStorage.getItem('deliveryCalcModifierGroups');
-        if (saved) {
-            try { return JSON.parse(saved); } catch (e) { }
+        if (persist) {
+            const saved = localStorage.getItem(`${prefix}ModifierGroups`);
+            if (saved) {
+                try { return JSON.parse(saved); } catch (e) { }
+            }
         }
         return [];
     });
 
     // Save to localStorage whenever state changes
     useEffect(() => {
-        localStorage.setItem('deliveryCalcSettings', JSON.stringify(settings));
-    }, [settings]);
+        if (persist) {
+            localStorage.setItem(`${prefix}Settings`, JSON.stringify(settings));
+        }
+    }, [settings, prefix, persist]);
 
     useEffect(() => {
-        localStorage.setItem('deliveryCalcRows', JSON.stringify(rows));
-    }, [rows]);
+        if (persist) {
+            localStorage.setItem(`${prefix}Rows`, JSON.stringify(rows));
+        }
+    }, [rows, prefix, persist]);
 
     useEffect(() => {
-        localStorage.setItem('deliveryCalcCategories', JSON.stringify(categories));
-    }, [categories]);
+        if (persist) {
+            localStorage.setItem(`${prefix}Categories`, JSON.stringify(categories));
+        }
+    }, [categories, prefix, persist]);
 
     useEffect(() => {
-        localStorage.setItem('deliveryCalcModifierGroups', JSON.stringify(modifierGroups));
-    }, [modifierGroups]);
+        if (persist) {
+            localStorage.setItem(`${prefix}ModifierGroups`, JSON.stringify(modifierGroups));
+        }
+    }, [modifierGroups, prefix, persist]);
 
     const updateSetting = <K extends keyof CalculatorState>(key: K, value: CalculatorState[K]) => {
         setSettings((prev) => ({ ...prev, [key]: value }));
