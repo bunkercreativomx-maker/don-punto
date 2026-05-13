@@ -130,7 +130,7 @@ No agregues formato Markdown (\`\`\`json), ni texto antes o después. Solo el JS
                         </div>
                         <div>
                             <h3 className="text-xl font-bold text-white tracking-tight">Escáner de Menú IA</h3>
-                            <p className="text-xs text-indigo-200/60 font-medium">Desarrollado con Google Gemini AI</p>
+                            <p className="text-xs text-indigo-200/60 font-medium">Análisis automático inteligente</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors relative z-10"><X size={24} /></button>
@@ -187,7 +187,7 @@ No agregues formato Markdown (\`\`\`json), ni texto antes o después. Solo el JS
                                 <ScanLine className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-500/50" size={64} />
                             </div>
                             
-                            <h4 className="text-xl font-black text-white tracking-tight mb-2 animate-pulse">Procesando con Gemini AI...</h4>
+                            <h4 className="text-xl font-black text-white tracking-tight mb-2 animate-pulse">Procesando imagen...</h4>
                             <p className="text-sm text-slate-400 font-medium h-6">
                                 Analizando la imagen y extrayendo platillos ({progress}%)
                             </p>
