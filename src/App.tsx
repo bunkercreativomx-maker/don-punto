@@ -22,129 +22,117 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 }
 
 function App() {
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showAuthFlow, setShowAuthFlow] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<'active' | 'inactive' | 'checking'>('checking');
   
-  const [activeTab, setActiveTab] = useState<'profits' | 'pricing' | 'pos' | 'menu' | 'reports' | 'settings'>('profits');
+  const [activeTab, setActiveTab] = useState<'profits' | 'pricing' | 'pos' | 'menu' | 'reports' | 'settings'>(() => {
+    const saved = localStorage.getItem('donPuntoActiveTab');
+    return (saved as any) || 'profits';
+  });
 
-  // Supabase Auth Listener
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if (session) {
+    localStorage.setItem('donPuntoActiveTab', activeTab);
+  }, [activeTab]);
+
+  // Combined robust Auth & Subscription Listener
+  useEffect(() => {
+    let isMounted = true;
+
+    const checkSessionAndSubscription = async (session: any) => {
+        if (!session) {
+            if (isMounted) {
+                setIsAuthenticated(false);
+                setSubscriptionStatus('inactive');
+                setIsAuthChecking(false);
+            }
+            return;
+        }
+
+        if (isMounted) {
             setIsAuthenticated(true);
-            try {
-                // Si es el correo de prueba, le damos acceso PRO automáticamente
-                if (session.user.email === 'pakovipteam@gmail.com') {
-                    await supabase.from('restaurants').update({ subscription_status: 'active' }).eq('owner_id', session.user.id);
-                    setSubscriptionStatus('active');
-                    return;
-                }
+        }
 
-                // Buscar el restaurante del dueño
-                const { data: restaurant, error } = await supabase
-                    .from('restaurants')
-                    .select('subscription_status')
-                    .eq('owner_id', session.user.id)
-                    .single();
-                
-                if (error && error.code === 'PGRST116') {
-                    // No existe el restaurante (cuenta legacy), lo creamos
-                    await supabase.from('restaurants').insert([
-                        { name: 'Mi Restaurante', owner_id: session.user.id, subscription_status: 'inactive' }
-                    ]);
-                    setSubscriptionStatus('inactive');
-                    return;
-                }
-
-                if (error) {
-                    console.warn("Advertencia al buscar restaurante:", error);
-                    setSubscriptionStatus('inactive');
-                    return;
-                }
-                
-                if (restaurant && restaurant.subscription_status === 'active') {
+        try {
+            // Si es el correo de prueba, le damos acceso PRO automáticamente
+            if (session.user.email === 'pakovipteam@gmail.com') {
+                await supabase.from('restaurants').update({ subscription_status: 'active' }).eq('owner_id', session.user.id);
+                if (isMounted) {
                     setSubscriptionStatus('active');
-                } else {
+                }
+                return;
+            }
+
+            // Buscar el restaurante del dueño
+            const { data: restaurant, error } = await supabase
+                .from('restaurants')
+                .select('subscription_status')
+                .eq('owner_id', session.user.id)
+                .single();
+            
+            if (error && error.code === 'PGRST116') {
+                // No existe el restaurante (cuenta legacy), lo creamos
+                await supabase.from('restaurants').insert([
+                    { name: 'Mi Restaurante', owner_id: session.user.id, subscription_status: 'inactive' }
+                ]);
+                if (isMounted) {
                     setSubscriptionStatus('inactive');
                 }
-            } catch (err) {
-                console.error("Error crítico al validar sesión de restaurante:", err);
+            } else if (restaurant && restaurant.subscription_status === 'active') {
+                if (isMounted) {
+                    setSubscriptionStatus('active');
+                }
+            } else {
+                if (isMounted) {
+                    setSubscriptionStatus('inactive');
+                }
+            }
+        } catch (err) {
+            console.error("Error al validar sesión de restaurante:", err);
+            if (isMounted) {
                 setSubscriptionStatus('inactive');
             }
-        } else {
-            setIsAuthenticated(false);
-            setSubscriptionStatus('inactive'); // Si no está logueado, lógicamente inactivo
+        } finally {
+            if (isMounted) {
+                setIsAuthChecking(false);
+            }
+        }
+    };
+
+    // 1. Verificar sesión inicial de inmediato
+    supabase.auth.getSession().then(({ data: { session } }) => {
+        checkSessionAndSubscription(session);
+    }).catch(() => {
+        if (isMounted) setIsAuthChecking(false);
+    });
+
+    // 2. Suscribirse a los cambios de estado de auth
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_OUT') {
+            if (isMounted) {
+                setIsAuthenticated(false);
+                setSubscriptionStatus('inactive');
+                setIsAuthChecking(false);
+            }
+        } else if (session) {
+            checkSessionAndSubscription(session);
         }
     });
 
-    return () => subscription.unsubscribe();
+    // Timeout de seguridad (4 segundos) para garantizar que la pantalla de carga no se quede pegada
+    const timeout = setTimeout(() => {
+        if (isMounted && isAuthChecking) {
+            setIsAuthChecking(false);
+        }
+    }, 4000);
+
+    return () => {
+        isMounted = false;
+        subscription.unsubscribe();
+        clearTimeout(timeout);
+    };
   }, []);
-
-  // Salvaguarda: Forzar verificación si estamos autenticados pero seguimos en 'checking'
-  useEffect(() => {
-      if (isAuthenticated && subscriptionStatus === 'checking') {
-          let isMounted = true;
-          
-          const forceCheck = async () => {
-              try {
-                  const { data: { session } } = await supabase.auth.getSession();
-                  if (!session) {
-                      if (isMounted) {
-                          setIsAuthenticated(false);
-                          setSubscriptionStatus('inactive');
-                      }
-                      return;
-                  }
-                  
-                  if (session.user.email === 'pakovipteam@gmail.com') {
-                      await supabase.from('restaurants').update({ subscription_status: 'active' }).eq('owner_id', session.user.id);
-                      if (isMounted) setSubscriptionStatus('active');
-                      return;
-                  }
-
-                  const { data: restaurant, error } = await supabase
-                      .from('restaurants')
-                      .select('subscription_status')
-                      .eq('owner_id', session.user.id)
-                      .single();
-                      
-                  if (error && error.code === 'PGRST116') {
-                      await supabase.from('restaurants').insert([
-                          { name: 'Mi Restaurante', owner_id: session.user.id, subscription_status: 'inactive' }
-                      ]);
-                      if (isMounted) setSubscriptionStatus('inactive');
-                      return;
-                  }
-                      
-                  if (isMounted) {
-                      if (restaurant && restaurant.subscription_status === 'active') {
-                          setSubscriptionStatus('active');
-                      } else {
-                          setSubscriptionStatus('inactive');
-                      }
-                  }
-              } catch (err) {
-                  if (isMounted) setSubscriptionStatus('inactive');
-              }
-          };
-
-          forceCheck();
-          
-          // Timeout de seguridad de 5 segundos
-          const timeout = setTimeout(() => {
-              if (isMounted && subscriptionStatus === 'checking') {
-                  console.warn("Forzando salida del estado checking por timeout...");
-                  setSubscriptionStatus('inactive');
-              }
-          }, 5000);
-
-          return () => {
-              isMounted = false;
-              clearTimeout(timeout);
-          };
-      }
-  }, [isAuthenticated, subscriptionStatus]);
 
   const handleSimulatePayment = async () => {
       // Para efectos del prototipo, esto simula que Stripe aprobó el pago
@@ -205,6 +193,17 @@ function App() {
           setSettingsPinInput('');
       }
   };
+
+  if (isAuthChecking) {
+      return (
+          <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white font-black text-2xl animate-pulse shadow-[0_0_30px_rgba(99,102,241,0.4)]">
+                D
+              </div>
+              <div className="text-slate-500 text-[10px] font-black tracking-widest uppercase animate-pulse">Cargando Don Punto...</div>
+          </div>
+      );
+  }
 
   if (!isAuthenticated) {
     if (showAuthFlow) {
