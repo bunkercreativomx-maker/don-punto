@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useCalculator } from './hooks/useCalculator';
 import type { Platform, PaymentMethod } from './types/calculator';
 import { BarChart3, ShoppingBasket, Calculator, Layers, User, LineChart, Settings, Plus, Lock, Key, Sparkles, Receipt } from 'lucide-react';
@@ -23,133 +23,6 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 }
 
 function App() {
-  const [isAuthChecking, setIsAuthChecking] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [showAuthFlow, setShowAuthFlow] = useState(false);
-  const [subscriptionStatus, setSubscriptionStatus] = useState<'active' | 'inactive' | 'checking'>('checking');
-  
-  const [activeTab, setActiveTab] = useState<'profits' | 'pricing' | 'pos' | 'menu' | 'reports' | 'tickets' | 'settings'>(() => {
-    const saved = localStorage.getItem('donPuntoActiveTab');
-    return (saved as any) || 'profits';
-  });
-
-  useEffect(() => {
-    localStorage.setItem('donPuntoActiveTab', activeTab);
-  }, [activeTab]);
-
-  // Combined robust Auth & Subscription Listener
-  useEffect(() => {
-    let isMounted = true;
-
-    const checkSessionAndSubscription = async (session: any) => {
-        if (!session) {
-            if (isMounted) {
-                setIsAuthenticated(false);
-                setSubscriptionStatus('inactive');
-                setIsAuthChecking(false);
-            }
-            return;
-        }
-
-        if (isMounted) {
-            setIsAuthenticated(true);
-        }
-
-        try {
-            // Si es el correo de prueba, le damos acceso PRO automáticamente
-            if (session.user.email === 'pakovipteam@gmail.com') {
-                await supabase.from('restaurants').update({ subscription_status: 'active' }).eq('owner_id', session.user.id);
-                if (isMounted) {
-                    setSubscriptionStatus('active');
-                }
-                return;
-            }
-
-            // Buscar el restaurante del dueño
-            const { data: restaurant, error } = await supabase
-                .from('restaurants')
-                .select('subscription_status')
-                .eq('owner_id', session.user.id)
-                .single();
-            
-            if (error && error.code === 'PGRST116') {
-                // No existe el restaurante (cuenta legacy), lo creamos
-                await supabase.from('restaurants').insert([
-                    { name: 'Mi Restaurante', owner_id: session.user.id, subscription_status: 'inactive' }
-                ]);
-                if (isMounted) {
-                    setSubscriptionStatus('inactive');
-                }
-            } else if (restaurant && restaurant.subscription_status === 'active') {
-                if (isMounted) {
-                    setSubscriptionStatus('active');
-                }
-            } else {
-                if (isMounted) {
-                    setSubscriptionStatus('inactive');
-                }
-            }
-        } catch (err) {
-            console.error("Error al validar sesión de restaurante:", err);
-            if (isMounted) {
-                setSubscriptionStatus('inactive');
-            }
-        } finally {
-            if (isMounted) {
-                setIsAuthChecking(false);
-            }
-        }
-    };
-
-    // 1. Verificar sesión inicial de inmediato
-    supabase.auth.getSession().then(({ data: { session } }) => {
-        checkSessionAndSubscription(session);
-    }).catch(() => {
-        if (isMounted) setIsAuthChecking(false);
-    });
-
-    // 2. Suscribirse a los cambios de estado de auth
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_OUT') {
-            if (isMounted) {
-                setIsAuthenticated(false);
-                setSubscriptionStatus('inactive');
-                setIsAuthChecking(false);
-            }
-        } else if (session) {
-            checkSessionAndSubscription(session);
-        }
-    });
-
-    // Timeout de seguridad (4 segundos) para garantizar que la pantalla de carga no se quede pegada
-    const timeout = setTimeout(() => {
-        if (isMounted && isAuthChecking) {
-            setIsAuthChecking(false);
-        }
-    }, 4000);
-
-    return () => {
-        isMounted = false;
-        subscription.unsubscribe();
-        clearTimeout(timeout);
-    };
-  }, []);
-
-  const handleSimulatePayment = async () => {
-      // Para efectos del prototipo, esto simula que Stripe aprobó el pago
-      // y actualizamos el status en la base de datos de Supabase real
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-          await supabase
-              .from('restaurants')
-              .update({ subscription_status: 'active' })
-              .eq('owner_id', user.id);
-      }
-      setSubscriptionStatus('active');
-  };
-  
-  const [isScannerOpen, setIsScannerOpen] = useState(false);
-
   const {
     settings,
     updateSetting,
@@ -169,7 +42,200 @@ function App() {
     addModifierGroup,
     updateModifierGroup,
     removeModifierGroup,
+    loadCloudMenu,
   } = useCalculator();
+
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showAuthFlow, setShowAuthFlow] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<'active' | 'inactive' | 'checking'>('checking');
+  const [isCloudMenuLoaded, setIsCloudMenuLoaded] = useState(false);
+
+  const loadCloudMenuRef = useRef(loadCloudMenu);
+  useEffect(() => {
+    loadCloudMenuRef.current = loadCloudMenu;
+  }, [loadCloudMenu]);
+  
+  const [activeTab, setActiveTab] = useState<'profits' | 'pricing' | 'pos' | 'menu' | 'reports' | 'tickets' | 'settings'>(() => {
+    const saved = localStorage.getItem('donPuntoActiveTab');
+    return (saved as any) || 'profits';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('donPuntoActiveTab', activeTab);
+  }, [activeTab]);
+
+  // Combined robust Auth & Subscription Listener with Cloud Menu Recovery
+  useEffect(() => {
+    let isMounted = true;
+
+    const checkSessionAndSubscription = async (session: any) => {
+        if (!session) {
+            if (isMounted) {
+                setIsAuthenticated(false);
+                setSubscriptionStatus('inactive');
+                setIsAuthChecking(false);
+                setIsCloudMenuLoaded(false);
+            }
+            return;
+        }
+
+        if (isMounted) {
+            setIsAuthenticated(true);
+        }
+
+        try {
+            const isTestUser = session.user.email === 'pakovipteam@gmail.com' || session.user.email === 'tgudino@me.com';
+
+            // Buscar el restaurante del dueño
+            let { data: restaurant, error } = await supabase
+                .from('restaurants')
+                .select('subscription_status, stripe_customer_id')
+                .eq('owner_id', session.user.id)
+                .single();
+            
+            if (error && error.code === 'PGRST116') {
+                // No existe el restaurante (cuenta nueva), lo creamos
+                const defaultStatus = isTestUser ? 'active' : 'inactive';
+                const { data: newRest } = await supabase.from('restaurants').insert([
+                    { name: 'Mi Restaurante', owner_id: session.user.id, subscription_status: defaultStatus }
+                ]).select().single();
+                restaurant = newRest;
+                if (isMounted) {
+                    setSubscriptionStatus(defaultStatus);
+                }
+            } else if (isTestUser && restaurant && restaurant.subscription_status !== 'active') {
+                // Si es usuario de prueba y no tiene status active, lo actualizamos de inmediato en Supabase
+                await supabase.from('restaurants').update({ subscription_status: 'active' }).eq('owner_id', session.user.id);
+                if (isMounted) {
+                    setSubscriptionStatus('active');
+                }
+            } else if (restaurant && restaurant.subscription_status === 'active') {
+                if (isMounted) {
+                    setSubscriptionStatus('active');
+                }
+            } else {
+                if (isMounted) {
+                    setSubscriptionStatus('inactive');
+                }
+            }
+
+            // Recuperar el menú respaldado en la nube
+            if (restaurant && restaurant.stripe_customer_id) {
+                try {
+                    const parsed = JSON.parse(restaurant.stripe_customer_id);
+                    if (parsed && parsed.menu) {
+                        const { rows: cloudRows, categories: cloudCategories, modifierGroups: cloudModifierGroups } = parsed.menu;
+                        if (isMounted && loadCloudMenuRef.current) {
+                            loadCloudMenuRef.current(cloudRows, cloudCategories, cloudModifierGroups);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error al procesar respaldo de menú:", e);
+                }
+            }
+        } catch (err) {
+            console.error("Error al validar sesión de restaurante:", err);
+            if (isMounted) {
+                setSubscriptionStatus('inactive');
+            }
+        } finally {
+            if (isMounted) {
+                setIsCloudMenuLoaded(true);
+                setIsAuthChecking(false);
+            }
+        }
+    };
+
+    // 1. Verificar sesión inicial de inmediato
+    supabase.auth.getSession().then(({ data: { session } }) => {
+        checkSessionAndSubscription(session);
+    }).catch(() => {
+        if (isMounted) {
+            setIsAuthChecking(false);
+            setIsCloudMenuLoaded(true);
+        }
+    });
+
+    // 2. Suscribirse a los cambios de estado de auth
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_OUT') {
+            if (isMounted) {
+                setIsAuthenticated(false);
+                setSubscriptionStatus('inactive');
+                setIsAuthChecking(false);
+                setIsCloudMenuLoaded(false);
+            }
+        } else if (session) {
+            checkSessionAndSubscription(session);
+        }
+    });
+
+    // Timeout de seguridad (4 segundos)
+    const timeout = setTimeout(() => {
+        if (isMounted && isAuthChecking) {
+            setIsAuthChecking(false);
+            setIsCloudMenuLoaded(true);
+        }
+    }, 4000);
+
+    return () => {
+        isMounted = false;
+        subscription.unsubscribe();
+        clearTimeout(timeout);
+    };
+  }, []);
+
+  // Automatic Cloud Menu Backup & Sync
+  useEffect(() => {
+    if (!isAuthenticated || !isCloudMenuLoaded) return;
+
+    const syncMenuToCloud = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const menuPayload = {
+        menu: {
+          rows,
+          categories,
+          modifierGroups
+        }
+      };
+
+      try {
+        await supabase
+          .from('restaurants')
+          .update({ stripe_customer_id: JSON.stringify(menuPayload) })
+          .eq('owner_id', session.user.id);
+      } catch (e) {
+        console.error("Error backing up menu to cloud:", e);
+      }
+    };
+
+    // Debounce cloud sync to avoid spamming writes on every keystroke
+    const timer = setTimeout(() => {
+       syncMenuToCloud();
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [rows, categories, modifierGroups, isAuthenticated, isCloudMenuLoaded]);
+
+  const handleSimulatePayment = async () => {
+      // Para efectos del prototipo, esto simula que Stripe aprobó el pago
+      // y actualizamos el status en la base de datos de Supabase real
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+          await supabase
+              .from('restaurants')
+              .update({ subscription_status: 'active' })
+              .eq('owner_id', user.id);
+      }
+      setSubscriptionStatus('active');
+  };
+  
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+
 
   const { settings: posSettings, updateSettings: updatePosSettings } = usePOS();
 

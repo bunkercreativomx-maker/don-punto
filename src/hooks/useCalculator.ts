@@ -341,6 +341,12 @@ export function useCalculator(
         });
     }, [rows, settings]);
 
+    const loadCloudMenu = (newRows: ProductRowData[], newCategories: Category[], newModifierGroups: ModifierGroup[]) => {
+        if (newRows) setRows(newRows);
+        if (newCategories) setCategories(newCategories);
+        if (newModifierGroups) setModifierGroups(newModifierGroups);
+    };
+
     return {
         settings,
         updateSetting,
@@ -360,5 +366,6 @@ export function useCalculator(
         addModifierGroup,
         updateModifierGroup,
         removeModifierGroup,
+        loadCloudMenu,
     };
 }
