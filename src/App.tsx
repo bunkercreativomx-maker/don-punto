@@ -65,6 +65,57 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Salvaguarda: Forzar verificación si estamos autenticados pero seguimos en 'checking'
+  useEffect(() => {
+      if (isAuthenticated && subscriptionStatus === 'checking') {
+          let isMounted = true;
+          
+          const forceCheck = async () => {
+              try {
+                  const { data: { session } } = await supabase.auth.getSession();
+                  if (!session) {
+                      if (isMounted) {
+                          setIsAuthenticated(false);
+                          setSubscriptionStatus('inactive');
+                      }
+                      return;
+                  }
+                  
+                  const { data: restaurant, error } = await supabase
+                      .from('restaurants')
+                      .select('subscription_status')
+                      .eq('owner_id', session.user.id)
+                      .single();
+                      
+                  if (isMounted) {
+                      if (restaurant && restaurant.subscription_status === 'active') {
+                          setSubscriptionStatus('active');
+                      } else {
+                          setSubscriptionStatus('inactive');
+                      }
+                  }
+              } catch (err) {
+                  if (isMounted) setSubscriptionStatus('inactive');
+              }
+          };
+
+          forceCheck();
+          
+          // Timeout de seguridad de 5 segundos
+          const timeout = setTimeout(() => {
+              if (isMounted && subscriptionStatus === 'checking') {
+                  console.warn("Forzando salida del estado checking por timeout...");
+                  setSubscriptionStatus('inactive');
+              }
+          }, 5000);
+
+          return () => {
+              isMounted = false;
+              clearTimeout(timeout);
+          };
+      }
+  }, [isAuthenticated, subscriptionStatus]);
+
   const handleSimulatePayment = async () => {
       // Para efectos del prototipo, esto simula que Stripe aprobó el pago
       // y actualizamos el status en la base de datos de Supabase real
