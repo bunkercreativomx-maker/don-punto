@@ -66,6 +66,12 @@ function App() {
   
   const [profitsSearch, setProfitsSearch] = useState('');
   const [pricingSearch, setPricingSearch] = useState('');
+  const [profitsPage, setProfitsPage] = useState(1);
+  const [pricingPage, setPricingPage] = useState(1);
+  const PAGE_SIZE = 10;
+
+  useEffect(() => { setProfitsPage(1); }, [profitsSearch]);
+  useEffect(() => { setPricingPage(1); }, [pricingSearch]);
 
   const [activeTab, setActiveTab] = useState<'profits' | 'pricing' | 'pos' | 'menu' | 'reports' | 'tickets' | 'settings' | 'inventory' | 'engineering' | 'recipes' | 'financial'>(() => {
     const saved = localStorage.getItem('donPuntoActiveTab');
@@ -786,7 +792,12 @@ function App() {
             </header>
 
             <main className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-              {activeTab === 'profits' && (
+              {activeTab === 'profits' && (() => {
+                const filteredProfits = rows.filter(r => r.name.toLowerCase().includes(profitsSearch.toLowerCase()));
+                const totalProfitsPages = Math.max(1, Math.ceil(filteredProfits.length / PAGE_SIZE));
+                const safeProfitsPage = Math.min(profitsPage, totalProfitsPages);
+                const pagedProfits = filteredProfits.slice((safeProfitsPage - 1) * PAGE_SIZE, safeProfitsPage * PAGE_SIZE);
+                return (
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     <div className="lg:col-span-9">
                         <div className="relative mb-4">
@@ -800,12 +811,19 @@ function App() {
                             />
                         </div>
                         <ProfitGrid
-                            rows={rows.filter(r => r.name.toLowerCase().includes(profitsSearch.toLowerCase()))}
+                            rows={pagedProfits}
                             results={results}
                             updateRow={updateRow}
                             removeRow={removeRow}
                             addRow={addRow}
                         />
+                        {totalProfitsPages > 1 && (
+                            <div className="flex items-center justify-center gap-3 mt-4">
+                                <button onClick={() => setProfitsPage(p => Math.max(1, p - 1))} disabled={safeProfitsPage === 1} className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 border border-white/5 text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all">← Anterior</button>
+                                <span className="text-xs text-slate-400 font-medium">Página {safeProfitsPage} de {totalProfitsPages} <span className="text-slate-600">({filteredProfits.length} platillos)</span></span>
+                                <button onClick={() => setProfitsPage(p => Math.min(totalProfitsPages, p + 1))} disabled={safeProfitsPage === totalProfitsPages} className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 border border-white/5 text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all">Siguiente →</button>
+                            </div>
+                        )}
                     </div>
                     <div className="lg:col-span-3">
                          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
@@ -820,8 +838,13 @@ function App() {
                         </div>
                     </div>
                 </div>
-              )}
-              {activeTab === 'pricing' && (
+              ); })()}
+              {activeTab === 'pricing' && (() => {
+                const filteredPricing = rows.filter(r => r.name.toLowerCase().includes(pricingSearch.toLowerCase()));
+                const totalPricingPages = Math.max(1, Math.ceil(filteredPricing.length / PAGE_SIZE));
+                const safePricingPage = Math.min(pricingPage, totalPricingPages);
+                const pagedPricing = filteredPricing.slice((safePricingPage - 1) * PAGE_SIZE, safePricingPage * PAGE_SIZE);
+                return (
                 <div>
                     <div className="relative mb-4">
                         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
@@ -834,15 +857,22 @@ function App() {
                         />
                     </div>
                     <PricingGrid
-                        rows={rows.filter(r => r.name.toLowerCase().includes(pricingSearch.toLowerCase()))}
+                        rows={pagedPricing}
                         pricingResults={pricingResults}
                         updateRow={updateRow}
                         removeRow={removeRow}
                         addRow={addRow}
                         syncWithStorePrices={syncWithStorePrices}
                     />
+                    {totalPricingPages > 1 && (
+                        <div className="flex items-center justify-center gap-3 mt-4">
+                            <button onClick={() => setPricingPage(p => Math.max(1, p - 1))} disabled={safePricingPage === 1} className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 border border-white/5 text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all">← Anterior</button>
+                            <span className="text-xs text-slate-400 font-medium">Página {safePricingPage} de {totalPricingPages} <span className="text-slate-600">({filteredPricing.length} platillos)</span></span>
+                            <button onClick={() => setPricingPage(p => Math.min(totalPricingPages, p + 1))} disabled={safePricingPage === totalPricingPages} className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 border border-white/5 text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all">Siguiente →</button>
+                        </div>
+                    )}
                 </div>
-              )}
+              ); })()}
               {activeTab === 'pos' && <POSDashboard />}
               {activeTab === 'reports' && <POSReports />}
               {activeTab === 'tickets' && <POSTicketsHistory />}
