@@ -632,13 +632,13 @@ function App() {
         <div className="flex flex-col gap-1 flex-grow w-full px-2 lg:px-3">
           <button onClick={() => setActiveTab('profits')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'profits' ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent")}>
             <BarChart3 size={20} className="shrink-0" />
-            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Análisis</span>
+            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Tienda Física</span>
             {activeTab === 'profits' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-emerald-500 rounded-r-full" />}
           </button>
 
           <button onClick={() => setActiveTab('pricing')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'pricing' ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent")}>
             <Calculator size={20} className="shrink-0" />
-            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Precios</span>
+            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Plataformas</span>
             {activeTab === 'pricing' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-500 rounded-r-full" />}
           </button>
 
