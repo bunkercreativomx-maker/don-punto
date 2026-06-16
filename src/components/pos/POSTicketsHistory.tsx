@@ -91,10 +91,10 @@ export function POSTicketsHistory() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[calc(100vh-12rem)] animate-in fade-in slide-in-from-bottom-2 duration-500 no-print">
-      
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-10rem)] animate-in fade-in slide-in-from-bottom-2 duration-500 no-print">
+
       {/* LEFT SIDE: Tickets list & Filters */}
-      <div className="lg:col-span-5 flex flex-col bg-slate-900/40 backdrop-blur-2xl border border-white/5 rounded-3xl overflow-hidden shadow-2xl h-full">
+      <div className="lg:col-span-4 flex flex-col bg-slate-900/40 backdrop-blur-2xl border border-white/5 rounded-3xl overflow-hidden shadow-2xl h-full">
         {/* Header and filters */}
         <div className="p-6 border-b border-white/5 space-y-4 shrink-0 bg-slate-900/60">
           <div className="flex justify-between items-center">
@@ -118,52 +118,55 @@ export function POSTicketsHistory() {
             />
           </div>
 
-          {/* Date Picker and toggles */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-grow flex items-center gap-2 bg-slate-950 border border-white/5 px-3 py-2 rounded-xl">
-              <Calendar className="text-slate-500 shrink-0" size={16} />
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => {
-                  setSelectedDate(e.target.value);
-                  setUseDateFilter(true);
-                }}
-                disabled={!useDateFilter}
-                className="bg-transparent text-xs font-bold text-white outline-none w-full disabled:opacity-30"
-              />
-            </div>
-            
-            <div className="flex bg-slate-950 p-1 rounded-xl border border-white/5 self-stretch sm:self-auto">
+          {/* Quick date shortcuts */}
+          <div className="flex gap-2 flex-wrap">
+            {[
+              { label: 'Hoy', getDate: () => new Date().toISOString().split('T')[0] },
+              { label: 'Ayer', getDate: () => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().split('T')[0]; } },
+            ].map(s => (
               <button
-                onClick={() => setUseDateFilter(true)}
+                key={s.label}
+                onClick={() => { setSelectedDate(s.getDate()); setUseDateFilter(true); }}
                 className={cn(
-                  "px-4 py-2 rounded-lg text-[10px] font-black tracking-wider uppercase transition-all",
-                  useDateFilter ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/25" : "text-slate-500 hover:text-slate-300"
+                  "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border transition-all",
+                  useDateFilter && selectedDate === s.getDate()
+                    ? "bg-indigo-500 border-indigo-400 text-white"
+                    : "bg-slate-950 border-white/5 text-slate-500 hover:text-white"
                 )}
-              >
-                Por Fecha
-              </button>
-              <button
-                onClick={() => setUseDateFilter(false)}
-                className={cn(
-                  "px-4 py-2 rounded-lg text-[10px] font-black tracking-wider uppercase transition-all",
-                  !useDateFilter ? "bg-indigo-500 text-white shadow-md shadow-indigo-500/25" : "text-slate-500 hover:text-slate-300"
-                )}
-              >
-                Todos
-              </button>
-            </div>
+              >{s.label}</button>
+            ))}
+            <button
+              onClick={() => setUseDateFilter(false)}
+              className={cn(
+                "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border transition-all",
+                !useDateFilter ? "bg-indigo-500 border-indigo-400 text-white" : "bg-slate-950 border-white/5 text-slate-500 hover:text-white"
+              )}
+            >Todos</button>
+          </div>
+
+          {/* Date Picker */}
+          <div className="flex items-center gap-2 bg-slate-950 border border-white/5 px-3 py-2 rounded-xl">
+            <Calendar className="text-slate-500 shrink-0" size={16} />
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => { setSelectedDate(e.target.value); setUseDateFilter(true); }}
+              className="bg-transparent text-xs font-bold text-white outline-none w-full"
+            />
           </div>
         </div>
 
         {/* Tickets Scrollable List */}
         <div className="flex-grow overflow-y-auto no-scrollbar p-6 space-y-3">
           {filteredTickets.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full py-20 text-slate-600">
-              <Receipt size={48} className="opacity-10 mb-4 animate-pulse" />
-              <p className="text-sm font-semibold">No se encontraron tickets cobrados</p>
-              <p className="text-xs text-slate-500 mt-1">Prueba cambiando los filtros o buscando otro término</p>
+            <div className="flex flex-col items-center justify-center h-full py-16 text-slate-600 text-center px-4">
+              <Receipt size={40} className="opacity-10 mb-4 animate-pulse" />
+              <p className="text-sm font-semibold text-slate-400">No se encontraron tickets</p>
+              <p className="text-xs text-slate-600 mt-1 mb-4">Prueba cambiando el filtro de fecha o buscando otro término</p>
+              <button
+                onClick={() => setUseDateFilter(false)}
+                className="px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-xl text-xs font-black hover:bg-indigo-500/20 transition-all"
+              >Ver todos los tickets</button>
             </div>
           ) : (
             filteredTickets.map(tx => {
@@ -237,7 +240,7 @@ export function POSTicketsHistory() {
       </div>
 
       {/* RIGHT SIDE: Ticket Live Preview & Actions */}
-      <div className="lg:col-span-7 flex flex-col bg-slate-900/40 backdrop-blur-2xl border border-white/5 rounded-3xl overflow-hidden shadow-2xl h-full">
+      <div className="lg:col-span-8 flex flex-col bg-slate-900/40 backdrop-blur-2xl border border-white/5 rounded-3xl overflow-hidden shadow-2xl h-full">
         {selectedTicket ? (
           <div className="flex flex-col h-full">
             {/* Quick Actions Header */}

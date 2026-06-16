@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Camera, UploadCloud, X, Sparkles, CheckCircle2, ScanLine, AlertCircle } from 'lucide-react';
+import { Camera, UploadCloud, X, Sparkles, CheckCircle2, ScanLine, AlertCircle, Check, Building2, Bike } from 'lucide-react';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -7,9 +7,6 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
-
-// Clave API de Google Gemini (se lee de variables de entorno para evitar filtraciones de seguridad)
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "";
 
 interface MenuScannerModalProps {
     onClose: () => void;
@@ -22,8 +19,23 @@ export function MenuScannerModal({ onClose, onScanSuccess }: MenuScannerModalPro
     const [detectedProducts, setDetectedProducts] = useState<any[]>([]);
     const [errorMessage, setErrorMessage] = useState('');
     const [previewImage, setPreviewImage] = useState<string | null>(null);
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem("donPuntoGeminiApiKey") || "";
     
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const [platforms, setPlatforms] = useState({
+        tienda: true,
+        didi: false,
+        uber: false,
+        rappi: false
+    });
+
+    const handleCardToggle = (key: 'tienda' | 'didi' | 'uber' | 'rappi') => {
+        setPlatforms(prev => ({
+            ...prev,
+            [key]: !prev[key]
+        }));
+    };
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -51,7 +63,11 @@ export function MenuScannerModal({ onClose, onScanSuccess }: MenuScannerModalPro
         }, 300);
 
         try {
-            const genAI = new GoogleGenerativeAI(API_KEY);
+            const activeApiKey = apiKey.trim();
+            if (!activeApiKey) {
+                throw new Error("El servicio de digitalización por IA no está configurado (API Key faltante en el servidor). Por favor, contacta al administrador.");
+            }
+            const genAI = new GoogleGenerativeAI(activeApiKey);
             const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
             
             const base64Data = base64Image.split(',')[1];
@@ -113,7 +129,20 @@ No agregues formato Markdown (\`\`\`json), ni texto antes o después. Solo el JS
     };
 
     const handleComplete = () => {
-        onScanSuccess(detectedProducts);
+        const mappedProducts = detectedProducts.map(p => {
+            const basePrice = Number(p.salePrice) || 0;
+            return {
+                id: p.id || crypto.randomUUID(),
+                name: p.name,
+                costPrice: 0,
+                salePrice: platforms.tienda ? basePrice : 0,
+                didiPrice: platforms.didi ? basePrice : undefined,
+                uberPrice: platforms.uber ? basePrice : undefined,
+                rappiPrice: platforms.rappi ? basePrice : undefined,
+                targetProfit: platforms.tienda ? basePrice : 0
+            };
+        });
+        onScanSuccess(mappedProducts);
         onClose();
     };
 
@@ -230,6 +259,110 @@ No agregues formato Markdown (\`\`\`json), ni texto antes o después. Solo el JS
                                         <span className="text-sm font-black text-white">${p.salePrice}</span>
                                     </div>
                                 ))}
+                            </div>
+
+                            {/* Canales de Destino */}
+                            <div className="w-full space-y-3 mb-6">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block text-left">
+                                    Canales de Destino
+                                </label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {/* Tienda Fisica */}
+                                    <div 
+                                        onClick={() => handleCardToggle('tienda')}
+                                        className={cn(
+                                            "border rounded-xl p-2.5 cursor-pointer transition-all duration-300 flex items-center justify-between group overflow-hidden",
+                                            platforms.tienda 
+                                                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 animate-in fade-in" 
+                                                : "bg-slate-950/40 border-white/5 text-slate-500 hover:border-white/10"
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Building2 size={14} className={platforms.tienda ? "text-emerald-400 animate-pulse" : "text-slate-500"} />
+                                            <span className="text-[11px] font-bold text-white">Tienda Física</span>
+                                        </div>
+                                        <div className={cn(
+                                            "w-4 h-4 rounded-full border flex items-center justify-center transition-all",
+                                            platforms.tienda 
+                                                ? "bg-emerald-500 border-emerald-400 text-white" 
+                                                : "border-white/10 bg-slate-900 text-transparent"
+                                        )}>
+                                            <Check size={10} strokeWidth={3} />
+                                        </div>
+                                    </div>
+
+                                    {/* DiDi */}
+                                    <div 
+                                        onClick={() => handleCardToggle('didi')}
+                                        className={cn(
+                                            "border rounded-xl p-2.5 cursor-pointer transition-all duration-300 flex items-center justify-between group overflow-hidden",
+                                            platforms.didi 
+                                                ? "bg-orange-500/10 border-orange-500/30 text-orange-400" 
+                                                : "bg-slate-950/40 border-white/5 text-slate-500 hover:border-white/10"
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Bike size={14} className={platforms.didi ? "text-orange-400 animate-pulse" : "text-slate-500"} />
+                                            <span className="text-[11px] font-bold text-white">DiDi Food</span>
+                                        </div>
+                                        <div className={cn(
+                                            "w-4 h-4 rounded-full border flex items-center justify-center transition-all",
+                                            platforms.didi 
+                                                ? "bg-orange-500 border-orange-400 text-white" 
+                                                : "border-white/10 bg-slate-900 text-transparent"
+                                        )}>
+                                            <Check size={10} strokeWidth={3} />
+                                        </div>
+                                    </div>
+
+                                    {/* Uber */}
+                                    <div 
+                                        onClick={() => handleCardToggle('uber')}
+                                        className={cn(
+                                            "border rounded-xl p-2.5 cursor-pointer transition-all duration-300 flex items-center justify-between group overflow-hidden",
+                                            platforms.uber 
+                                                ? "bg-green-500/10 border-green-500/30 text-green-400" 
+                                                : "bg-slate-950/40 border-white/5 text-slate-500 hover:border-white/10"
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Bike size={14} className={platforms.uber ? "text-green-400 animate-pulse" : "text-slate-500"} />
+                                            <span className="text-[11px] font-bold text-white">Uber Eats</span>
+                                        </div>
+                                        <div className={cn(
+                                            "w-4 h-4 rounded-full border flex items-center justify-center transition-all",
+                                            platforms.uber 
+                                                ? "bg-green-500 border-green-400 text-white" 
+                                                : "border-white/10 bg-slate-900 text-transparent"
+                                        )}>
+                                            <Check size={10} strokeWidth={3} />
+                                        </div>
+                                    </div>
+
+                                    {/* Rappi */}
+                                    <div 
+                                        onClick={() => handleCardToggle('rappi')}
+                                        className={cn(
+                                            "border rounded-xl p-2.5 cursor-pointer transition-all duration-300 flex items-center justify-between group overflow-hidden",
+                                            platforms.rappi 
+                                                ? "bg-pink-500/10 border-pink-500/30 text-pink-400" 
+                                                : "bg-slate-950/40 border-white/5 text-slate-500 hover:border-white/10"
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Bike size={14} className={platforms.rappi ? "text-pink-400 animate-pulse" : "text-slate-500"} />
+                                            <span className="text-[11px] font-bold text-white">Rappi</span>
+                                        </div>
+                                        <div className={cn(
+                                            "w-4 h-4 rounded-full border flex items-center justify-center transition-all",
+                                            platforms.rappi 
+                                                ? "bg-pink-500 border-pink-400 text-white" 
+                                                : "border-white/10 bg-slate-900 text-transparent"
+                                        )}>
+                                            <Check size={10} strokeWidth={3} />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <button 

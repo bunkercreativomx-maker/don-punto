@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
+import * as XLSX from 'xlsx';
 import { useCalculator } from './hooks/useCalculator';
 import type { Platform, PaymentMethod } from './types/calculator';
-import { BarChart3, ShoppingBasket, Calculator, Layers, User, LineChart, Settings, Plus, Lock, Key, Sparkles, Receipt } from 'lucide-react';
+import { BarChart3, ShoppingBasket, Calculator, Layers, User, LineChart, Settings, Plus, Lock, Key, Sparkles, Receipt, LogOut, FileSpreadsheet, TrendingUp, Package, Target, BookOpen, Wallet } from 'lucide-react';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { ProfitGrid } from './components/ProfitGrid';
@@ -14,9 +15,14 @@ import { LandingPage } from './components/landing/LandingPage';
 import { AuthPage } from './components/auth/AuthPage';
 import { SubscriptionGate } from './components/auth/SubscriptionGate';
 import { MenuScannerModal } from './components/pos/MenuScannerModal';
+import { MenuImportModal, type ImportPlatforms } from './components/pos/MenuImportModal';
 import { usePOS } from './hooks/usePOS';
 import { supabase } from './lib/supabase';
 import { Building2, Phone, MapPin, PrinterIcon } from 'lucide-react';
+import { InventoryModule } from './components/inventory/InventoryModule';
+import { MenuEngineeringModule } from './components/menu-engineering/MenuEngineeringModule';
+import { RecipesModule } from './components/recipes/RecipesModule';
+import { FinancialModule } from './components/financial/FinancialModule';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -47,6 +53,8 @@ function App() {
 
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem("donPuntoGeminiApiKey") || "");
   const [showAuthFlow, setShowAuthFlow] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<'active' | 'inactive' | 'checking'>('checking');
   const [isCloudMenuLoaded, setIsCloudMenuLoaded] = useState(false);
@@ -56,7 +64,7 @@ function App() {
     loadCloudMenuRef.current = loadCloudMenu;
   }, [loadCloudMenu]);
   
-  const [activeTab, setActiveTab] = useState<'profits' | 'pricing' | 'pos' | 'menu' | 'reports' | 'tickets' | 'settings'>(() => {
+  const [activeTab, setActiveTab] = useState<'profits' | 'pricing' | 'pos' | 'menu' | 'reports' | 'tickets' | 'settings' | 'inventory' | 'engineering' | 'recipes' | 'financial'>(() => {
     const saved = localStorage.getItem('donPuntoActiveTab');
     return (saved as any) || 'profits';
   });
@@ -73,6 +81,7 @@ function App() {
         if (!session) {
             if (isMounted) {
                 setIsAuthenticated(false);
+                setUserEmail(null);
                 setSubscriptionStatus('inactive');
                 setIsAuthChecking(false);
                 setIsCloudMenuLoaded(false);
@@ -82,6 +91,7 @@ function App() {
 
         if (isMounted) {
             setIsAuthenticated(true);
+            setUserEmail(session.user.email);
         }
 
         try {
@@ -162,6 +172,7 @@ function App() {
         if (event === 'SIGNED_OUT') {
             if (isMounted) {
                 setIsAuthenticated(false);
+                setUserEmail(null);
                 setSubscriptionStatus('inactive');
                 setIsAuthChecking(false);
                 setIsCloudMenuLoaded(false);
@@ -232,8 +243,273 @@ function App() {
       }
       setSubscriptionStatus('active');
   };
-  
+
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+  const handleExcelImport = (selectedPlatforms: ImportPlatforms, file: File) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+          try {
+              const data = new Uint8Array(event.target?.result as ArrayBuffer);
+              const workbook = XLSX.read(data, { type: 'array' });
+              
+              // Find a sheet with menu columns
+              let selectedSheetName = "";
+              for (const name of workbook.SheetNames) {
+                  const ws = workbook.Sheets[name];
+                  const tempJson: any[] = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                  const hasRequiredColumns = tempJson.slice(0, 5).some(row => 
+                      Array.isArray(row) && 
+                      row.some(cell => cell && (cell.toString().trim() === "Dishes" || cell.toString().trim() === "Category"))
+                  );
+                  if (hasRequiredColumns) {
+                      selectedSheetName = name;
+                      break;
+                  }
+              }
+
+              if (!selectedSheetName) {
+                  // Fallback: search for "Propuesta" or "Actual" or use first sheet
+                  selectedSheetName = workbook.SheetNames.find(name => name.includes("Propuesta") || name.includes("Actual")) || workbook.SheetNames[0];
+              }
+
+              const worksheet = workbook.Sheets[selectedSheetName];
+              const json: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+              
+              // Copy current states to perform non-destructive merge
+              const currentCategories = [...categories];
+              const currentProducts = [...rows];
+              const currentModifierGroups = [...modifierGroups];
+
+              const importedCategoriesMap = new Map<string, { id: string, name: string }>();
+              const importedModifierGroupsMap = new Map<string, { id: string, name: string, selectionType: 'single' | 'multiple', options: { id: string, name: string, extraPrice: number }[] }>();
+              const importedProductsMap = new Map<string, { id: string, name: string, costPrice: number, salePrice: number, didiPrice?: number, uberPrice?: number, rappiPrice?: number, categoryId?: string, modifierGroupIds: string[] }>();
+              
+              json.forEach((rowElem: any) => {
+                  const normalizedRow: any = {};
+                  Object.keys(rowElem).forEach(key => {
+                      normalizedRow[key.trim().toLowerCase()] = rowElem[key];
+                  });
+
+                  const categoryName = (normalizedRow["category"] || normalizedRow["categoría"] || "").toString().trim();
+                  const productName = (normalizedRow["dishes"] || normalizedRow["dish"] || normalizedRow["platillo"] || normalizedRow["producto"] || "").toString().trim();
+                  const itemId = (normalizedRow["item_id"] || normalizedRow["id"] || "").toString().trim() || productName;
+                  const basePrice = parseFloat(normalizedRow["price"] || normalizedRow["precio"] || "0") || 0;
+                  
+                  const optionGroupName = (normalizedRow["option group"] || normalizedRow["grupo de opciones"] || "").toString().trim();
+                  const selectionMode = (normalizedRow["selection mode"] || normalizedRow["modo selección"] || "").toString().trim().toLowerCase();
+                  const optionName = (normalizedRow["option name"] || normalizedRow["opción"] || "").toString().trim();
+                  const optionPrice = parseFloat(normalizedRow["option price"] || normalizedRow["precio opción"] || "0") || 0;
+
+                  if (!productName) return;
+
+                  // 1. Process Category
+                  let categoryId: string | undefined = undefined;
+                  if (categoryName) {
+                      // Check in existing categories first
+                      let existingCat = currentCategories.find(c => c.name.trim().toLowerCase() === categoryName.toLowerCase());
+                      if (existingCat) {
+                          categoryId = existingCat.id;
+                      } else {
+                          let cat = importedCategoriesMap.get(categoryName);
+                          if (!cat) {
+                              cat = { id: crypto.randomUUID(), name: categoryName };
+                              importedCategoriesMap.set(categoryName, cat);
+                          }
+                          categoryId = cat.id;
+                      }
+                  }
+
+                  // 2. Process Product Base
+                  let existingProduct = currentProducts.find(p => p.name.trim().toLowerCase() === productName.toLowerCase() || p.id === itemId);
+                  let prodId = existingProduct ? existingProduct.id : undefined;
+
+                  let prod = importedProductsMap.get(itemId);
+                  if (!prod) {
+                      prod = {
+                          id: prodId || crypto.randomUUID(),
+                          name: productName,
+                          costPrice: existingProduct ? existingProduct.costPrice : 0,
+                          salePrice: existingProduct 
+                              ? (selectedPlatforms.tienda ? Math.round(basePrice / 1.42) : existingProduct.salePrice)
+                              : Math.round(basePrice / 1.42),
+                          
+                          didiPrice: existingProduct 
+                              ? (selectedPlatforms.didi ? basePrice : existingProduct.didiPrice)
+                              : (selectedPlatforms.didi ? basePrice : undefined),
+                          
+                          uberPrice: existingProduct 
+                              ? (selectedPlatforms.uber ? basePrice : existingProduct.uberPrice)
+                              : (selectedPlatforms.uber ? basePrice : undefined),
+                              
+                          rappiPrice: existingProduct 
+                              ? (selectedPlatforms.rappi ? basePrice : existingProduct.rappiPrice)
+                              : (selectedPlatforms.rappi ? basePrice : undefined),
+
+                          categoryId: categoryId || (existingProduct ? existingProduct.categoryId : undefined),
+                          modifierGroupIds: existingProduct && existingProduct.modifierGroupIds ? [...existingProduct.modifierGroupIds] : []
+                      };
+                      importedProductsMap.set(itemId, prod);
+                  } else {
+                      if (selectedPlatforms.didi) prod.didiPrice = basePrice;
+                      if (selectedPlatforms.uber) prod.uberPrice = basePrice;
+                      if (selectedPlatforms.rappi) prod.rappiPrice = basePrice;
+                      if (selectedPlatforms.tienda) prod.salePrice = Math.round(basePrice / 1.42);
+                  }
+
+                  // 3. Process Option Group & Options
+                  if (optionGroupName && optionName) {
+                      const groupKey = `${itemId}_${optionGroupName}`;
+                      
+                      let existingGroup = currentModifierGroups.find(g => g.name.trim().toLowerCase() === optionGroupName.toLowerCase() && (existingProduct && existingProduct.modifierGroupIds?.includes(g.id)));
+                      let group = importedModifierGroupsMap.get(groupKey);
+                      
+                      if (!group) {
+                          group = {
+                              id: existingGroup ? existingGroup.id : crypto.randomUUID(),
+                              name: optionGroupName,
+                              selectionType: (selectionMode === 'required' || selectionMode.includes('single') || selectionMode.includes('unica')) ? 'single' : 'multiple',
+                              options: existingGroup ? [...existingGroup.options] : []
+                          };
+                          importedModifierGroupsMap.set(groupKey, group);
+                      }
+
+                      let existingOpt = group.options.find(o => o.name.trim().toLowerCase() === optionName.trim().toLowerCase());
+                      if (!existingOpt) {
+                          group.options.push({
+                              id: crypto.randomUUID(),
+                              name: optionName,
+                              extraPrice: optionPrice
+                          });
+                      }
+
+                      if (!prod.modifierGroupIds.includes(group.id)) {
+                          prod.modifierGroupIds.push(group.id);
+                      }
+                  }
+              });
+
+              // Merge categories
+              const newCatsFromImport = Array.from(importedCategoriesMap.values());
+              const mergedCategories = [...currentCategories];
+              newCatsFromImport.forEach(nc => {
+                  if (!mergedCategories.some(c => c.name.trim().toLowerCase() === nc.name.trim().toLowerCase())) {
+                      mergedCategories.push(nc);
+                  }
+              });
+
+              // Merge modifier groups
+              const newGroupsFromImport = Array.from(importedModifierGroupsMap.values());
+              const mergedModifierGroups = [...currentModifierGroups];
+              newGroupsFromImport.forEach(ng => {
+                  const idx = mergedModifierGroups.findIndex(g => g.id === ng.id);
+                  if (idx !== -1) {
+                      const existingGroup = mergedModifierGroups[idx];
+                      const mergedOptions = [...existingGroup.options];
+                      ng.options.forEach(no => {
+                          if (!mergedOptions.some(o => o.name.trim().toLowerCase() === no.name.trim().toLowerCase())) {
+                              mergedOptions.push(no);
+                          }
+                      });
+                      mergedModifierGroups[idx] = {
+                          ...existingGroup,
+                          options: mergedOptions,
+                          selectionType: ng.selectionType
+                      };
+                  } else {
+                      mergedModifierGroups.push({
+                          id: ng.id,
+                          name: ng.name,
+                          selectionType: ng.selectionType,
+                          options: ng.options
+                      });
+                  }
+              });
+
+              // Merge products
+              const newProductsFromImport = Array.from(importedProductsMap.values());
+              const mergedProducts = [...currentProducts];
+              newProductsFromImport.forEach(np => {
+                  const idx = mergedProducts.findIndex(p => p.id === np.id || p.name.trim().toLowerCase() === np.name.trim().toLowerCase());
+                  if (idx !== -1) {
+                      const existingProd = mergedProducts[idx];
+                      const mergedGroupIds = existingProd.modifierGroupIds ? [...existingProd.modifierGroupIds] : [];
+                      np.modifierGroupIds.forEach(gid => {
+                          if (!mergedGroupIds.includes(gid)) {
+                              mergedGroupIds.push(gid);
+                          }
+                      });
+
+                      mergedProducts[idx] = {
+                          ...existingProd,
+                          didiPrice: np.didiPrice !== undefined ? np.didiPrice : existingProd.didiPrice,
+                          uberPrice: np.uberPrice !== undefined ? np.uberPrice : existingProd.uberPrice,
+                          rappiPrice: np.rappiPrice !== undefined ? np.rappiPrice : existingProd.rappiPrice,
+                          salePrice: np.salePrice !== undefined ? np.salePrice : existingProd.salePrice,
+                          modifierGroupIds: mergedGroupIds,
+                          categoryId: np.categoryId || existingProd.categoryId
+                      };
+                  } else {
+                      mergedProducts.push({
+                          id: np.id,
+                          name: np.name,
+                          costPrice: np.costPrice,
+                          salePrice: np.salePrice,
+                          didiPrice: np.didiPrice,
+                          uberPrice: np.uberPrice,
+                          rappiPrice: np.rappiPrice,
+                          categoryId: np.categoryId,
+                          modifierGroupIds: np.modifierGroupIds
+                      });
+                  }
+              });
+
+              if (newProductsFromImport.length > 0) {
+                  loadCloudMenu(mergedProducts, mergedCategories, mergedModifierGroups);
+                  
+                  const activeChannels: string[] = [];
+                  if (selectedPlatforms.tienda) activeChannels.push("Tienda Física");
+                  if (selectedPlatforms.didi) activeChannels.push("DiDi Food");
+                  if (selectedPlatforms.uber) activeChannels.push("Uber Eats");
+                  if (selectedPlatforms.rappi) activeChannels.push("Rappi");
+
+                  alert(`¡Menú importado con éxito sin borrar tus productos existentes!\n\nCanales actualizados:\n• ${activeChannels.join(", ")}\n\nSe procesaron:\n• ${newCatsFromImport.length} Categorías nuevas\n• ${newProductsFromImport.length} Productos importados/actualizados\n• Modificadores vinculados en el POS.`);
+                  setIsImportModalOpen(false);
+              } else {
+                  alert("No se encontraron productos válidos en el archivo.");
+              }
+          } catch (err) {
+              console.error("Error parsing Excel:", err);
+              alert("Ocurrió un error al procesar el archivo. Asegúrate de subir un archivo de menú válido.");
+          }
+      };
+      reader.readAsArrayBuffer(file);
+  };
+
+  const handleScannerSuccess = (scannedProducts: any[]) => {
+      const currentProducts = [...rows];
+      const mergedProducts = [...currentProducts];
+
+      scannedProducts.forEach(sp => {
+          const idx = mergedProducts.findIndex(p => p.name.trim().toLowerCase() === sp.name.trim().toLowerCase());
+          if (idx !== -1) {
+              const existing = mergedProducts[idx];
+              mergedProducts[idx] = {
+                  ...existing,
+                  salePrice: sp.salePrice !== 0 ? sp.salePrice : existing.salePrice,
+                  didiPrice: sp.didiPrice !== undefined ? sp.didiPrice : existing.didiPrice,
+                  uberPrice: sp.uberPrice !== undefined ? sp.uberPrice : existing.uberPrice,
+                  rappiPrice: sp.rappiPrice !== undefined ? sp.rappiPrice : existing.rappiPrice,
+              };
+          } else {
+              mergedProducts.push(sp);
+          }
+      });
+
+      loadCloudMenu(mergedProducts, categories, modifierGroups);
+      alert(`¡Se digitalizaron e importaron ${scannedProducts.length} productos con éxito de forma no destructiva!`);
+  };
 
 
 
@@ -284,15 +560,21 @@ function App() {
         status={subscriptionStatus} 
         onSimulatePayment={handleSimulatePayment}
     >
-      <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/30 flex overflow-hidden">
+      <div className="min-h-screen w-full bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/30 flex overflow-hidden">
       
       {/* --- AI MENU SCANNER MODAL --- */}
       {isScannerOpen && (
           <MenuScannerModal 
               onClose={() => setIsScannerOpen(false)} 
-              onScanSuccess={(mockProducts) => {
-                  addProducts(mockProducts);
-              }}
+              onScanSuccess={handleScannerSuccess}
+          />
+      )}
+
+      {/* --- SELECTIVE MENU IMPORT MODAL --- */}
+      {isImportModalOpen && (
+          <MenuImportModal
+              onClose={() => setIsImportModalOpen(false)}
+              onImport={handleExcelImport}
           />
       )}
 
@@ -332,50 +614,104 @@ function App() {
       )}
 
       {/* --- PREMIUM SIDEBAR --- */}
-      <nav className="w-20 bg-slate-900/40 border-r border-white/5 flex flex-col items-center py-8 gap-10 relative z-30 backdrop-blur-xl shrink-0 no-print">
-        <div className="w-12 h-12 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-slate-400 cursor-pointer hover:border-white/20 transition-all">
-          <User size={24} />
+      <nav className="w-16 lg:w-52 bg-slate-900/40 border-r border-white/5 flex flex-col items-center lg:items-stretch py-4 gap-3 relative z-30 backdrop-blur-xl shrink-0 no-print overflow-y-auto no-scrollbar">
+        {/* User Avatar */}
+        <div className="flex items-center gap-3 px-2 lg:px-4 py-1 mb-1 group cursor-default">
+          <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-slate-400 shrink-0 hover:border-white/20 transition-all">
+            <User size={20} />
+          </div>
+          {userEmail && (
+            <span className="hidden lg:block text-[11px] font-bold text-slate-400 truncate leading-tight">{userEmail}</span>
+          )}
         </div>
 
-        <div className="flex flex-col gap-6 flex-grow">
-          <button onClick={() => setActiveTab('profits')} className={cn("p-3 rounded-2xl transition-all duration-300 relative group", activeTab === 'profits' ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-lg shadow-emerald-500/5" : "text-slate-500 hover:text-slate-300")}>
-            <BarChart3 size={24} />
-            {activeTab === 'profits' && <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-emerald-500 rounded-r-full" />}
+        <div className="w-full px-2 lg:px-3">
+          <div className="h-px bg-white/5 w-full" />
+        </div>
+
+        <div className="flex flex-col gap-1 flex-grow w-full px-2 lg:px-3">
+          <button onClick={() => setActiveTab('profits')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'profits' ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent")}>
+            <BarChart3 size={20} className="shrink-0" />
+            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Análisis</span>
+            {activeTab === 'profits' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-emerald-500 rounded-r-full" />}
           </button>
 
-          <button onClick={() => setActiveTab('pricing')} className={cn("p-3 rounded-2xl transition-all duration-300 relative group", activeTab === 'pricing' ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20" : "text-slate-500 hover:text-slate-300")}>
-            <Calculator size={24} />
-            {activeTab === 'pricing' && <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-indigo-500 rounded-r-full" />}
+          <button onClick={() => setActiveTab('pricing')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'pricing' ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent")}>
+            <Calculator size={20} className="shrink-0" />
+            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Precios</span>
+            {activeTab === 'pricing' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-500 rounded-r-full" />}
           </button>
 
-          <button onClick={() => setActiveTab('pos')} className={cn("p-3 rounded-2xl transition-all duration-300 relative group", activeTab === 'pos' ? "bg-pink-500/10 text-pink-500 border border-pink-500/20" : "text-slate-500 hover:text-slate-300")}>
-            <ShoppingBasket size={24} />
-            {activeTab === 'pos' && <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-pink-500 rounded-r-full" />}
+          <button onClick={() => setActiveTab('pos')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'pos' ? "bg-pink-500/10 text-pink-400 border border-pink-500/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent")}>
+            <ShoppingBasket size={20} className="shrink-0" />
+            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Punto de Venta</span>
+            {activeTab === 'pos' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-pink-500 rounded-r-full" />}
           </button>
 
-          <button onClick={() => setActiveTab('tickets')} className={cn("p-3 rounded-2xl transition-all duration-300 relative group", activeTab === 'tickets' ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20" : "text-slate-500 hover:text-slate-300")}>
-            <Receipt size={24} />
-            {activeTab === 'tickets' && <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-indigo-500 rounded-r-full" />}
+          <button onClick={() => setActiveTab('tickets')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'tickets' ? "bg-violet-500/10 text-violet-400 border border-violet-500/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent")}>
+            <Receipt size={20} className="shrink-0" />
+            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Tickets</span>
+            {activeTab === 'tickets' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-violet-500 rounded-r-full" />}
           </button>
 
-          <button onClick={() => setActiveTab('reports')} className={cn("p-3 rounded-2xl transition-all duration-300 relative group", activeTab === 'reports' ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20" : "text-slate-500 hover:text-slate-300")}>
-            <LineChart size={24} />
-            {activeTab === 'reports' && <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-cyan-500 rounded-r-full" />}
+          <button onClick={() => setActiveTab('reports')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'reports' ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent")}>
+            <LineChart size={20} className="shrink-0" />
+            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Reportes</span>
+            {activeTab === 'reports' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-cyan-500 rounded-r-full" />}
           </button>
 
-          <button onClick={() => setActiveTab('menu')} className={cn("p-3 rounded-2xl transition-all duration-300 relative group", activeTab === 'menu' ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" : "text-slate-500 hover:text-slate-300")}>
-            <Layers size={24} />
-            {activeTab === 'menu' && <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-amber-500 rounded-r-full" />}
+          <button onClick={() => setActiveTab('menu')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'menu' ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent")}>
+            <Layers size={20} className="shrink-0" />
+            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Catálogo</span>
+            {activeTab === 'menu' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-amber-500 rounded-r-full" />}
+          </button>
+
+          <div className="w-full my-1">
+            <div className="h-px bg-white/5 w-full" />
+          </div>
+
+          <button onClick={() => setActiveTab('inventory')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'inventory' ? "bg-teal-500/10 text-teal-400 border border-teal-500/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent")}>
+            <Package size={20} className="shrink-0" />
+            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Inventario</span>
+            {activeTab === 'inventory' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-teal-500 rounded-r-full" />}
+          </button>
+
+          <button onClick={() => setActiveTab('engineering')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'engineering' ? "bg-rose-500/10 text-rose-400 border border-rose-500/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent")}>
+            <Target size={20} className="shrink-0" />
+            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Ing. Menú</span>
+            {activeTab === 'engineering' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-rose-500 rounded-r-full" />}
+          </button>
+
+          <button onClick={() => setActiveTab('recipes')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'recipes' ? "bg-orange-500/10 text-orange-400 border border-orange-500/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent")}>
+            <BookOpen size={20} className="shrink-0" />
+            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Recetario</span>
+            {activeTab === 'recipes' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-orange-500 rounded-r-full" />}
+          </button>
+
+          <button onClick={() => setActiveTab('financial')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'financial' ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent")}>
+            <Wallet size={20} className="shrink-0" />
+            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Financiero</span>
+            {activeTab === 'financial' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-emerald-500 rounded-r-full" />}
           </button>
         </div>
 
-        <div className="mt-auto flex flex-col gap-4">
-             <button onClick={handleSettingsClick} className={cn("p-3 rounded-2xl transition-all", activeTab === 'settings' ? "bg-white/10 text-white" : "text-slate-600 hover:text-slate-400")}>
-                <Settings size={24} />
-             </button>
-             <button onClick={() => supabase.auth.signOut()} className="p-3 rounded-2xl transition-all text-slate-600 hover:text-rose-400 group relative">
-                <Lock size={24} />
-             </button>
+        <div className="w-full px-2 lg:px-3">
+          <div className="h-px bg-white/5 w-full" />
+        </div>
+
+        <div className="flex flex-col gap-1 shrink-0 w-full px-2 lg:px-3">
+          <button onClick={handleSettingsClick} className={cn("p-3 lg:px-3 rounded-xl transition-all flex items-center gap-3", activeTab === 'settings' ? "bg-white/10 text-white border border-white/10" : "text-slate-600 hover:text-slate-400 hover:bg-white/5 border border-transparent")}>
+            <Settings size={20} className="shrink-0" />
+            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Ajustes</span>
+          </button>
+          <button
+            onClick={() => supabase.auth.signOut()}
+            className="p-3 lg:px-3 rounded-xl transition-all text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 flex items-center gap-3 border border-transparent"
+            title="Cerrar Sesión"
+          >
+            <LogOut size={20} className="shrink-0" />
+            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Cerrar Sesión</span>
+          </button>
         </div>
       </nav>
 
@@ -387,18 +723,22 @@ function App() {
             settings.platform === 'Rappi' && "bg-pink-600"
         )} />
 
-        <div className="flex-grow px-8 py-10 overflow-auto relative z-10 no-scrollbar">
-          <div className="max-w-7xl mx-auto">
-            <header className="mb-10 flex flex-col sm:flex-row items-baseline sm:items-center justify-between gap-4 no-print">
+        <div className="flex-grow px-6 py-6 overflow-auto relative z-10 no-scrollbar">
+          <div className="w-full">
+            <header className="mb-6 flex flex-col sm:flex-row items-baseline sm:items-center justify-between gap-4 no-print">
               <div>
-                <h1 className="text-4xl font-black text-white tracking-tighter">
-                  {activeTab === 'profits' && 'Análisis de Ganancias'}
+                <h1 className="text-3xl font-black text-white tracking-tighter">
+                  {activeTab === 'profits' && 'Análisis de Ganancias de Tienda Física'}
                   {activeTab === 'pricing' && 'Estrategia de Precios'}
                   {activeTab === 'pos' && 'Punto de Venta POS'}
                   {activeTab === 'reports' && 'Reportes Financieros'}
                   {activeTab === 'tickets' && 'Historial de Tickets'}
                   {activeTab === 'menu' && 'Catálogo de Productos'}
                   {activeTab === 'settings' && 'Ajustes del Sistema'}
+                  {activeTab === 'inventory' && 'Inventario de Insumos'}
+                  {activeTab === 'engineering' && 'Ingeniería de Menú'}
+                  {activeTab === 'recipes' && 'Recetario Estándar'}
+                  {activeTab === 'financial' && 'Estado Financiero Semanal'}
                 </h1>
                 <p className="text-slate-500 mt-2 font-medium tracking-wide">
                   {activeTab === 'profits' && `Desglose matemático de retorno para ${settings.platform}.`}
@@ -408,11 +748,22 @@ function App() {
                   {activeTab === 'tickets' && 'Busca folios pasados, reimprime recibos de cliente o comandas de cocina.'}
                   {activeTab === 'menu' && 'Administra tus categorías, modificadores y catálogo.'}
                   {activeTab === 'settings' && 'Personaliza tu plataforma, régimen y métodos de pago.'}
+                  {activeTab === 'inventory' && 'Controla stock de insumos, detecta alertas y genera pedidos automáticos.'}
+                  {activeTab === 'engineering' && 'Clasifica tu menú en ESTRELLA, VACA, ENIGMA y PERRO según rentabilidad y popularidad.'}
+                  {activeTab === 'recipes' && 'Gestiona recetas estándar con análisis de costo e ingredientes.'}
+                  {activeTab === 'financial' && 'Registra ventas diarias por canal y controla compras y egresos semanales.'}
                 </p>
               </div>
               
               {(activeTab === 'profits' || activeTab === 'pricing' || activeTab === 'menu') && (
                 <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setIsImportModalOpen(true)}
+                        className="bg-slate-900 border border-emerald-500/30 hover:bg-slate-800 text-emerald-400 px-6 py-3 rounded-2xl font-black text-sm transition-all shadow-xl shadow-emerald-500/10 active:scale-95 flex items-center gap-2"
+                    >
+                        <FileSpreadsheet size={18} />
+                        IMPORTAR MENÚ
+                    </button>
                     <button
                         onClick={() => setIsScannerOpen(true)}
                         className="bg-slate-900 border border-indigo-500/30 hover:bg-slate-800 text-indigo-400 px-6 py-3 rounded-2xl font-black text-sm transition-all shadow-xl shadow-indigo-500/10 active:scale-95 flex items-center gap-2"
@@ -438,11 +789,15 @@ function App() {
                         <ProfitGrid rows={rows} results={results} updateRow={updateRow} removeRow={removeRow} addRow={addRow} />
                     </div>
                     <div className="lg:col-span-3">
-                         <div className="bg-slate-900/40 backdrop-blur-2xl border border-white/5 rounded-3xl p-6 shadow-2xl relative group overflow-hidden">
-                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">ROI Neto Estimado</p>
-                            <div className="text-4xl font-black text-white tracking-tighter">
+                         <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+                            <div className="absolute -right-6 -bottom-6 opacity-10 pointer-events-none">
+                                <TrendingUp size={110} className="text-emerald-400" />
+                            </div>
+                            <p className="text-[10px] font-black text-emerald-400/70 uppercase tracking-[0.2em] mb-3">ROI Neto Estimado</p>
+                            <div className="text-4xl font-black text-emerald-400 tracking-tighter">
                                 ${results.reduce((acc, r) => acc + r.netProfit, 0).toFixed(2)}
                             </div>
+                            <p className="text-[10px] text-emerald-500/50 font-bold mt-3 uppercase tracking-wide">Ganancia total de todos los productos</p>
                         </div>
                     </div>
                 </div>
@@ -453,6 +808,10 @@ function App() {
               {activeTab === 'pos' && <POSDashboard />}
               {activeTab === 'reports' && <POSReports />}
               {activeTab === 'tickets' && <POSTicketsHistory />}
+              {activeTab === 'inventory' && <InventoryModule />}
+              {activeTab === 'engineering' && <MenuEngineeringModule />}
+              {activeTab === 'recipes' && <RecipesModule />}
+              {activeTab === 'financial' && <FinancialModule />}
               {activeTab === 'menu' && (
                 <MenuManagement 
                     categories={categories}

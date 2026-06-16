@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { usePOS } from '../../hooks/usePOS';
 import { useCalculator } from '../../hooks/useCalculator'; 
 import type { CartItem, POSPaymentMethod, OrderDestination, OpenTicket } from '../../types/pos';
-import { Plus, Trash2, ShoppingCart, Minus, CreditCard, Save, History, Bike, Lock } from 'lucide-react';
+import { Plus, Trash2, ShoppingCart, Minus, CreditCard, Save, History, Bike, Lock, Search, X, CheckCircle } from 'lucide-react';
 import { POSTicket } from './POSTicket';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -19,6 +19,42 @@ export function POSDashboard() {
   const [paymentMethod, setPaymentMethod] = useState<POSPaymentMethod>('Efectivo');
   const [orderDestination, setOrderDestination] = useState<OrderDestination>('Tienda');
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
+
+  // Synchronize payment method based on order destination
+  useEffect(() => {
+    if (orderDestination === 'Tienda') {
+      if (paymentMethod !== 'Efectivo' && paymentMethod !== 'Tarjeta') {
+        setPaymentMethod('Efectivo');
+      }
+    } else if (orderDestination === 'Uber') {
+      if (paymentMethod !== 'Uber') {
+        setPaymentMethod('Uber');
+      }
+    } else if (orderDestination === 'Didi') {
+      if (paymentMethod !== 'Didi' && paymentMethod !== 'Didi Efectivo') {
+        setPaymentMethod('Didi');
+      }
+    } else if (orderDestination === 'Rappi') {
+      if (paymentMethod !== 'Rappi') {
+        setPaymentMethod('Rappi');
+      }
+    }
+  }, [orderDestination, paymentMethod]);
+
+  const availablePaymentMethods = useMemo(() => {
+    switch (orderDestination) {
+      case 'Tienda':
+        return ['Efectivo', 'Tarjeta'] as POSPaymentMethod[];
+      case 'Uber':
+        return ['Uber'] as POSPaymentMethod[];
+      case 'Didi':
+        return ['Didi', 'Didi Efectivo'] as POSPaymentMethod[];
+      case 'Rappi':
+        return ['Rappi'] as POSPaymentMethod[];
+      default:
+        return ['Efectivo', 'Tarjeta'] as POSPaymentMethod[];
+    }
+  }, [orderDestination]);
   
   // Cart state
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -74,11 +110,32 @@ export function POSDashboard() {
     discountAmount?: number;
   } | null>(null);
 
-  // Filtering products by category
+  // Search query state
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Toast notification state
+  const [toast, setToast] = useState('');
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 1800);
+  };
+
+  // Count products per category for badges
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    rows.forEach(r => { if (r.categoryId) counts[r.categoryId] = (counts[r.categoryId] || 0) + 1; });
+    return counts;
+  }, [rows]);
+
+  // Filtering products by category + search
   const filteredProducts = useMemo(() => {
-    if (!activeCategoryId) return rows;
-    return rows.filter(r => r.categoryId === activeCategoryId);
-  }, [rows, activeCategoryId]);
+    let result = !activeCategoryId ? rows : rows.filter(r => r.categoryId === activeCategoryId);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(r => r.name.toLowerCase().includes(q));
+    }
+    return result;
+  }, [rows, activeCategoryId, searchQuery]);
 
   // Pricing Logic (Extended to include Modifiers)
   const computePlatformPrice = (row: ProductRowData, extraBaseCost: number) => {
@@ -121,6 +178,12 @@ export function POSDashboard() {
 
     if (orderDestination === 'Tienda') {
         return (row.salePrice || 0) + extraCost;
+    } else if (orderDestination === 'Didi' && row.didiPrice && row.didiPrice > 0) {
+        return row.didiPrice + extraCost;
+    } else if (orderDestination === 'Uber' && row.uberPrice && row.uberPrice > 0) {
+        return row.uberPrice + extraCost;
+    } else if (orderDestination === 'Rappi' && row.rappiPrice && row.rappiPrice > 0) {
+        return row.rappiPrice + extraCost;
     } else {
         return computePlatformPrice(row, extraCost);
     }
@@ -137,6 +200,8 @@ export function POSDashboard() {
     const cartId = crypto.randomUUID();
     setCart(prev => [...prev, { cartId, rowId, quantity: 1, selectedModifiers: mods, customerNote: note }]);
     setIsModModalOpen(false);
+    const product = rows.find(r => r.id === rowId);
+    showToast(`${product?.name ?? 'Producto'} agregado`);
   };
 
   const updateCartQuantity = (cartId: string, delta: number) => {
@@ -243,29 +308,37 @@ export function POSDashboard() {
 
   return (
     <>
-    <div className="space-y-6 no-print">
+    <div className="space-y-4 no-print">
         {/* Category Filter Bar */}
-        <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar no-scrollbar">
+        <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
             <button
                 onClick={() => setActiveCategoryId(null)}
                 className={cn(
-                    "px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap border",
-                    activeCategoryId === null 
-                        ? "bg-indigo-500 border-indigo-400 text-white shadow-lg shadow-indigo-500/20" 
+                    "px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap border flex items-center gap-1.5",
+                    activeCategoryId === null
+                        ? "bg-indigo-500 border-indigo-400 text-white shadow-lg shadow-indigo-500/20"
                         : "bg-slate-900 border-white/5 text-slate-400 hover:text-white"
                 )}
-            >TODOS</button>
+            >
+                TODOS
+                <span className={cn("text-[10px] font-black px-1.5 py-0.5 rounded-full", activeCategoryId === null ? "bg-white/20" : "bg-white/5")}>{rows.length}</span>
+            </button>
             {categories.map(cat => (
                 <button
                     key={cat.id}
                     onClick={() => setActiveCategoryId(cat.id)}
                     className={cn(
-                        "px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap border",
-                        activeCategoryId === cat.id 
-                            ? "bg-indigo-500 border-indigo-400 text-white shadow-lg shadow-indigo-500/20" 
+                        "px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap border flex items-center gap-1.5",
+                        activeCategoryId === cat.id
+                            ? "bg-indigo-500 border-indigo-400 text-white shadow-lg shadow-indigo-500/20"
                             : "bg-slate-900 border-white/5 text-slate-400 hover:text-white"
                     )}
-                >{cat.name.toUpperCase()}</button>
+                >
+                    {cat.name.toUpperCase()}
+                    {categoryCounts[cat.id] ? (
+                        <span className={cn("text-[10px] font-black px-1.5 py-0.5 rounded-full", activeCategoryId === cat.id ? "bg-white/20" : "bg-white/5")}>{categoryCounts[cat.id]}</span>
+                    ) : null}
+                </button>
             ))}
         </div>
         
@@ -279,19 +352,27 @@ export function POSDashboard() {
                         </h2>
                         <div className="h-4 w-px bg-white/10 hidden sm:block"></div>
                         <div className="flex bg-slate-950 p-1 rounded-xl border border-white/10">
-                            {(['Tienda', 'Uber', 'Didi', 'Rappi'] as OrderDestination[]).map(d => (
-                                <button
-                                    key={d}
-                                    onClick={() => setOrderDestination(d)}
-                                    className={cn(
-                                        "px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center gap-1.5",
-                                        orderDestination === d ? "bg-indigo-500 text-white shadow-lg" : "text-slate-500 hover:text-slate-300"
-                                    )}
-                                >
-                                    {d === 'Tienda' ? <ShoppingCart size={12}/> : <Bike size={12}/>}
-                                    {d.toUpperCase()}
-                                </button>
-                            ))}
+                            {(['Tienda', 'Uber', 'Didi', 'Rappi'] as OrderDestination[]).map(d => {
+                                const activeColors: Record<string, string> = {
+                                    Tienda: 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20',
+                                    Uber:   'bg-[#06C167] text-white shadow-lg shadow-green-500/20',
+                                    Didi:   'bg-orange-500 text-white shadow-lg shadow-orange-500/20',
+                                    Rappi:  'bg-[#FF424D] text-white shadow-lg shadow-red-500/20',
+                                };
+                                return (
+                                    <button
+                                        key={d}
+                                        onClick={() => setOrderDestination(d)}
+                                        className={cn(
+                                            "px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center gap-1.5",
+                                            orderDestination === d ? activeColors[d] : "text-slate-500 hover:text-slate-300"
+                                        )}
+                                    >
+                                        {d === 'Tienda' ? <ShoppingCart size={12}/> : <Bike size={12}/>}
+                                        {d.toUpperCase()}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                     
@@ -338,7 +419,7 @@ export function POSDashboard() {
                 <div className="flex items-center justify-between mb-6 p-4 bg-slate-950/50 rounded-2xl border border-white/5">
                     <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Método de Pago</div>
                     <div className="flex gap-2">
-                        {(['Efectivo', 'Tarjeta', 'Uber', 'Didi', 'Rappi', 'Didi Efectivo'] as POSPaymentMethod[]).map(m => (
+                        {availablePaymentMethods.map(m => (
                             <button
                                 key={m}
                                 onClick={() => setPaymentMethod(m)}
@@ -351,7 +432,31 @@ export function POSDashboard() {
                     </div>
                 </div>
 
+                {/* Search bar */}
+                <div className="relative mb-4">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Escape' && setSearchQuery('')}
+                        placeholder="Buscar producto... (Esc para limpiar)"
+                        className="w-full bg-slate-950/80 border border-white/5 rounded-xl pl-9 pr-9 py-2.5 text-sm text-white outline-none focus:ring-1 focus:ring-indigo-500 placeholder:text-slate-600 transition-all"
+                    />
+                    {searchQuery && (
+                        <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors">
+                            <X size={14} />
+                        </button>
+                    )}
+                </div>
+
                 <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {filteredProducts.length === 0 && (
+                        <div className="col-span-full text-center py-12 text-slate-600">
+                            <Search size={32} className="mx-auto mb-3 opacity-20" />
+                            <p className="text-sm font-medium">Sin resultados para "{searchQuery}"</p>
+                        </div>
+                    )}
                     {filteredProducts.map(p => (
                         <button
                             key={p.id}
@@ -376,7 +481,7 @@ export function POSDashboard() {
 
             {/* Cart Section */}
             <div className="lg:col-span-4 flex flex-col gap-4">
-                <div className="bg-slate-900/60 backdrop-blur-xl border border-white/5 rounded-2xl p-6 shadow-2xl flex-grow h-[550px] flex flex-col">
+                <div className="bg-slate-900/60 backdrop-blur-xl border border-white/5 rounded-2xl p-6 shadow-2xl flex-grow flex flex-col min-h-[520px]">
                     <h3 className="text-lg font-bold text-white mb-4">Orden Actual</h3>
                     <div className="flex-grow space-y-3 overflow-y-auto no-scrollbar pr-1">
                         {cart.length === 0 ? (
@@ -791,6 +896,14 @@ export function POSDashboard() {
                     businessName={settings.businessName}
                 />
             )}
+        </div>
+    )}
+
+    {/* Toast notification */}
+    {toast && (
+        <div className="fixed bottom-8 right-8 z-[200] bg-emerald-500 text-white px-5 py-3 rounded-xl font-bold text-sm shadow-2xl shadow-emerald-500/30 flex items-center gap-2 animate-in slide-in-from-bottom-3 duration-200 no-print">
+            <CheckCircle size={16} />
+            {toast}
         </div>
     )}
     </>

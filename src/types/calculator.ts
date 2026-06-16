@@ -39,6 +39,10 @@ export interface ProductRowData {
     // Menu integration
     categoryId?: string;
     modifierGroupIds?: string[];
+    // Platform-specific override prices (pre-inflated)
+    didiPrice?: number;
+    uberPrice?: number;
+    rappiPrice?: number;
     // Pricing Calculator specific fields
     targetProfit?: number; // VAS A RECIBIR
     quantity?: number;

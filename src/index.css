@@ -26,6 +26,32 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  /* Thin styled scrollbar for panels that need it */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.25);
+    border-radius: 9999px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.5);
+  }
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(99,102,241,0.25) transparent;
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 @media print {
