@@ -190,7 +190,10 @@ export function useCalculator(
             const isrDeduction = isPlatform ? (baseGravable * isrPct) : 0;
 
             const totalDeductions = platformCommission + ivaCommission + ivaDeduction + isrDeduction + row.costPrice;
-            const netRevenue = grossRevenue - platformCommission - ivaCommission - ivaDeduction - isrDeduction;
+            // Para Tienda Física: el IVA embebido en el precio pertenece al SAT, no al negocio
+            const netRevenue = isPlatform
+                ? grossRevenue - platformCommission - ivaCommission - ivaDeduction - isrDeduction
+                : grossRevenue - ivaDesglose;
             const netProfit = netRevenue - row.costPrice;
 
             const profitMarginPct = grossRevenue > 0 ? (netProfit / grossRevenue) * 100 : 0;
