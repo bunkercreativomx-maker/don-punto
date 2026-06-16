@@ -19,12 +19,10 @@ export function ProfitGrid({ rows, results, updateRow, removeRow, addRow }: Prof
     return (
         <>
             {rows.length > 0 ? (
-                <div className="hidden md:grid md:grid-cols-[2fr_1.2fr_1.2fr_1.5fr_1.5fr_1.5fr_1fr_1fr_40px] gap-3 px-4 py-4 bg-slate-900/80 backdrop-blur-md rounded-t-2xl border-b border-indigo-500/10 text-[9px] lg:text-[10px] font-bold text-slate-400 uppercase tracking-wider items-center shadow-lg">
+                <div className="hidden md:grid md:grid-cols-[2fr_1.2fr_1.2fr_1.5fr_1fr_1fr_40px] gap-3 px-4 py-4 bg-slate-900/80 backdrop-blur-md rounded-t-2xl border-b border-indigo-500/10 text-[9px] lg:text-[10px] font-bold text-slate-400 uppercase tracking-wider items-center shadow-lg">
                     <div className="text-left pl-2">Producto</div>
                     <div className="text-right">Costo</div>
                     <div className="text-right">Precio</div>
-                    <div className="text-right text-rose-300">Comisión + IVA</div>
-                    <div className="text-right text-rose-300">Impuestos SAT</div>
                     <div className="text-right text-emerald-300">Recibir</div>
                     <div className="text-right text-indigo-300">Ganancia</div>
                     <div className="text-right text-amber-300">Margen</div>
@@ -52,7 +50,7 @@ export function ProfitGrid({ rows, results, updateRow, removeRow, addRow }: Prof
 
                     return (
                         <div key={row.id} className="bg-slate-900/60 backdrop-blur-md border border-white/5 md:border-t-0 p-4 md:p-0 md:px-6 md:py-4 rounded-2xl md:rounded-none last:md:rounded-b-2xl first:md:border-t-transparent hover:bg-slate-800/40 transition-colors group">
-                            <div className="grid grid-cols-1 md:grid-cols-[2fr_1.2fr_1.2fr_1.5fr_1.5fr_1.5fr_1fr_1fr_40px] gap-3 items-center">
+                            <div className="grid grid-cols-1 md:grid-cols-[2fr_1.2fr_1.2fr_1.5fr_1fr_1fr_40px] gap-3 items-center">
 
                                 {/* Name */}
                                 <div>
@@ -92,22 +90,6 @@ export function ProfitGrid({ rows, results, updateRow, removeRow, addRow }: Prof
                                             className="w-full bg-slate-950/80 border border-white/5 shadow-inner rounded-lg pl-6 pr-2 py-2 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-right font-mono text-sm"
                                         />
                                     </div>
-                                </div>
-
-                                {/* App Comission + IVA */}
-                                <div className="md:text-right font-mono flex md:block justify-between items-center text-sm">
-                                    <span className="md:hidden text-[10px] text-slate-500 uppercase tracking-wider">Comisión + IVA App</span>
-                                    <span className="text-rose-300/90 font-medium">
-                                        ${(res.platformCommission + res.ivaCommission).toFixed(2)}
-                                    </span>
-                                </div>
-
-                                {/* Taxes (SAT) */}
-                                <div className="md:text-right font-mono flex md:block justify-between items-center text-sm">
-                                    <span className="md:hidden text-[10px] text-slate-500 uppercase tracking-wider">Impuestos (SAT)</span>
-                                    <span className="text-rose-400/90 font-medium" title={`IVA Retenido: $${res.ivaDeduction.toFixed(2)} | ISR Retenido: $${res.isrDeduction.toFixed(2)}`}>
-                                        ${(res.ivaDeduction + res.isrDeduction).toFixed(2)}
-                                    </span>
                                 </div>
 
                                 {/* Monto a Recibir */}
