@@ -254,7 +254,7 @@ export function useCalculator(
                 const montoARecibir = baseForCalc - shippingCost - commission - ivaComm - ivaRet - isrRet - impuestoCedular;
                 const costoProd = (row.costPrice || 0) * quantity;
                 const utilidad = montoARecibir - costoProd;
-                const utilidadPct = costoProd > 0 ? utilidad / costoProd : 0;
+                const utilidadPct = finalClientPrice > 0 ? utilidad / finalClientPrice : 0;
 
                 const diff = montoARecibir - targetProfit;
 
@@ -326,7 +326,7 @@ export function useCalculator(
                  const montoARecibir = baseForCalc - shippingCost - commission - ivaComm - ivaRet - isrRet;
                  const costoProdR = (row.costPrice || 0) * quantity;
                  const utilidadR = montoARecibir - costoProdR;
-                 const utilidadPctR = costoProdR > 0 ? utilidadR / costoProdR : 0;
+                 const utilidadPctR = finalClientPrice > 0 ? utilidadR / finalClientPrice : 0;
 
                  finalOutput = {
                     ...finalOutput,
