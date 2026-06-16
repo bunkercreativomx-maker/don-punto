@@ -34,6 +34,7 @@ export interface CalculatorState {
 export interface ProductRowData {
     id: string;
     name: string;
+    description?: string;
     costPrice: number;
     salePrice: number;
     // Menu integration
@@ -84,4 +85,6 @@ export interface PricingCalculationResult {
     isrRetention: number;
     impuestoCedular: number;
     montoARecibir: number;
+    utilidad: number;
+    utilidadPct: number;
 }

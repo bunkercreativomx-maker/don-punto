@@ -252,6 +252,9 @@ export function useCalculator(
 
                 // M = finalClientPrice - shipping - taxes
                 const montoARecibir = baseForCalc - shippingCost - commission - ivaComm - ivaRet - isrRet - impuestoCedular;
+                const costoProd = (row.costPrice || 0) * quantity;
+                const utilidad = montoARecibir - costoProd;
+                const utilidadPct = costoProd > 0 ? utilidad / costoProd : 0;
 
                 const diff = montoARecibir - targetProfit;
 
@@ -275,6 +278,8 @@ export function useCalculator(
                     isrRetention: isrRet,
                     impuestoCedular,
                     montoARecibir,
+                    utilidad,
+                    utilidadPct,
                 };
 
                 if (diff > 0.0001) {
@@ -319,6 +324,9 @@ export function useCalculator(
                  const ivaRet = baseGravable * (settings.hasValidRFC ? 0.08 : 0.16);
                  const isrRet = baseGravable * (settings.hasValidRFC ? 0.025 : 0.20);
                  const montoARecibir = baseForCalc - shippingCost - commission - ivaComm - ivaRet - isrRet;
+                 const costoProdR = (row.costPrice || 0) * quantity;
+                 const utilidadR = montoARecibir - costoProdR;
+                 const utilidadPctR = costoProdR > 0 ? utilidadR / costoProdR : 0;
 
                  finalOutput = {
                     ...finalOutput,
@@ -334,6 +342,8 @@ export function useCalculator(
                     ivaRetention: ivaRet,
                     isrRetention: isrRet,
                     montoARecibir,
+                    utilidad: utilidadR,
+                    utilidadPct: utilidadPctR,
                  };
             }
 
