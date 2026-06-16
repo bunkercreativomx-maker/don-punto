@@ -19,11 +19,12 @@ export function ProfitGrid({ rows, results, updateRow, removeRow, addRow }: Prof
     return (
         <>
             {rows.length > 0 ? (
-                <div className="hidden md:grid md:grid-cols-[2fr_1.2fr_1.2fr_1.5fr_1fr_1fr_40px] gap-3 px-4 py-4 bg-slate-900/80 backdrop-blur-md rounded-t-2xl border-b border-indigo-500/10 text-[9px] lg:text-[10px] font-bold text-slate-400 uppercase tracking-wider items-center shadow-lg">
+                <div className="hidden md:grid md:grid-cols-[2fr_1.2fr_1.2fr_1.5fr_1.2fr_1fr_1fr_40px] gap-3 px-4 py-4 bg-slate-900/80 backdrop-blur-md rounded-t-2xl border-b border-indigo-500/10 text-[9px] lg:text-[10px] font-bold text-slate-400 uppercase tracking-wider items-center shadow-lg">
                     <div className="text-left pl-2">Producto</div>
                     <div className="text-right">Costo</div>
                     <div className="text-right">Precio</div>
                     <div className="text-right text-emerald-300">Recibir</div>
+                    <div className="text-right text-violet-300">IVA (desglose)</div>
                     <div className="text-right text-indigo-300">Ganancia</div>
                     <div className="text-right text-amber-300">Margen</div>
                     <div className="text-center"></div>
@@ -50,7 +51,7 @@ export function ProfitGrid({ rows, results, updateRow, removeRow, addRow }: Prof
 
                     return (
                         <div key={row.id} className="bg-slate-900/60 backdrop-blur-md border border-white/5 md:border-t-0 p-4 md:p-0 md:px-6 md:py-4 rounded-2xl md:rounded-none last:md:rounded-b-2xl first:md:border-t-transparent hover:bg-slate-800/40 transition-colors group">
-                            <div className="grid grid-cols-1 md:grid-cols-[2fr_1.2fr_1.2fr_1.5fr_1fr_1fr_40px] gap-3 items-center">
+                            <div className="grid grid-cols-1 md:grid-cols-[2fr_1.2fr_1.2fr_1.5fr_1.2fr_1fr_1fr_40px] gap-3 items-center">
 
                                 {/* Name */}
                                 <div>
@@ -97,6 +98,14 @@ export function ProfitGrid({ rows, results, updateRow, removeRow, addRow }: Prof
                                     <span className="md:hidden text-[10px] text-slate-500 uppercase tracking-wider">Monto a Recibir</span>
                                     <span className="text-emerald-300/90 font-medium whitespace-nowrap">
                                         ${res.netRevenue.toFixed(2)}
+                                    </span>
+                                </div>
+
+                                {/* IVA Desglose */}
+                                <div className="md:text-right font-mono flex md:block justify-between items-center">
+                                    <span className="md:hidden text-[10px] text-slate-500 uppercase tracking-wider">IVA (desglose)</span>
+                                    <span className="text-violet-300/90 font-medium whitespace-nowrap">
+                                        ${res.ivaDesglose.toFixed(2)}
                                     </span>
                                 </div>
 

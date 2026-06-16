@@ -951,6 +951,13 @@ function App() {
                                 </div>
                             </label>
                           </div>
+                          <div className="space-y-4">
+                            <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Tasa de IVA (desglose en precio)</label>
+                            <div className="grid grid-cols-2 gap-4">
+                                <button onClick={() => updateSetting('ivaRate', 0.16)} className={cn("py-4 rounded-2xl text-xs font-black transition-all border", (settings.ivaRate ?? 0.16) === 0.16 ? "bg-indigo-500 border-indigo-400 text-white shadow-xl shadow-indigo-500/20" : "bg-slate-950 border-white/5 text-slate-500 hover:text-slate-300")}>16% — Resto de la República</button>
+                                <button onClick={() => updateSetting('ivaRate', 0.08)} className={cn("py-4 rounded-2xl text-xs font-black transition-all border", (settings.ivaRate ?? 0.16) === 0.08 ? "bg-indigo-500 border-indigo-400 text-white shadow-xl shadow-indigo-500/20" : "bg-slate-950 border-white/5 text-slate-500 hover:text-slate-300")}>8% — Zona Fronteriza</button>
+                            </div>
+                          </div>
                       </div>
                   </div>
               )}

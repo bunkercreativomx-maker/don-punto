@@ -13,7 +13,8 @@ const DEFAULT_STATE: CalculatorState = {
     taxRegime: 'PFAE',
     paymentMethod: 'Transferencia',
     hasValidRFC: true,
-    baseCommissionPct: 30, // Default 30% commission
+    baseCommissionPct: 30,
+    ivaRate: 0.16,
 };
 
 export function useCalculator(
@@ -158,31 +159,31 @@ export function useCalculator(
 
     const results = useMemo(() => {
         return rows.map((row): CalculationResult => {
-            // PLACHOLDER LOGIC: Revisit when exact formulas are available
             const grossRevenue = row.salePrice;
+            const ivaRate = settings.ivaRate ?? 0.16;
+
+            // IVA desglose: todos los precios incluyen IVA, extraer la parte proporcional
+            const ivaDesglose = grossRevenue * ivaRate / (1 + ivaRate);
 
             // Commission & IVA only apply if NOT in 'Efectivo' (Physical Store)
             const isPlatform = settings.paymentMethod !== 'Efectivo';
-            
+
             const platformCommission = isPlatform ? grossRevenue * (settings.baseCommissionPct / 100) : 0;
-            const ivaCommission = isPlatform ? platformCommission * 0.16 : 0;
+            const ivaCommission = isPlatform ? platformCommission * ivaRate : 0;
 
             // Base Gravable for Taxes (Only counts if it's Transferencia, Efectivo = 0)
-            const baseGravable = settings.paymentMethod === 'Efectivo' ? 0 : (grossRevenue / 1.16);
+            const baseGravable = settings.paymentMethod === 'Efectivo' ? 0 : (grossRevenue / (1 + ivaRate));
 
-            // Calculate IVA and ISR Retenciones based on RFC
-            // PM and PFAE operate identically based on 2024+ reform rules for platforms
+            // Retenciones SAT por plataformas (tasa fija según RFC, independiente de zona)
             let ivaPct = 0;
             let isrPct = 0;
 
             if (!settings.hasValidRFC) {
-                // If NO RFC: 36% total retention (16% IVA + 20% ISR applied together often just grouped under IVA/ISR)
                 ivaPct = 0.16;
                 isrPct = 0.20;
             } else {
-                // With Valid RFC
-                ivaPct = 0.08;   // 8% IVA Retention
-                isrPct = 0.025;  // 2.5% ISR Retention as per Excel sheet
+                ivaPct = 0.08;
+                isrPct = 0.025;
             }
 
             const ivaDeduction = isPlatform ? (baseGravable * ivaPct) : 0;
@@ -205,6 +206,7 @@ export function useCalculator(
                 netRevenue,
                 netProfit,
                 profitMarginPct,
+                ivaDesglose,
             };
         });
     }, [rows, settings]);
@@ -216,15 +218,15 @@ export function useCalculator(
             const discountPct = (row.discountPct || 0) / 100;
             const subsidyPct = (row.subsidyPct || 0) / 100;
             const shippingCost = row.shippingCost || 0;
+            const ivaRate = settings.ivaRate ?? 0.16;
 
-            let P = 0; // Unit price
+            let P = 0;
             let low = 0;
             let high = targetProfit > 0 ? targetProfit * 10 : 20000;
-            if (targetProfit <= 0) high = 100; // fallback if 0
+            if (targetProfit <= 0) high = 100;
 
             let finalOutput: Partial<PricingCalculationResult> = {};
 
-            // Loop up to 60 times for higher decimal precision binary search
             for (let i = 0; i < 60; i++) {
                 P = (low + high) / 2;
 
@@ -235,22 +237,15 @@ export function useCalculator(
                 const finalClientPrice = clientBase - subsidyAmount;
 
                 const baseForCalc = finalClientPrice;
-
                 const commission = baseForCalc * (settings.baseCommissionPct / 100);
-                const ivaComm = commission * 0.16;
-
-                // IMPORTANTE: En la pestaña de cálculo de PRECIOS de plataforma, 
-                // siempre asumimos que es una transacción de plataforma (con impuestos), 
-                // independientemente de si la pestaña de GANANCIAS está en modo Efectivo.
-                const baseGravable = baseForCalc / 1.16;
-                let ivaPct = settings.hasValidRFC ? 0.08 : 0.16;
-                let isrPct = settings.hasValidRFC ? 0.025 : 0.20;
-
+                const ivaComm = commission * ivaRate;
+                const baseGravable = baseForCalc / (1 + ivaRate);
+                const ivaPct = settings.hasValidRFC ? 0.08 : 0.16;
+                const isrPct = settings.hasValidRFC ? 0.025 : 0.20;
                 const ivaRet = baseGravable * ivaPct;
                 const isrRet = baseGravable * isrPct;
                 const impuestoCedular = 0;
 
-                // M = finalClientPrice - shipping - taxes
                 const montoARecibir = baseForCalc - shippingCost - commission - ivaComm - ivaRet - isrRet - impuestoCedular;
                 const costoProd = (row.costPrice || 0) * quantity;
                 const utilidad = montoARecibir - costoProd;
@@ -291,27 +286,20 @@ export function useCalculator(
                 }
             }
 
-            // POST-FIX: If result is something like 184.99997, it's effectively 185.00
-            // The user prefers "Clean" prices if they satisfy the target within a tiny margin of error.
+            // POST-FIX: round clean prices if they satisfy target within margin
             const roundedP = Math.round(P * 100) / 100;
-            // Re-test the rounded value to see if it still satisfies the target profit sufficiently
             const T_round = roundedP * quantity;
             const finalClientPrice_round = (T_round * (1 - discountPct)) - ((T_round * (1 - discountPct)) * subsidyPct);
             const baseForCalc_round = finalClientPrice_round;
             const commission_round = baseForCalc_round * (settings.baseCommissionPct / 100);
-            const ivaComm_round = commission_round * 0.16;
-            const baseGravable_round = baseForCalc_round / 1.16;
-            let ivaPct_round = settings.hasValidRFC ? 0.08 : 0.16;
-            let isrPct_round = settings.hasValidRFC ? 0.025 : 0.20;
-            const ivaRet_round = baseGravable_round * ivaPct_round;
-            const isrRet_round = baseGravable_round * isrPct_round;
+            const ivaComm_round = commission_round * ivaRate;
+            const baseGravable_round = baseForCalc_round / (1 + ivaRate);
+            const ivaRet_round = baseGravable_round * (settings.hasValidRFC ? 0.08 : 0.16);
+            const isrRet_round = baseGravable_round * (settings.hasValidRFC ? 0.025 : 0.20);
             const montoARecibir_round = baseForCalc_round - shippingCost - commission_round - ivaComm_round - ivaRet_round - isrRet_round;
 
-            // If the rounded price gives essentially the same result (or better), use it.
-            // This prevents "184.99" when "$185.00" was intended.
             if (Math.abs(montoARecibir_round - targetProfit) < 0.01) {
                  P = roundedP;
-                 // Re-calculate the final results with this cleaner P
                  const T = P * quantity;
                  const clientBase = T * (1 - discountPct);
                  const discountAmount = T * discountPct;
@@ -319,8 +307,8 @@ export function useCalculator(
                  const finalClientPrice = clientBase - subsidyAmount;
                  const baseForCalc = finalClientPrice;
                  const commission = baseForCalc * (settings.baseCommissionPct / 100);
-                 const ivaComm = commission * 0.16;
-                 const baseGravable = baseForCalc / 1.16;
+                 const ivaComm = commission * ivaRate;
+                 const baseGravable = baseForCalc / (1 + ivaRate);
                  const ivaRet = baseGravable * (settings.hasValidRFC ? 0.08 : 0.16);
                  const isrRet = baseGravable * (settings.hasValidRFC ? 0.025 : 0.20);
                  const montoARecibir = baseForCalc - shippingCost - commission - ivaComm - ivaRet - isrRet;

@@ -29,6 +29,7 @@ export interface CalculatorState {
     paymentMethod: PaymentMethod;
     hasValidRFC: boolean;
     baseCommissionPct: number;
+    ivaRate: 0.16 | 0.08;
 }
 
 export interface ProductRowData {
@@ -63,6 +64,7 @@ export interface CalculationResult {
     netRevenue: number;
     netProfit: number;
     profitMarginPct: number;
+    ivaDesglose: number;
 }
 
 export interface PricingCalculationResult {
