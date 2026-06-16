@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { useCalculator } from './hooks/useCalculator';
 import type { Platform, PaymentMethod } from './types/calculator';
-import { BarChart3, ShoppingBasket, Calculator, Layers, User, LineChart, Settings, Plus, Lock, Key, Sparkles, Receipt, LogOut, FileSpreadsheet, TrendingUp, Package, Target, BookOpen, Wallet } from 'lucide-react';
+import { BarChart3, ShoppingBasket, Calculator, Layers, User, LineChart, Settings, Plus, Lock, Key, Sparkles, Receipt, LogOut, FileSpreadsheet, TrendingUp, Package, Target, BookOpen, Wallet, Search } from 'lucide-react';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { ProfitGrid } from './components/ProfitGrid';
@@ -64,6 +64,9 @@ function App() {
     loadCloudMenuRef.current = loadCloudMenu;
   }, [loadCloudMenu]);
   
+  const [profitsSearch, setProfitsSearch] = useState('');
+  const [pricingSearch, setPricingSearch] = useState('');
+
   const [activeTab, setActiveTab] = useState<'profits' | 'pricing' | 'pos' | 'menu' | 'reports' | 'tickets' | 'settings' | 'inventory' | 'engineering' | 'recipes' | 'financial'>(() => {
     const saved = localStorage.getItem('donPuntoActiveTab');
     return (saved as any) || 'profits';
@@ -786,7 +789,23 @@ function App() {
               {activeTab === 'profits' && (
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     <div className="lg:col-span-9">
-                        <ProfitGrid rows={rows} results={results} updateRow={updateRow} removeRow={removeRow} addRow={addRow} />
+                        <div className="relative mb-4">
+                            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                            <input
+                                type="text"
+                                value={profitsSearch}
+                                onChange={(e) => setProfitsSearch(e.target.value)}
+                                placeholder="Buscar platillo..."
+                                className="w-full bg-slate-900 border border-white/5 rounded-xl pl-9 pr-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/30 transition-all"
+                            />
+                        </div>
+                        <ProfitGrid
+                            rows={rows.filter(r => r.name.toLowerCase().includes(profitsSearch.toLowerCase()))}
+                            results={results}
+                            updateRow={updateRow}
+                            removeRow={removeRow}
+                            addRow={addRow}
+                        />
                     </div>
                     <div className="lg:col-span-3">
                          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
@@ -803,7 +822,26 @@ function App() {
                 </div>
               )}
               {activeTab === 'pricing' && (
-                <PricingGrid rows={rows} pricingResults={pricingResults} updateRow={updateRow} removeRow={removeRow} addRow={addRow} syncWithStorePrices={syncWithStorePrices} />
+                <div>
+                    <div className="relative mb-4">
+                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                        <input
+                            type="text"
+                            value={pricingSearch}
+                            onChange={(e) => setPricingSearch(e.target.value)}
+                            placeholder="Buscar platillo..."
+                            className="w-full bg-slate-900 border border-white/5 rounded-xl pl-9 pr-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 focus:border-indigo-500/30 transition-all"
+                        />
+                    </div>
+                    <PricingGrid
+                        rows={rows.filter(r => r.name.toLowerCase().includes(pricingSearch.toLowerCase()))}
+                        pricingResults={pricingResults}
+                        updateRow={updateRow}
+                        removeRow={removeRow}
+                        addRow={addRow}
+                        syncWithStorePrices={syncWithStorePrices}
+                    />
+                </div>
               )}
               {activeTab === 'pos' && <POSDashboard />}
               {activeTab === 'reports' && <POSReports />}
