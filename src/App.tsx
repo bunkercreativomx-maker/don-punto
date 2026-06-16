@@ -741,7 +741,7 @@ function App() {
                   {activeTab === 'financial' && 'Estado Financiero Semanal'}
                 </h1>
                 <p className="text-slate-500 mt-2 font-medium tracking-wide">
-                  {activeTab === 'profits' && `Desglose matemático de retorno para ${settings.platform}.`}
+                  {activeTab === 'profits' && ''}
                   {activeTab === 'pricing' && 'Calcula precios sugeridos para no perder ni un peso en plataformas.'}
                   {activeTab === 'pos' && 'Registra tus ventas y personaliza pedidos en tiempo real.'}
                   {activeTab === 'reports' && 'Analiza tu IVA y revisa los desgloses generales de ganancias.'}
