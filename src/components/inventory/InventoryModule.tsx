@@ -104,13 +104,21 @@ function useHistorial(): [RegistroDiario[], (d: RegistroDiario[]) => void] {
 
 function fileToBase64(file: File): Promise<{ base64: string; mimeType: string }> {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      resolve({ base64: result.split(',')[1], mimeType: file.type || 'image/jpeg' });
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const MAX = 1200;
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width  = Math.round(img.width  * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+      resolve({ base64: dataUrl.split(',')[1], mimeType: 'image/jpeg' });
     };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
+    img.onerror = reject;
+    img.src = url;
   });
 }
 
@@ -164,8 +172,15 @@ function FacturaModal({ onClose, onConfirm }: { onClose: () => void; onConfirm: 
       } else {
         setItems(data.items);
       }
-    } catch {
-      setError('Error al analizar la factura. Verifica la conexión e intenta de nuevo.');
+    } catch (err: any) {
+      const msg = err?.message || '';
+      if (msg.includes('404')) {
+        setError('Función no disponible en local. Prueba en tu URL de Vercel o corre "npx vercel dev".');
+      } else if (msg.includes('500')) {
+        setError('Error del servidor: verifica que GEMINI_API_KEY esté configurada en Vercel.');
+      } else {
+        setError('Error al analizar la factura. Verifica la conexión e intenta de nuevo.');
+      }
     } finally {
       setLoading(false);
     }
