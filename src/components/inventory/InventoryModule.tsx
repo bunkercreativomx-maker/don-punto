@@ -2,9 +2,10 @@ import { useState, useMemo, useRef } from 'react';
 import {
   Plus, Trash2, Edit3, Save, X, Package, AlertTriangle, ShoppingCart,
   CheckCircle, Camera, Loader2, AlertCircle, ClipboardCheck, History,
-  TrendingDown, ChevronDown,
+  TrendingDown, ChevronDown, FileDown,
 } from 'lucide-react';
 import clsx from 'clsx';
+import * as XLSX from 'xlsx';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -475,6 +476,49 @@ export function InventoryModule() {
 
   const F = (v: number) => v.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+  function exportarExcel() {
+    const wb = XLSX.utils.book_new();
+
+    // Hoja 1: Inventario Actual
+    const invRows = insumos.map(i => ({
+      'Insumo': i.nombre,
+      'Unidad': i.unidad,
+      'Grupo': i.grupo,
+      'Área': i.area,
+      'Saldo Actual': i.saldoActual,
+      'Costo Unitario ($)': i.costoUnitario,
+      'Valor Total ($)': +(i.saldoActual * i.costoUnitario).toFixed(2),
+      'Consumo Mín/Día': i.consumoMinDiario,
+      'Consumo Máx/Día': i.consumoMaxDiario,
+      'Estado': getStatus(i) === 'ok' ? 'OK' : getStatus(i) === 'warning' ? 'Pedir pronto' : 'Crítico',
+    }));
+    const ws1 = XLSX.utils.json_to_sheet(invRows);
+    ws1['!cols'] = [20, 8, 20, 12, 12, 16, 14, 16, 16, 14].map(w => ({ wch: w }));
+    XLSX.utils.book_append_sheet(wb, ws1, 'Inventario Actual');
+
+    // Hoja 2: Historial de Cierres
+    if (historial.length > 0) {
+      const histRows = [...historial]
+        .sort((a, b) => b.fecha.localeCompare(a.fecha))
+        .map(r => ({
+          'Fecha': r.fecha,
+          'Insumo': r.insumoNombre,
+          'Unidad': r.unidad,
+          'Saldo Inicial': r.saldoInicial,
+          'Comprado': r.comprado,
+          'Saldo Final': r.saldoFinal,
+          'Consumido': r.consumido,
+          'Costo Unit. ($)': r.costoUnitario ?? '',
+        }));
+      const ws2 = XLSX.utils.json_to_sheet(histRows);
+      ws2['!cols'] = [12, 20, 8, 12, 10, 12, 10, 14].map(w => ({ wch: w }));
+      XLSX.utils.book_append_sheet(wb, ws2, 'Historial');
+    }
+
+    const fecha = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(wb, `inventario-donpunto-${fecha}.xlsx`);
+  }
+
   const VIEW_TABS: { key: View; label: string; icon: any; color: string }[] = [
     { key: 'inventario', label: 'Inventario', icon: Package, color: 'teal' },
     { key: 'cierre',     label: 'Cierre del Día', icon: ClipboardCheck, color: 'amber' },
@@ -541,6 +585,15 @@ export function InventoryModule() {
         </div>
 
         <div className="flex items-center gap-2">
+          {insumos.length > 0 && (
+            <button
+              onClick={exportarExcel}
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl font-black text-sm transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
+              title="Exportar inventario e historial a Excel"
+            >
+              <FileDown size={16} /> EXPORTAR
+            </button>
+          )}
           <button
             onClick={() => setShowFactura(true)}
             className="flex items-center gap-2 bg-teal-500 hover:bg-teal-400 text-white px-4 py-2.5 rounded-xl font-black text-sm transition-all shadow-lg shadow-teal-500/20 active:scale-95"
