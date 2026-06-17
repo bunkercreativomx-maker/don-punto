@@ -14,12 +14,14 @@ export default async function handler(req: any, res: any) {
 
   const prompt = `Eres un asistente para restaurantes en México. Analiza esta imagen de una factura, ticket o nota de compra.
 
-Extrae TODOS los productos/insumos comprados con sus cantidades y unidades exactas como aparecen en el documento.
+Extrae TODOS los productos/insumos comprados con sus cantidades, unidades y precios unitarios exactos como aparecen en el documento.
 
 Reglas:
 - El nombre del insumo debe ser limpio, capitalizado y en español (ej: "Tomate", "Lechuga romana", "Pollo entero")
 - La unidad debe ser la que aparece en la factura (kg, pz, piezas, litros, l, g, ml, caja, paquete, bolsa, etc.)
 - La cantidad debe ser numérica (ej: 5, 2.5, 12)
+- El precio unitario es el costo POR UNIDAD (no el total de la línea). Si solo hay total, divide por cantidad.
+- Si no aparece precio, usa 0
 - Si no es una factura de alimentos/insumos, devuelve items vacío
 
 Responde ÚNICAMENTE con JSON válido sin texto adicional:
@@ -28,7 +30,8 @@ Responde ÚNICAMENTE con JSON válido sin texto adicional:
     {
       "nombre": "string",
       "cantidad": number,
-      "unidad": "string"
+      "unidad": "string",
+      "precioUnitario": number
     }
   ]
 }`;

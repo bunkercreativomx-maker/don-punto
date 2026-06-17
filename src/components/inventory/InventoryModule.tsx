@@ -51,7 +51,7 @@ interface CierreDelDia {
   registros: RegistroDiario[];
 }
 
-interface FacturaItem { nombre: string; cantidad: number; unidad: string; }
+interface FacturaItem { nombre: string; cantidad: number; unidad: string; precioUnitario?: number; }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -271,11 +271,19 @@ function FacturaModal({ onClose, onConfirm }: { onClose: () => void; onConfirm: 
                     />
                     <input
                       type="number" min={0} step={0.01}
-                      className="w-16 bg-slate-800 border border-white/10 rounded-lg px-2 py-1 text-white text-sm text-right outline-none tabular-nums"
+                      className="w-12 bg-slate-800 border border-white/10 rounded-lg px-1.5 py-1 text-white text-xs text-right outline-none tabular-nums"
                       value={item.cantidad}
                       onChange={e => setItems(p => p.map((it, j) => j === i ? { ...it, cantidad: parseFloat(e.target.value) || 0 } : it))}
                     />
-                    <span className="text-xs text-teal-400 font-bold w-10 shrink-0 truncate">{item.unidad}</span>
+                    <span className="text-xs text-teal-400 font-bold w-8 shrink-0 truncate">{item.unidad}</span>
+                    <span className="text-slate-600 text-xs">$</span>
+                    <input
+                      type="number" min={0} step={0.01}
+                      className="w-12 bg-slate-800 border border-white/10 rounded-lg px-1.5 py-1 text-white text-xs text-right outline-none tabular-nums"
+                      value={item.precioUnitario || ''}
+                      onChange={e => setItems(p => p.map((it, j) => j === i ? { ...it, precioUnitario: parseFloat(e.target.value) || 0 } : it))}
+                      placeholder="0.00"
+                    />
                     <button onClick={() => setItems(p => p.filter((_, j) => j !== i))} className="text-slate-600 hover:text-rose-400 transition-colors shrink-0">
                       <X size={14} />
                     </button>
@@ -373,7 +381,7 @@ export function InventoryModule() {
           grupo: 'Otros',
           area: 'General',
           saldoActual: item.cantidad,
-          costoUnitario: 0,
+          costoUnitario: item.precioUnitario || 0,
           consumoMinDiario: 0,
           consumoMaxDiario: 0,
           tiempoReposicion: 7,
@@ -382,7 +390,9 @@ export function InventoryModule() {
         idx = updated.length - 1;
         newCompras.push({ id: crypto.randomUUID(), fecha: today, insumoId: newIns.id, insumoNombre: newIns.nombre, unidad: item.unidad, cantidad: item.cantidad });
       } else {
-        updated[idx] = { ...updated[idx], saldoActual: updated[idx].saldoActual + item.cantidad, unidad: item.unidad };
+        // Si el insumo ya existe y no tiene costo, asignar el de la factura
+        const costoActualizado = updated[idx].costoUnitario === 0 && item.precioUnitario ? item.precioUnitario : updated[idx].costoUnitario;
+        updated[idx] = { ...updated[idx], saldoActual: updated[idx].saldoActual + item.cantidad, unidad: item.unidad, costoUnitario: costoActualizado };
         newCompras.push({ id: crypto.randomUUID(), fecha: today, insumoId: updated[idx].id, insumoNombre: updated[idx].nombre, unidad: item.unidad, cantidad: item.cantidad });
       }
     });
