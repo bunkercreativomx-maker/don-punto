@@ -165,7 +165,10 @@ function FacturaModal({ onClose, onConfirm }: { onClose: () => void; onConfirm: 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageBase64: base64, mimeType }),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        throw new Error(`HTTP ${res.status}: ${body.slice(0, 200)}`);
+      }
       const data = await res.json();
       if (!data.items?.length) {
         setError('No se detectaron productos. Intenta con una foto más clara o mejor iluminación.');
@@ -173,14 +176,8 @@ function FacturaModal({ onClose, onConfirm }: { onClose: () => void; onConfirm: 
         setItems(data.items);
       }
     } catch (err: any) {
-      const msg = err?.message || '';
-      if (msg.includes('404')) {
-        setError('Función no disponible en local. Prueba en tu URL de Vercel o corre "npx vercel dev".');
-      } else if (msg.includes('500')) {
-        setError('Error del servidor: verifica que GEMINI_API_KEY esté configurada en Vercel.');
-      } else {
-        setError('Error al analizar la factura. Verifica la conexión e intenta de nuevo.');
-      }
+      const msg = err?.message || 'desconocido';
+      setError(`Error: ${msg}`);
     } finally {
       setLoading(false);
     }
