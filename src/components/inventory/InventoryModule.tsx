@@ -478,6 +478,7 @@ export function InventoryModule() {
 
   function exportarExcel() {
     const wb = XLSX.utils.book_new();
+    const insumosById = new Map(insumos.map(i => [i.id, i]));
 
     // Hoja 1: Inventario Actual
     const invRows = insumos.map(i => ({
@@ -496,10 +497,30 @@ export function InventoryModule() {
     ws1['!cols'] = [20, 8, 20, 12, 12, 16, 14, 16, 16, 14].map(w => ({ wch: w }));
     XLSX.utils.book_append_sheet(wb, ws1, 'Inventario Actual');
 
-    // Hoja 2: Historial de Cierres
+    // Hoja 2: Historial de Compras (todas las entradas de compra por fecha)
+    if (comprasHoy.length > 0) {
+      const comprasRows = [...comprasHoy]
+        .sort((a, b) => b.fecha.localeCompare(a.fecha) || a.insumoNombre.localeCompare(b.insumoNombre))
+        .map(c => {
+          const costo = insumosById.get(c.insumoId)?.costoUnitario ?? 0;
+          return {
+            'Fecha': c.fecha,
+            'Insumo': c.insumoNombre,
+            'Unidad': c.unidad,
+            'Cantidad Comprada': c.cantidad,
+            'Costo Unitario ($)': costo,
+            'Total ($)': +(c.cantidad * costo).toFixed(2),
+          };
+        });
+      const ws2 = XLSX.utils.json_to_sheet(comprasRows);
+      ws2['!cols'] = [12, 24, 8, 16, 16, 12].map(w => ({ wch: w }));
+      XLSX.utils.book_append_sheet(wb, ws2, 'Historial de Compras');
+    }
+
+    // Hoja 3: Historial de Cierres (consumo diario por insumo)
     if (historial.length > 0) {
       const histRows = [...historial]
-        .sort((a, b) => b.fecha.localeCompare(a.fecha))
+        .sort((a, b) => b.fecha.localeCompare(a.fecha) || a.insumoNombre.localeCompare(b.insumoNombre))
         .map(r => ({
           'Fecha': r.fecha,
           'Insumo': r.insumoNombre,
@@ -509,10 +530,11 @@ export function InventoryModule() {
           'Saldo Final': r.saldoFinal,
           'Consumido': r.consumido,
           'Costo Unit. ($)': r.costoUnitario ?? '',
+          'Costo Consumido ($)': r.costoUnitario ? +(r.consumido * r.costoUnitario).toFixed(2) : '',
         }));
-      const ws2 = XLSX.utils.json_to_sheet(histRows);
-      ws2['!cols'] = [12, 20, 8, 12, 10, 12, 10, 14].map(w => ({ wch: w }));
-      XLSX.utils.book_append_sheet(wb, ws2, 'Historial');
+      const ws3 = XLSX.utils.json_to_sheet(histRows);
+      ws3['!cols'] = [12, 20, 8, 12, 10, 12, 10, 14, 16].map(w => ({ wch: w }));
+      XLSX.utils.book_append_sheet(wb, ws3, 'Cierres Diarios');
     }
 
     const fecha = new Date().toISOString().split('T')[0];
