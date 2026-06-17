@@ -40,6 +40,15 @@ interface RegistroDiario {
   comprado: number;
   saldoFinal: number;
   consumido: number;
+  costoUnitario?: number;
+}
+
+interface CierreDelDia {
+  id: string;
+  fecha: string;
+  costoSaldoActual: number;
+  costoCompradoHoy: number;
+  registros: RegistroDiario[];
 }
 
 interface FacturaItem { nombre: string; cantidad: number; unidad: string; }
@@ -99,6 +108,14 @@ function useHistorial(): [RegistroDiario[], (d: RegistroDiario[]) => void] {
     try { return JSON.parse(localStorage.getItem('donPuntoHistorial') || '[]'); } catch { return []; }
   });
   const set = (d: RegistroDiario[]) => { setState(d); localStorage.setItem('donPuntoHistorial', JSON.stringify(d)); };
+  return [items, set];
+}
+
+function useCierresDiarios(): [CierreDelDia[], (d: CierreDelDia[]) => void] {
+  const [items, setState] = useState<CierreDelDia[]>(() => {
+    try { return JSON.parse(localStorage.getItem('donPuntoCierresDiarios') || '[]'); } catch { return []; }
+  });
+  const set = (d: CierreDelDia[]) => { setState(d); localStorage.setItem('donPuntoCierresDiarios', JSON.stringify(d)); };
   return [items, set];
 }
 
@@ -293,6 +310,7 @@ export function InventoryModule() {
   const [insumos, setInsumos] = useInsumos();
   const [comprasHoy, setComprasHoy] = useComprasHoy();
   const [historial, setHistorial] = useHistorial();
+  const [cierresDiarios, setCierresDiarios] = useCierresDiarios();
 
   const [view, setView] = useState<View>('inventario');
   const [showFactura, setShowFactura] = useState(false);
@@ -319,7 +337,11 @@ export function InventoryModule() {
 
   const analyzed = useMemo(() => insumos.map(i => ({ ...i, status: getStatus(i) })), [insumos]);
   const alertas = analyzed.filter(i => i.status !== 'ok');
-  const totalValor = insumos.reduce((s, i) => s + i.saldoActual * i.costoUnitario, 0);
+  const costoSaldoActual = insumos.reduce((s, i) => s + i.saldoActual * i.costoUnitario, 0);
+  const costoCompradoHoy = comprasDeHoy.reduce((s, c) => {
+    const ins = insumos.find(i => i.id === c.insumoId);
+    return s + (ins ? c.cantidad * ins.costoUnitario : 0);
+  }, 0);
 
   function openAdd() { setEditId(null); setForm(BLANK_INSUMO); setShowForm(true); }
   function openEdit(i: Insumo) { setEditId(i.id); setForm({ ...i }); setShowForm(true); }
@@ -397,11 +419,23 @@ export function InventoryModule() {
         comprado,
         saldoFinal,
         consumido,
+        costoUnitario: ins.costoUnitario,
       });
       return { ...ins, saldoActual: saldoFinal };
     });
     setInsumos(updatedInsumos);
     setHistorial([...historial, ...registros]);
+
+    // Guardar Cierre del Día con costos para Financiero
+    const cierre: CierreDelDia = {
+      id: crypto.randomUUID(),
+      fecha: today,
+      costoSaldoActual,
+      costoCompradoHoy,
+      registros,
+    };
+    setCierresDiarios([...cierresDiarios, cierre]);
+
     setView('inventario');
     setCierreValues({});
   }
@@ -449,16 +483,18 @@ export function InventoryModule() {
           <div className="text-2xl font-black text-white mt-1">{insumos.length}</div>
         </div>
         <div className="bg-teal-500/10 border border-teal-500/20 rounded-2xl p-4">
-          <div className="text-xs text-teal-400 font-bold uppercase tracking-widest">Valor Inventario</div>
-          <div className="text-2xl font-black text-teal-400 mt-1">${F(totalValor)}</div>
+          <div className="text-xs text-teal-400 font-bold uppercase tracking-widest">Valor Saldo Actual</div>
+          <div className="text-2xl font-black text-teal-400 mt-1">${F(costoSaldoActual)}</div>
+          <div className="text-[10px] text-teal-500 mt-2">Saldo en existencia × costo unit.</div>
+        </div>
+        <div className="bg-violet-500/10 border border-violet-500/20 rounded-2xl p-4">
+          <div className="text-xs text-violet-400 font-bold uppercase tracking-widest">Comprado Hoy</div>
+          <div className="text-2xl font-black text-violet-400 mt-1">${F(costoCompradoHoy)}</div>
+          <div className="text-[10px] text-violet-500 mt-2">{comprasDeHoy.length} compras del día</div>
         </div>
         <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4">
           <div className="text-xs text-amber-400 font-bold uppercase tracking-widest">Alertas de Stock</div>
           <div className="text-2xl font-black text-amber-400 mt-1">{alertas.length}</div>
-        </div>
-        <div className="bg-violet-500/10 border border-violet-500/20 rounded-2xl p-4">
-          <div className="text-xs text-violet-400 font-bold uppercase tracking-widest">Compras Hoy</div>
-          <div className="text-2xl font-black text-violet-400 mt-1">{comprasDeHoy.length}</div>
         </div>
       </div>
 
