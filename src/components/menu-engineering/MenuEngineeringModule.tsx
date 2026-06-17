@@ -1,410 +1,330 @@
-import { useState, useMemo } from 'react';
-import { Plus, Trash2, Star, TrendingDown, Eye, Frown, Target, Edit3, Save, X, ChevronDown } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { usePOS } from '../../hooks/usePOS';
+import { useCalculator } from '../../hooks/useCalculator';
+import { Sparkles, Loader2, Trophy, AlertCircle } from 'lucide-react';
 import clsx from 'clsx';
 
-interface MenuDish {
+const MONTH_NAMES = [
+  'Enero','Febrero','Marzo','Abril','Mayo','Junio',
+  'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre',
+];
+
+interface RankedProduct {
   id: string;
-  nombre: string;
-  ventas: number;
-  costo: number;
-  pvp: number;
-  categoria: string;
+  name: string;
+  quantity: number;
+  rank: number;
 }
 
-type Classification = 'ESTRELLA' | 'VACA' | 'ENIGMA' | 'PERRO';
+function useMonthlyRanking() {
+  const { transactions } = usePOS();
+  const { rows } = useCalculator();
 
-interface AnalyzedDish extends MenuDish {
-  margenContribucion: number;
-  porcentajeCosto: number;
-  totalVentas: number;
-  totalMC: number;
-  indicePopularidad: number;
-  clasificacionRentabilidad: 'ALTO' | 'BAJO';
-  clasificacionPopularidad: 'ALTO' | 'BAJO';
-  clasificacion: Classification;
+  return useMemo(() => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    const monthTxs = transactions.filter(tx => {
+      const d = new Date(tx.date);
+      return d >= start && d <= end;
+    });
+
+    // Sum quantities per rowId
+    const salesMap = new Map<string, number>();
+    monthTxs.forEach(tx => {
+      tx.items?.forEach(item => {
+        salesMap.set(item.rowId, (salesMap.get(item.rowId) || 0) + item.quantity);
+      });
+    });
+
+    const rowsById = new Map(rows.map(r => [r.id, r]));
+
+    // Build ranked list from products that actually sold
+    const ranked: RankedProduct[] = [];
+    salesMap.forEach((qty, rowId) => {
+      const row = rowsById.get(rowId);
+      if (row) ranked.push({ id: rowId, name: row.name, quantity: qty, rank: 0 });
+    });
+    ranked.sort((a, b) => b.quantity - a.quantity);
+    ranked.forEach((p, i) => { p.rank = i + 1; });
+
+    const top10 = ranked.slice(0, 10);
+    const crack    = top10.slice(0, 3);
+    const diamante = top10.slice(3, 6);
+    const corredor = top10.slice(6, 10);
+
+    // Rezagados: all menu items with < 5 sales (including 0)
+    const rezagados: RankedProduct[] = rows
+      .map(r => ({ id: r.id, name: r.name, quantity: salesMap.get(r.id) || 0, rank: 0 }))
+      .filter(p => p.quantity < 5)
+      .sort((a, b) => a.quantity - b.quantity);
+
+    return { crack, diamante, corredor, rezagados, top10 };
+  }, [transactions, rows]);
 }
 
-const CLASSIFICATION_META: Record<Classification, { color: string; bg: string; border: string; icon: typeof Star; desc: string; action: string }> = {
-  ESTRELLA: {
+const SECTIONS = [
+  {
+    key: 'crack' as const,
+    label: 'CRACK',
+    range: '#1 · #2 · #3',
+    desc: 'Los 3 más vendidos del mes',
     color: 'text-amber-400',
     bg: 'bg-amber-500/10',
     border: 'border-amber-500/30',
-    icon: Star,
-    desc: 'Alta rentabilidad · Alta popularidad',
-    action: 'Mantén y promociona activamente',
+    dot: 'bg-amber-500',
   },
-  VACA: {
-    color: 'text-emerald-400',
-    bg: 'bg-emerald-500/10',
-    border: 'border-emerald-500/30',
-    icon: TrendingDown,
-    desc: 'Alta rentabilidad · Baja popularidad',
-    action: 'Reposiciona en el menú, mejora visibilidad',
+  {
+    key: 'diamante' as const,
+    label: 'DIAMANTE',
+    range: '#4 · #5 · #6',
+    desc: 'Posiciones medias altas',
+    color: 'text-cyan-400',
+    bg: 'bg-cyan-500/10',
+    border: 'border-cyan-500/30',
+    dot: 'bg-cyan-500',
   },
-  ENIGMA: {
-    color: 'text-indigo-400',
-    bg: 'bg-indigo-500/10',
-    border: 'border-indigo-500/30',
-    icon: Eye,
-    desc: 'Baja rentabilidad · Alta popularidad',
-    action: 'Aumenta precio o reduce costo',
+  {
+    key: 'corredor' as const,
+    label: 'CORREDOR',
+    range: '#7 · #8 · #9 · #10',
+    desc: 'Posiciones medias bajas',
+    color: 'text-violet-400',
+    bg: 'bg-violet-500/10',
+    border: 'border-violet-500/30',
+    dot: 'bg-violet-500',
   },
-  PERRO: {
+  {
+    key: 'rezagados' as const,
+    label: 'REZAGADO',
+    range: '< 5 ventas',
+    desc: 'Necesitan atención',
     color: 'text-rose-400',
     bg: 'bg-rose-500/10',
     border: 'border-rose-500/30',
-    icon: Frown,
-    desc: 'Baja rentabilidad · Baja popularidad',
-    action: 'Evalúa eliminar o rediseñar',
+    dot: 'bg-rose-500',
   },
-};
+] as const;
 
-const BLANK_DISH: Omit<MenuDish, 'id'> = { nombre: '', ventas: 0, costo: 0, pvp: 0, categoria: '' };
-
-function useLocalDishes(): [MenuDish[], (d: MenuDish[]) => void] {
-  const [dishes, setDishesState] = useState<MenuDish[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem('donPuntoMenuEngineering') || '[]');
-    } catch { return []; }
-  });
-  const setDishes = (d: MenuDish[]) => {
-    setDishesState(d);
-    localStorage.setItem('donPuntoMenuEngineering', JSON.stringify(d));
-  };
-  return [dishes, setDishes];
+interface ComboSuggestion {
+  nombre: string;
+  productos: string[];
+  precio: number;
+  razon: string;
 }
 
-function classify(dishes: MenuDish[]): AnalyzedDish[] {
-  if (!dishes.length) return [];
-  const totalVentasAll = dishes.reduce((s, d) => s + d.ventas, 0);
-  const weightedMC = dishes.map(d => (d.pvp - d.costo) * d.ventas);
-  const totalMCAll = weightedMC.reduce((s, v) => s + v, 0);
-  const avgMC = totalVentasAll > 0 ? totalMCAll / totalVentasAll : 0;
-  const popularityThreshold = totalVentasAll > 0 ? 0.7 * (1 / dishes.length) : 0;
+const COMBO_USAGE_KEY = 'donPuntoComboUsage';
 
-  return dishes.map((d) => {
-    const mc = d.pvp - d.costo;
-    const ip = totalVentasAll > 0 ? d.ventas / totalVentasAll : 0;
-    const rentabilidad: 'ALTO' | 'BAJO' = mc >= avgMC ? 'ALTO' : 'BAJO';
-    const popularidad: 'ALTO' | 'BAJO' = ip >= popularityThreshold ? 'ALTO' : 'BAJO';
-    let clasificacion: Classification = 'PERRO';
-    if (rentabilidad === 'ALTO' && popularidad === 'ALTO') clasificacion = 'ESTRELLA';
-    else if (rentabilidad === 'ALTO' && popularidad === 'BAJO') clasificacion = 'VACA';
-    else if (rentabilidad === 'BAJO' && popularidad === 'ALTO') clasificacion = 'ENIGMA';
-    return {
-      ...d,
-      margenContribucion: mc,
-      porcentajeCosto: d.pvp > 0 ? d.costo / d.pvp : 0,
-      totalVentas: d.ventas * d.pvp,
-      totalMC: mc * d.ventas,
-      indicePopularidad: ip,
-      clasificacionRentabilidad: rentabilidad,
-      clasificacionPopularidad: popularidad,
-      clasificacion,
-    };
-  });
+function getComboUsage(): { month: string; count: number } {
+  try {
+    return JSON.parse(localStorage.getItem(COMBO_USAGE_KEY) || '{}');
+  } catch { return { month: '', count: 0 }; }
+}
+
+function incrementComboUsage(monthKey: string) {
+  const usage = getComboUsage();
+  const count = usage.month === monthKey ? usage.count + 1 : 1;
+  localStorage.setItem(COMBO_USAGE_KEY, JSON.stringify({ month: monthKey, count }));
+  return count;
 }
 
 export function MenuEngineeringModule() {
-  const [dishes, setDishes] = useLocalDishes();
-  const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState<Omit<MenuDish, 'id'>>(BLANK_DISH);
-  const [showForm, setShowForm] = useState(false);
-  const [filterClass, setFilterClass] = useState<Classification | 'TODOS'>('TODOS');
+  const { crack, diamante, corredor, rezagados, top10 } = useMonthlyRanking();
+  const [combos, setCombos] = useState<ComboSuggestion[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const analyzed = useMemo(() => classify(dishes), [dishes]);
+  const now = new Date();
+  const monthLabel = `${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`;
+  const monthKey = `${now.getFullYear()}-${now.getMonth() + 1}`;
+  const hasData = top10.length > 0;
 
-  const counts = useMemo(() => {
-    const c: Record<string, number> = { ESTRELLA: 0, VACA: 0, ENIGMA: 0, PERRO: 0 };
-    analyzed.forEach(d => c[d.clasificacion]++);
-    return c;
-  }, [analyzed]);
+  const usage = getComboUsage();
+  const usosRestantes = usage.month === monthKey ? Math.max(0, 2 - usage.count) : 2;
 
-  const totals = useMemo(() => {
-    const totalVentas = analyzed.reduce((s, d) => s + d.totalVentas, 0);
-    const totalMC = analyzed.reduce((s, d) => s + d.totalMC, 0);
-    const avgCostPct = analyzed.length > 0 ? analyzed.reduce((s, d) => s + d.porcentajeCosto, 0) / analyzed.length : 0;
-    return { totalVentas, totalMC, avgCostPct };
-  }, [analyzed]);
+  const sectionData: Record<typeof SECTIONS[number]['key'], RankedProduct[]> = {
+    crack,
+    diamante,
+    corredor,
+    rezagados,
+  };
 
-  const filtered = filterClass === 'TODOS' ? analyzed : analyzed.filter(d => d.clasificacion === filterClass);
-
-  function openAdd() {
-    setEditId(null);
-    setForm(BLANK_DISH);
-    setShowForm(true);
-  }
-
-  function openEdit(d: MenuDish) {
-    setEditId(d.id);
-    setForm({ nombre: d.nombre, ventas: d.ventas, costo: d.costo, pvp: d.pvp, categoria: d.categoria });
-    setShowForm(true);
-  }
-
-  function saveForm() {
-    if (!form.nombre.trim()) return;
-    if (editId) {
-      setDishes(dishes.map(d => d.id === editId ? { ...form, id: editId } : d));
-    } else {
-      setDishes([...dishes, { ...form, id: crypto.randomUUID() }]);
+  async function generateCombos() {
+    if (!hasData || usosRestantes === 0) return;
+    setLoading(true);
+    setError(null);
+    setCombos([]);
+    try {
+      const res = await fetch('/api/combos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          products: top10.map(p => ({ name: p.name, quantity: p.quantity, price: 0 })),
+        }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      incrementComboUsage(monthKey);
+      setCombos(data.combos || []);
+    } catch {
+      setError('No se pudo conectar con el generador. Verifica la configuración del servidor.');
+    } finally {
+      setLoading(false);
     }
-    setShowForm(false);
-    setForm(BLANK_DISH);
-    setEditId(null);
-  }
-
-  function removeDish(id: string) {
-    setDishes(dishes.filter(d => d.id !== id));
   }
 
   return (
     <div className="space-y-6">
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {(Object.entries(CLASSIFICATION_META) as [Classification, typeof CLASSIFICATION_META[Classification]][]).map(([cls, meta]) => {
-          const Icon = meta.icon;
-          return (
-            <button
-              key={cls}
-              onClick={() => setFilterClass(filterClass === cls ? 'TODOS' : cls)}
-              className={clsx(
-                'rounded-2xl border p-4 text-left transition-all',
-                meta.bg, meta.border,
-                filterClass === cls ? 'ring-2 ring-white/20' : 'opacity-80 hover:opacity-100'
-              )}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <Icon size={16} className={meta.color} />
-                <span className={clsx('text-xs font-black uppercase tracking-widest', meta.color)}>{cls}</span>
-              </div>
-              <div className={clsx('text-3xl font-black', meta.color)}>{counts[cls]}</div>
-              <div className="text-slate-500 text-xs mt-1">{meta.desc}</div>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* KPI row */}
-      {dishes.length > 0 && (
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-4">
-            <div className="text-xs text-slate-500 font-bold uppercase tracking-widest">Total Platillos</div>
-            <div className="text-2xl font-black text-white mt-1">{dishes.length}</div>
-          </div>
-          <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-4">
-            <div className="text-xs text-slate-500 font-bold uppercase tracking-widest">% Costo Promedio</div>
-            <div className={clsx('text-2xl font-black mt-1', totals.avgCostPct > 0.35 ? 'text-rose-400' : 'text-emerald-400')}>
-              {(totals.avgCostPct * 100).toFixed(1)}%
-            </div>
-          </div>
-          <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-4">
-            <div className="text-xs text-slate-500 font-bold uppercase tracking-widest">MC Total Ponderado</div>
-            <div className="text-2xl font-black text-white mt-1">${totals.totalMC.toLocaleString('es-MX', { minimumFractionDigits: 0 })}</div>
-          </div>
-        </div>
-      )}
-
-      {/* Header + add button */}
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="text-slate-400 font-bold">
-            {filterClass === 'TODOS' ? `${dishes.length} platillos` : `${filtered.length} ${filterClass}`}
+        <span className="text-xs font-black text-slate-500 uppercase tracking-widest">
+          Período: {monthLabel}
+        </span>
+        {hasData && (
+          <span className="text-xs text-slate-600 font-bold">
+            {top10.length} productos en ranking · {rezagados.length} rezagados
           </span>
-          {filterClass !== 'TODOS' && (
-            <button onClick={() => setFilterClass('TODOS')} className="text-xs text-slate-500 hover:text-white flex items-center gap-1 transition-colors">
-              <X size={12} /> Quitar filtro
-            </button>
-          )}
-        </div>
-        <button
-          onClick={openAdd}
-          className="flex items-center gap-2 bg-rose-500 hover:bg-rose-400 text-white px-5 py-2.5 rounded-xl font-black text-sm transition-all shadow-lg shadow-rose-500/20 active:scale-95"
-        >
-          <Plus size={16} strokeWidth={3} /> AGREGAR PLATILLO
-        </button>
+        )}
       </div>
 
-      {/* Form */}
-      {showForm && (
-        <div className="bg-slate-900/80 border border-white/10 rounded-2xl p-5 space-y-4">
-          <div className="flex items-center justify-between mb-1">
-            <span className="font-black text-white">{editId ? 'Editar Platillo' : 'Nuevo Platillo'}</span>
-            <button onClick={() => setShowForm(false)} className="text-slate-500 hover:text-white transition-colors"><X size={18} /></button>
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-            <div className="col-span-2 lg:col-span-2">
-              <label className="block text-xs text-slate-500 font-bold mb-1">NOMBRE</label>
-              <input
-                className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-rose-500/50"
-                value={form.nombre}
-                onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-                placeholder="Ej. Guacamole"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-slate-500 font-bold mb-1">CATEGORÍA</label>
-              <input
-                className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-rose-500/50"
-                value={form.categoria}
-                onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))}
-                placeholder="Ej. Entradas"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-slate-500 font-bold mb-1">NO. VENTAS</label>
-              <input
-                type="number" min={0}
-                className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-rose-500/50"
-                value={form.ventas || ''}
-                onChange={e => setForm(f => ({ ...f, ventas: parseFloat(e.target.value) || 0 }))}
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-slate-500 font-bold mb-1">COSTO ($)</label>
-              <input
-                type="number" min={0}
-                className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-rose-500/50"
-                value={form.costo || ''}
-                onChange={e => setForm(f => ({ ...f, costo: parseFloat(e.target.value) || 0 }))}
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-slate-500 font-bold mb-1">PVP ($)</label>
-              <input
-                type="number" min={0}
-                className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-rose-500/50"
-                value={form.pvp || ''}
-                onChange={e => setForm(f => ({ ...f, pvp: parseFloat(e.target.value) || 0 }))}
-              />
-            </div>
-          </div>
-          <div className="flex justify-end gap-3">
-            <button onClick={() => setShowForm(false)} className="px-4 py-2 rounded-xl text-slate-500 hover:text-white text-sm font-bold transition-colors">Cancelar</button>
-            <button onClick={saveForm} className="flex items-center gap-2 px-5 py-2 bg-rose-500 hover:bg-rose-400 text-white rounded-xl font-black text-sm transition-all active:scale-95">
-              <Save size={14} /> Guardar
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Empty state */}
-      {dishes.length === 0 && !showForm && (
+      {!hasData ? (
         <div className="text-center py-20 border border-white/5 rounded-2xl bg-slate-900/30">
-          <Target size={40} className="mx-auto text-slate-600 mb-4" />
-          <div className="text-slate-400 font-bold mb-2">Sin platillos registrados</div>
-          <div className="text-slate-600 text-sm mb-6">Agrega tus platillos con sus ventas y costos para ver la clasificación automática.</div>
-          <button onClick={openAdd} className="bg-rose-500 hover:bg-rose-400 text-white px-6 py-3 rounded-xl font-black text-sm transition-all shadow-lg shadow-rose-500/20">
-            Agregar primer platillo
-          </button>
+          <Trophy size={40} className="mx-auto text-slate-600 mb-4" />
+          <div className="text-slate-400 font-bold mb-2">Sin ventas registradas este mes</div>
+          <div className="text-slate-600 text-sm">
+            Registra ventas en el Punto de Venta para ver el Radar de Menú.
+          </div>
         </div>
-      )}
-
-      {/* Matrix quadrant (when 4+ dishes) */}
-      {analyzed.length >= 4 && (
-        <div className="bg-slate-900/40 border border-white/5 rounded-2xl p-5">
-          <div className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4">Matriz de Ingeniería</div>
-          <div className="grid grid-cols-2 gap-3 aspect-square max-w-[480px] mx-auto">
-            {(['ESTRELLA', 'ENIGMA', 'VACA', 'PERRO'] as Classification[]).map(cls => {
-              const meta = CLASSIFICATION_META[cls];
-              const Icon = meta.icon;
-              const items = analyzed.filter(d => d.clasificacion === cls);
+      ) : (
+        <>
+          {/* 4 sections */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {SECTIONS.map(section => {
+              const items = sectionData[section.key];
               return (
-                <div key={cls} className={clsx('rounded-xl border p-3 flex flex-col', meta.bg, meta.border)}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Icon size={14} className={meta.color} />
-                    <span className={clsx('text-xs font-black', meta.color)}>{cls}</span>
-                    <span className={clsx('ml-auto text-xs font-black', meta.color)}>{items.length}</span>
+                <div key={section.key} className={clsx('rounded-2xl border p-5', section.bg, section.border)}>
+                  <div className="flex items-start justify-between mb-4">
+                    <div>
+                      <div className={clsx('text-xs font-black uppercase tracking-widest', section.color)}>
+                        {section.label}
+                      </div>
+                      <div className="text-slate-500 text-xs mt-0.5">{section.desc}</div>
+                    </div>
+                    <span className={clsx(
+                      'text-[10px] font-black px-2.5 py-1 rounded-full border',
+                      section.bg, section.color, section.border
+                    )}>
+                      {section.range}
+                    </span>
                   </div>
-                  <div className="space-y-1 overflow-auto flex-1 no-scrollbar">
-                    {items.map(d => (
-                      <div key={d.id} className="text-xs text-slate-300 truncate">· {d.nombre}</div>
-                    ))}
-                    {items.length === 0 && <div className="text-xs text-slate-600 italic">Ninguno</div>}
-                  </div>
+
+                  {items.length === 0 ? (
+                    <div className="text-slate-600 text-sm italic py-3">
+                      Sin productos en esta sección este mes.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {items.map(product => (
+                        <div
+                          key={product.id}
+                          className="flex items-center gap-3 bg-slate-950/40 rounded-xl px-3 py-2.5"
+                        >
+                          {section.key !== 'rezagados' ? (
+                            <div className={clsx(
+                              'w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black text-white shrink-0',
+                              section.dot
+                            )}>
+                              {product.rank}
+                            </div>
+                          ) : (
+                            <div className={clsx(
+                              'w-7 h-7 rounded-full flex items-center justify-center shrink-0',
+                              section.bg, section.border, 'border'
+                            )}>
+                              <div className={clsx('w-2 h-2 rounded-full', section.dot)} />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-bold text-white truncate">{product.name}</div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className={clsx('text-sm font-black tabular-nums', section.color)}>
+                              {product.quantity}
+                            </div>
+                            <div className="text-[10px] text-slate-600 font-bold">ventas</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
-          <div className="mt-3 grid grid-cols-2 text-center text-xs text-slate-600">
-            <div>← Baja popularidad · Alta popularidad →</div>
-            <div className="col-span-2 mt-1">↑ Alta rentabilidad · Baja rentabilidad ↓</div>
-          </div>
-        </div>
-      )}
 
-      {/* Dish table */}
-      {filtered.length > 0 && (
-        <div className="bg-slate-900/40 border border-white/5 rounded-2xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/5 text-left">
-                <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-widest">Platillo</th>
-                <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-widest text-right">Ventas</th>
-                <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-widest text-right">PVP</th>
-                <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-widest text-right">Costo</th>
-                <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-widest text-right">MC</th>
-                <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-widest text-right">% Costo</th>
-                <th className="px-4 py-3 text-xs font-black text-slate-500 uppercase tracking-widest text-center">Clase</th>
-                <th className="px-3 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {filtered.map(d => {
-                const meta = CLASSIFICATION_META[d.clasificacion];
-                const Icon = meta.icon;
-                return (
-                  <tr key={d.id} className="hover:bg-white/[0.02] transition-colors group">
-                    <td className="px-4 py-3">
-                      <div className="font-bold text-white">{d.nombre}</div>
-                      {d.categoria && <div className="text-xs text-slate-500">{d.categoria}</div>}
-                    </td>
-                    <td className="px-4 py-3 text-right text-slate-300 tabular-nums">{d.ventas.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-right text-slate-300 tabular-nums">${d.pvp.toFixed(2)}</td>
-                    <td className="px-4 py-3 text-right text-slate-300 tabular-nums">${d.costo.toFixed(2)}</td>
-                    <td className="px-4 py-3 text-right font-bold text-emerald-400 tabular-nums">${d.margenContribucion.toFixed(2)}</td>
-                    <td className={clsx('px-4 py-3 text-right font-bold tabular-nums', d.porcentajeCosto > 0.35 ? 'text-rose-400' : 'text-slate-300')}>
-                      {(d.porcentajeCosto * 100).toFixed(1)}%
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={clsx('inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-black', meta.bg, meta.color)}>
-                        <Icon size={10} />{d.clasificacion}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3">
-                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => openEdit(d)} className="text-slate-500 hover:text-white transition-colors"><Edit3 size={14} /></button>
-                        <button onClick={() => removeDish(d.id)} className="text-slate-500 hover:text-rose-400 transition-colors"><Trash2 size={14} /></button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Recommendations */}
-      {analyzed.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {(Object.entries(CLASSIFICATION_META) as [Classification, typeof CLASSIFICATION_META[Classification]][]).map(([cls, meta]) => {
-            const items = analyzed.filter(d => d.clasificacion === cls);
-            if (!items.length) return null;
-            return (
-              <div key={cls} className={clsx('rounded-2xl border p-4', meta.bg, meta.border)}>
-                <div className={clsx('text-xs font-black uppercase tracking-widest mb-2', meta.color)}>{cls} — {meta.action}</div>
-                <div className="space-y-1">
-                  {items.map(d => (
-                    <div key={d.id} className="flex justify-between text-sm">
-                      <span className="text-slate-300">{d.nombre}</span>
-                      <span className="text-slate-500 tabular-nums">{d.ventas} ventas · MC ${d.margenContribucion.toFixed(0)}</span>
-                    </div>
-                  ))}
+          {/* AI Combo Generator */}
+          <div className="bg-slate-900/60 border border-white/5 rounded-2xl p-6 space-y-5">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <div className="text-sm font-black text-white">Generador de Combos con IA</div>
+                <div className="text-xs text-slate-500 mt-0.5">
+                  Basado en tus top {top10.length} productos del mes &nbsp;·&nbsp;
+                  <span className={usosRestantes === 0 ? 'text-rose-400' : 'text-indigo-400'}>
+                    {usosRestantes} {usosRestantes === 1 ? 'uso restante' : 'usos restantes'} este mes
+                  </span>
                 </div>
               </div>
-            );
-          })}
-        </div>
+              <button
+                onClick={generateCombos}
+                disabled={loading || usosRestantes === 0}
+                className="flex items-center gap-2 bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl font-black text-sm transition-all shadow-lg shadow-indigo-500/20 active:scale-95"
+                title={usosRestantes === 0 ? 'Límite alcanzado — disponible el próximo mes' : ''}
+              >
+                {loading
+                  ? <Loader2 size={16} className="animate-spin" />
+                  : <Sparkles size={16} />}
+                {loading ? 'Generando...' : usosRestantes === 0 ? 'Límite del mes' : 'Generar Combos'}
+              </button>
+            </div>
+
+            {error && (
+              <div className="flex items-center gap-3 text-rose-400 text-sm bg-rose-500/10 border border-rose-500/20 rounded-xl px-4 py-3">
+                <AlertCircle size={16} className="shrink-0" />
+                {error}
+              </div>
+            )}
+
+            {combos.length > 0 && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                {combos.map((combo, i) => (
+                  <div
+                    key={i}
+                    className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4 space-y-3"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="font-black text-white text-sm leading-snug">{combo.nombre}</div>
+                      <div className="text-indigo-300 font-black text-sm shrink-0 bg-indigo-500/20 px-2 py-0.5 rounded-lg">
+                        ${combo.precio}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {combo.productos.map((p, j) => (
+                        <span
+                          key={j}
+                          className="text-[10px] font-bold bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-full"
+                        >
+                          {p}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="text-xs text-slate-400 leading-relaxed">{combo.razon}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

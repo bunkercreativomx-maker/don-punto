@@ -687,7 +687,7 @@ function App() {
 
           <button onClick={() => setActiveTab('engineering')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'engineering' ? "bg-rose-500/10 text-rose-400 border border-rose-500/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent")}>
             <Target size={20} className="shrink-0" />
-            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Ing. Menú</span>
+            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Radar de Menú</span>
             {activeTab === 'engineering' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-rose-500 rounded-r-full" />}
           </button>
 
@@ -745,7 +745,7 @@ function App() {
                   {activeTab === 'menu' && 'Catálogo de Productos'}
                   {activeTab === 'settings' && 'Ajustes del Sistema'}
                   {activeTab === 'inventory' && 'Inventario de Insumos'}
-                  {activeTab === 'engineering' && 'Ingeniería de Menú'}
+                  {activeTab === 'engineering' && 'Radar de Menú'}
                   {activeTab === 'recipes' && 'Recetario Estándar'}
                   {activeTab === 'financial' && 'Estado Financiero Semanal'}
                 </h1>
@@ -758,7 +758,7 @@ function App() {
                   {activeTab === 'menu' && 'Administra tus categorías, modificadores y catálogo.'}
                   {activeTab === 'settings' && 'Personaliza tu plataforma, régimen y métodos de pago.'}
                   {activeTab === 'inventory' && 'Controla stock de insumos, detecta alertas y genera pedidos automáticos.'}
-                  {activeTab === 'engineering' && 'Clasifica tu menú en ESTRELLA, VACA, ENIGMA y PERRO según rentabilidad y popularidad.'}
+                  {activeTab === 'engineering' && 'Top ventas del mes conectado al POS · CRACK, DIAMANTE, CORREDOR y REZAGADO · Combos con IA.'}
                   {activeTab === 'recipes' && 'Gestiona recetas estándar con análisis de costo e ingredientes.'}
                   {activeTab === 'financial' && 'Registra ventas diarias por canal y controla compras y egresos semanales.'}
                 </p>
