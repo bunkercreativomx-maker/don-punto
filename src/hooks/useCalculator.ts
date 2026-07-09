@@ -230,16 +230,18 @@ export function useCalculator(
 
             let finalOutput: Partial<PricingCalculationResult> = {};
 
+            let lastT = 0;
+
             for (let i = 0; i < 60; i++) {
                 P = (low + high) / 2;
 
                 const T = P * quantity;
+                lastT = T;
                 const clientBase = T * (1 - discountPct);
                 const discountAmount = T * discountPct;
-                const subsidyAmount = clientBase * subsidyPct;
-                const finalClientPrice = clientBase - subsidyAmount;
+                // Loop: find P WITHOUT subsidy (subsidy only benefits monto, not price)
+                const baseForCalc = clientBase;
 
-                const baseForCalc = finalClientPrice;
                 const commission = baseForCalc * (settings.baseCommissionPct / 100);
                 const ivaComm = commission * ivaRate;
                 const baseGravable = baseForCalc / (1 + ivaRate);
@@ -252,7 +254,10 @@ export function useCalculator(
                 const montoARecibir = baseForCalc - shippingCost - commission - ivaComm - ivaRet - isrRet - impuestoCedular;
                 const costoProd = (row.costPrice || 0) * quantity;
                 const utilidad = montoARecibir - costoProd;
-                const utilidadPct = finalClientPrice > 0 ? utilidad / finalClientPrice : 0;
+                const utilidadPct = clientBase > 0 ? utilidad / clientBase : 0;
+
+                // Still track subsidy for final output
+                const subsidyAmount = discountAmount * subsidyPct;
 
                 const diff = montoARecibir - targetProfit;
 
@@ -267,7 +272,6 @@ export function useCalculator(
                     discountAmount,
                     subsidyPct: subsidyPct * 100,
                     subsidyAmount,
-                    finalClientPrice,
                     shippingCost,
                     platformCommission: commission,
                     iva: ivaComm,
@@ -289,53 +293,80 @@ export function useCalculator(
                 }
             }
 
-            // POST-FIX: round clean prices if they satisfy target within margin
+            // Recalculate final values WITH subsidy included in the base
+            const subsidyAmount_final = (lastT * discountPct) * subsidyPct;
+            const baseForCalc_final = (lastT * (1 - discountPct)) + subsidyAmount_final;
+            const commission_final = baseForCalc_final * (settings.baseCommissionPct / 100);
+            const ivaComm_final = commission_final * ivaRate;
+            const baseGravable_final = baseForCalc_final / (1 + ivaRate);
+            const ivaRet_final = baseGravable_final * (settings.hasValidRFC ? 0.08 : 0.16);
+            const isrRet_final = baseGravable_final * (settings.hasValidRFC ? 0.025 : 0.20);
+            const montoARecibir_final = baseForCalc_final - shippingCost - commission_final - ivaComm_final - ivaRet_final - isrRet_final;
+            const costoProd_final = (row.costPrice || 0) * quantity;
+            const utilidad_final = montoARecibir_final - costoProd_final;
+            const utilidadPct_final = (lastT * (1 - discountPct)) > 0 ? utilidad_final / (lastT * (1 - discountPct)) : 0;
+
+            // POST-FIX: round clean prices if they satisfy target within margin (WITHOUT subsidy)
             const roundedP = Math.round(P * 100) / 100;
             const T_round = roundedP * quantity;
-            const finalClientPrice_round = (T_round * (1 - discountPct)) - ((T_round * (1 - discountPct)) * subsidyPct);
-            const baseForCalc_round = finalClientPrice_round;
-            const commission_round = baseForCalc_round * (settings.baseCommissionPct / 100);
-            const ivaComm_round = commission_round * ivaRate;
-            const baseGravable_round = baseForCalc_round / (1 + ivaRate);
-            const ivaRet_round = baseGravable_round * (settings.hasValidRFC ? 0.08 : 0.16);
-            const isrRet_round = baseGravable_round * (settings.hasValidRFC ? 0.025 : 0.20);
-            const montoARecibir_round = baseForCalc_round - shippingCost - commission_round - ivaComm_round - ivaRet_round - isrRet_round;
+            const clientBase_round = T_round * (1 - discountPct);
+            const discountAmount_round = T_round * discountPct;
+            // Round check base WITHOUT subsidy
+            const baseForCalc_round_check = clientBase_round;
+            const commission_round_check = baseForCalc_round_check * (settings.baseCommissionPct / 100);
+            const ivaComm_round_check = commission_round_check * ivaRate;
+            const baseGravable_round_check = baseForCalc_round_check / (1 + ivaRate);
+            const ivaRet_round_check = baseGravable_round_check * (settings.hasValidRFC ? 0.08 : 0.16);
+            const isrRet_round_check = baseGravable_round_check * (settings.hasValidRFC ? 0.025 : 0.20);
+            const montoARecibir_round_check = baseForCalc_round_check - shippingCost - commission_round_check - ivaComm_round_check - ivaRet_round_check - isrRet_round_check;
 
-            if (Math.abs(montoARecibir_round - targetProfit) < 0.01) {
+            if (Math.abs(montoARecibir_round_check - targetProfit) < 0.01) {
                  P = roundedP;
-                 const T = P * quantity;
-                 const clientBase = T * (1 - discountPct);
-                 const discountAmount = T * discountPct;
-                 const subsidyAmount = clientBase * subsidyPct;
-                 const finalClientPrice = clientBase - subsidyAmount;
-                 const baseForCalc = finalClientPrice;
-                 const commission = baseForCalc * (settings.baseCommissionPct / 100);
-                 const ivaComm = commission * ivaRate;
-                 const baseGravable = baseForCalc / (1 + ivaRate);
-                 const ivaRet = baseGravable * (settings.hasValidRFC ? 0.08 : 0.16);
-                 const isrRet = baseGravable * (settings.hasValidRFC ? 0.025 : 0.20);
-                 const montoARecibir = baseForCalc - shippingCost - commission - ivaComm - ivaRet - isrRet;
-                 const costoProdR = (row.costPrice || 0) * quantity;
-                 const utilidadR = montoARecibir - costoProdR;
-                 const utilidadPctR = finalClientPrice > 0 ? utilidadR / finalClientPrice : 0;
+                 // Recalc WITH subsidy for display
+                 const T_f = P * quantity;
+                 const clientBase_f = T_f * (1 - discountPct);
+                 const discountAmount_f = T_f * discountPct;
+                 const subsidyAmount_f = discountAmount_f * subsidyPct;
+                 const baseForCalc_f = clientBase_f + subsidyAmount_f;
+                 const commission_f = baseForCalc_f * (settings.baseCommissionPct / 100);
+                 const ivaComm_f = commission_f * ivaRate;
+                 const baseGravable_f = baseForCalc_f / (1 + ivaRate);
+                 const ivaRet_f = baseGravable_f * (settings.hasValidRFC ? 0.08 : 0.16);
+                 const isrRet_f = baseGravable_f * (settings.hasValidRFC ? 0.025 : 0.20);
+                 const montoARecibir_f = baseForCalc_f - shippingCost - commission_f - ivaComm_f - ivaRet_f - isrRet_f;
+                 const costoProdR_f = (row.costPrice || 0) * quantity;
+                 const utilidadR_f = montoARecibir_f - costoProdR_f;
+                 const utilidadPctR_f = clientBase_f > 0 ? utilidadR_f / clientBase_f : 0;
 
                  finalOutput = {
                     ...finalOutput,
                     platformUnitPrice: P,
-                    totalProduct: T,
-                    priceForClientBase: clientBase,
-                    discountAmount,
-                    subsidyAmount,
-                    finalClientPrice,
-                    platformCommission: commission,
-                    iva: ivaComm,
-                    baseGravable,
-                    ivaRetention: ivaRet,
-                    isrRetention: isrRet,
-                    montoARecibir,
-                    utilidad: utilidadR,
-                    utilidadPct: utilidadPctR,
+                    totalProduct: T_f,
+                    priceForClientBase: clientBase_f,
+                    discountAmount: discountAmount_f,
+                    subsidyAmount: subsidyAmount_f,
+                    platformCommission: commission_f,
+                    iva: ivaComm_f,
+                    baseGravable: baseGravable_f,
+                    ivaRetention: ivaRet_f,
+                    isrRetention: isrRet_f,
+                    montoARecibir: montoARecibir_f,
+                    utilidad: utilidadR_f,
+                    utilidadPct: utilidadPctR_f,
                  };
+            } else {
+                // Apply subsidy-included values to main loop output
+                finalOutput = {
+                    ...finalOutput,
+                    platformCommission: commission_final,
+                    iva: ivaComm_final,
+                    baseGravable: baseGravable_final,
+                    ivaRetention: ivaRet_final,
+                    isrRetention: isrRet_final,
+                    montoARecibir: montoARecibir_final,
+                    utilidad: utilidad_final,
+                    utilidadPct: utilidadPct_final,
+                };
             }
 
             return finalOutput as PricingCalculationResult;

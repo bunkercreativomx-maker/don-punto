@@ -140,7 +140,7 @@ export function POSDashboard() {
   // Pricing Logic (Extended to include Modifiers)
   const computePlatformPrice = (row: ProductRowData, extraBaseCost: number) => {
     const targetProfit = (row.targetProfit && row.targetProfit > 0) ? row.targetProfit : (row.salePrice || 0);
-    const finalTarget = targetProfit + extraBaseCost; // We want to receive the extra cost too
+    const finalTarget = targetProfit + extraBaseCost;
     if (finalTarget <= 0) return 0;
     
     const commissionPct = calcGlobalSettings.baseCommissionPct / 100;
@@ -152,15 +152,16 @@ export function POSDashboard() {
         P = (low + high) / 2;
         const T = P;
         const clientBase = T * (1 - ((row.discountPct || 0) / 100));
-        const finalClientPrice = clientBase - (clientBase * ((row.subsidyPct || 0) / 100));
+        // Find P WITHOUT subsidy (subsidy only benefits monto, not price)
+        const baseForCalc = clientBase;
         
-        const commission = finalClientPrice * commissionPct;
+        const commission = baseForCalc * commissionPct;
         const ivaComm = commission * 0.16;
-        const baseGravable = finalClientPrice / 1.16;
+        const baseGravable = baseForCalc / 1.16;
         const ivaRet = baseGravable * (calcGlobalSettings.hasValidRFC ? 0.08 : 0.16);
         const isrRet = baseGravable * (calcGlobalSettings.hasValidRFC ? 0.025 : 0.20);
         
-        const montoARecibir = finalClientPrice - (row.shippingCost || 0) - commission - ivaComm - ivaRet - isrRet;
+        const montoARecibir = baseForCalc - (row.shippingCost || 0) - commission - ivaComm - ivaRet - isrRet;
         const diff = montoARecibir - finalTarget;
 
         if (diff > 0.0001) high = P;

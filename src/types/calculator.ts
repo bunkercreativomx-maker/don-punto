@@ -78,7 +78,6 @@ export interface PricingCalculationResult {
     discountAmount: number;
     subsidyPct: number;
     subsidyAmount: number;
-    finalClientPrice: number;
     shippingCost: number;
     platformCommission: number;
     iva: number;

@@ -24,21 +24,14 @@ const COLS = [
     '100px', // % DESCUENTO
     '120px', // PRECIO PARA EL CLIENTE
     '110px', // DESCUENTO
-    '100px', // % SUBSIDIO
-    '110px', // SUBSIDIO
-    '130px', // PRECIO PARA EL CLIENTE (FINAL)
+    '100px', // % APOYO PLATAFORMA
+    '110px', // APOYO PLATAFORMA ($)
     '110px', // COSTO ENVÍO REPARTO PROPIO
     '110px', // COMISIÓN PLATAFORMA
-    '100px', // IVA
-    '130px', // BASE GRAVABLE PAGOS EN LÍNEA
-    '110px', // IVA SOBRE BASE GRAVABLE
-    '110px', // ISR SOBRE BASE GRAVABLE
-    '120px', // IMPUESTO DEL ESTADO
-    '140px', // MONTO A RECIBIR
     '60px',  // BORRAR
 ].join('_');
 
-const gridCols = `grid-cols-[100px_110px_130px_140px_200px_160px_80px_130px_120px_100px_120px_110px_100px_110px_130px_110px_110px_100px_130px_110px_110px_120px_140px_60px]`;
+const gridCols = `grid-cols-[100px_110px_130px_140px_200px_160px_80px_130px_120px_100px_120px_110px_100px_110px_110px_110px_60px]`;
 
 export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow, syncWithStorePrices }: PricingGridProps) {
     return (
@@ -67,7 +60,7 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
 
             {/* Scrollable Table */}
             <div className="w-full overflow-x-auto pb-4 custom-scrollbar bg-slate-950/40 rounded-2xl border border-white/5 shadow-2xl">
-                <div className="min-w-[3060px]">
+                <div className="min-w-[2200px]">
                     {rows.length > 0 ? (
                         <>
                             {/* Table Header */}
@@ -86,17 +79,10 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
                                 <div className="text-right">% DESCUENTO</div>
                                 <div className="text-right text-indigo-400">P. CLIENTE</div>
                                 <div className="text-right">DESCUENTO ($)</div>
-                                <div className="text-right">% SUBSIDIO</div>
-                                <div className="text-right">SUBSIDIO ($)</div>
-                                <div className="text-right text-emerald-400 font-black">P. CLIENTE FINAL</div>
+                                <div className="text-right">% APOYO PLATAFORMA</div>
+                                <div className="text-right">APOYO PLATAFORMA ($)</div>
                                 <div className="text-right text-rose-400/70">COSTO ENVÍO</div>
                                 <div className="text-right text-rose-400/70">COMISIÓN PLATAFORMA</div>
-                                <div className="text-right text-rose-400/70">IVA</div>
-                                <div className="text-right">BASE GRAVABLE</div>
-                                <div className="text-right text-rose-400/70">IVA S/ BASE GRAV.</div>
-                                <div className="text-right text-rose-400/70">ISR S/ BASE GRAV.</div>
-                                <div className="text-right">IMP. DEL ESTADO</div>
-                                <div className="text-right text-yellow-500 bg-yellow-500/5 py-1 px-2 rounded border border-yellow-500/10 text-center">MONTO A RECIBIR</div>
                                 <div className="text-center">BORRAR</div>
                             </div>
 
@@ -136,13 +122,13 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
                                                 </div>
                                             </div>
 
-                                            {/* 4. VAS A RECIBIR — input */}
+                                            {/* 4. VAS A RECIBIR — input (muestra el monto calculado con apoyo incluido) */}
                                             <div>
                                                 <div className="relative group/input">
                                                     <span className="absolute left-2.5 top-2.5 text-yellow-500/40 text-[10px]">$</span>
                                                     <input
                                                         type="number"
-                                                        value={row.targetProfit || ''}
+                                                        value={res.montoARecibir.toFixed(2)}
                                                         onChange={(e) => updateRow(row.id, { targetProfit: parseFloat(e.target.value) || 0 })}
                                                         className="w-full bg-yellow-500/5 border border-yellow-500/20 rounded-xl px-3 pl-6 py-2 text-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-500/40 transition-all text-right font-bold tracking-tight"
                                                     />
@@ -208,7 +194,7 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
                                                 -${res.discountAmount.toFixed(2)}
                                             </div>
 
-                                            {/* 13. % SUBSIDIO */}
+                                            {/* 13. % APOYO PLATAFORMA */}
                                             <div>
                                                 <input
                                                     type="number"
@@ -218,17 +204,12 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
                                                 />
                                             </div>
 
-                                            {/* 14. SUBSIDIO ($) */}
+                                            {/* 14. APOYO PLATAFORMA ($) */}
                                             <div className="text-right text-slate-500 px-2">
-                                                -${res.subsidyAmount.toFixed(2)}
+                                                +${res.subsidyAmount.toFixed(2)}
                                             </div>
 
-                                            {/* 15. PRECIO PARA EL CLIENTE FINAL */}
-                                            <div className="text-right text-emerald-400 font-bold bg-emerald-500/5 py-1.5 px-3 rounded-xl border border-emerald-500/10 shadow-lg shadow-emerald-500/5">
-                                                ${res.finalClientPrice.toFixed(2)}
-                                            </div>
-
-                                            {/* 16. COSTO ENVÍO REPARTO PROPIO */}
+                                            {/* 15. COSTO ENVÍO REPARTO PROPIO */}
                                             <div>
                                                 <div className="relative">
                                                     <span className="absolute left-1.5 top-1.5 text-slate-600 text-[10px]">$</span>
@@ -244,27 +225,7 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
                                             {/* 17. COMISIÓN PLATAFORMA */}
                                             <div className="text-right text-rose-400/60 px-2 tracking-tighter">-${res.platformCommission.toFixed(2)}</div>
 
-                                            {/* 18. IVA */}
-                                            <div className="text-right text-rose-400/60 px-2 tracking-tighter">-${res.iva.toFixed(2)}</div>
-
-                                            {/* 19. BASE GRAVABLE PAGOS EN LÍNEA */}
-                                            <div className="text-right text-slate-600 px-2">(${res.baseGravable.toFixed(2)})</div>
-
-                                            {/* 20. IVA SOBRE BASE GRAVABLE */}
-                                            <div className="text-right text-rose-400/60 px-2 tracking-tighter">-${res.ivaRetention.toFixed(2)}</div>
-
-                                            {/* 21. ISR SOBRE BASE GRAVABLE */}
-                                            <div className="text-right text-rose-400/60 px-2 tracking-tighter">-${res.isrRetention.toFixed(2)}</div>
-
-                                            {/* 22. IMPUESTO DEL ESTADO */}
-                                            <div className="text-right text-slate-600 px-2">-$0.00</div>
-
-                                            {/* 23. MONTO A RECIBIR */}
-                                            <div className="text-right text-yellow-500 font-black bg-yellow-500/10 py-1.5 px-3 rounded-xl border border-yellow-500/20 shadow-lg shadow-yellow-500/5">
-                                                ${res.montoARecibir.toFixed(2)}
-                                            </div>
-
-                                            {/* 24. BORRAR */}
+                                            {/* 18. BORRAR */}
                                             <div className="flex justify-center">
                                                 <button
                                                     onClick={() => removeRow(row.id)}

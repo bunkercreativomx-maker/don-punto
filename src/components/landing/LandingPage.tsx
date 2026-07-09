@@ -121,8 +121,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
               <div className="mt-auto w-full h-[400px] px-8 pb-0 relative">
                  <div className="w-full h-full rounded-t-3xl overflow-hidden border-t border-x border-white/10 shadow-[0_-20px_60px_rgba(0,0,0,0.5)] bg-slate-950 relative">
                    {/* REAL LIVE COMPONENT INSTEAD OF SCREENSHOT */}
-                   <div className="absolute inset-0 overflow-hidden pointer-events-none select-none">
-                        <div className="w-[200%] h-[200%] origin-top-left scale-[0.5] p-6">
+                   <div className="w-full h-full overflow-auto p-4">
                             <PricingGrid 
                                 rows={rows} 
                                 pricingResults={pricingResults} 
@@ -134,7 +133,6 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                         </div>
                     </div>
                  </div>
-              </div>
             </div>
 
             {/* Bento Box 3: Reports (Wide) */}
