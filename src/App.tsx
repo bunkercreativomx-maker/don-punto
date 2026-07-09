@@ -912,7 +912,7 @@ function App() {
                                           type="text"
                                           value={posSettings.businessName || ''}
                                           onChange={(e) => updatePosSettings({ businessName: e.target.value })}
-                                          placeholder="Ej: Las Alitas de Siempre"
+                                          placeholder="Ej: Mi Negocio"
                                           className="w-full bg-transparent text-white text-sm font-bold outline-none placeholder:text-slate-700"
                                       />
                                   </div>
