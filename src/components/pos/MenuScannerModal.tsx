@@ -35,17 +35,44 @@ export function MenuScannerModal({ onClose, onScanSuccess }: MenuScannerModalPro
         }));
     };
 
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    /** Comprime la imagen a un tamaño razonable para evitar el límite de 4.5 MB de Vercel */
+    const compressImage = (file: File, maxDimension = 1200, quality = 0.8): Promise<{ base64: string; mimeType: string }> => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let { width, height } = img;
+                if (width > maxDimension || height > maxDimension) {
+                    const ratio = Math.min(maxDimension / width, maxDimension / height);
+                    width = Math.round(width * ratio);
+                    height = Math.round(height * ratio);
+                }
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d')!;
+                ctx.drawImage(img, 0, 0, width, height);
+                const compressed = canvas.toDataURL('image/jpeg', quality);
+                resolve({ base64: compressed, mimeType: 'image/jpeg' });
+            };
+            img.onerror = () => reject(new Error('No se pudo cargar la imagen'));
+            img.src = URL.createObjectURL(file);
+        });
+    };
+
+    const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const base64String = reader.result as string;
-            setPreviewImage(base64String);
-            processImageWithGemini(base64String, file.type);
-        };
-        reader.readAsDataURL(file);
+        try {
+            // Comprimir antes de enviar para evitar HTTP 413 (Vercel limita a 4.5 MB)
+            const { base64, mimeType } = await compressImage(file);
+
+            setPreviewImage(base64);
+            processImageWithGemini(base64, mimeType);
+        } catch (err: any) {
+            setErrorMessage(err.message || 'Error al procesar la imagen');
+            setStep('error');
+        }
     };
 
     const processImageWithGemini = async (base64Image: string, mimeType: string) => {
