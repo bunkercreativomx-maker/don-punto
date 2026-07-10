@@ -2,7 +2,6 @@ import { useState, useRef } from 'react';
 import { Camera, UploadCloud, X, Sparkles, CheckCircle2, ScanLine, AlertCircle, Check, Building2, Bike } from 'lucide-react';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -19,7 +18,6 @@ export function MenuScannerModal({ onClose, onScanSuccess }: MenuScannerModalPro
     const [detectedProducts, setDetectedProducts] = useState<any[]>([]);
     const [errorMessage, setErrorMessage] = useState('');
     const [previewImage, setPreviewImage] = useState<string | null>(null);
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || localStorage.getItem("donPuntoGeminiApiKey") || "";
     
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -63,51 +61,26 @@ export function MenuScannerModal({ onClose, onScanSuccess }: MenuScannerModalPro
         }, 300);
 
         try {
-            const activeApiKey = apiKey.trim();
-            if (!activeApiKey) {
-                throw new Error("El servicio de digitalización por IA no está configurado (API Key faltante en el servidor). Por favor, contacta al administrador.");
-            }
-            const genAI = new GoogleGenerativeAI(activeApiKey);
-            const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
-            
             const base64Data = base64Image.split(',')[1];
-            
-            const prompt = `Analiza esta imagen de un menú de restaurante.
-Extrae todos los platillos y sus precios. 
-Responde ÚNICAMENTE con un arreglo de objetos en formato JSON válido.
-Estructura exacta:
-[
-  {
-    "name": "Nombre del platillo",
-    "salePrice": 150
-  }
-]
-Si un precio tiene símbolo de moneda, quítalo y deja solo el número.
-No agregues formato Markdown (\`\`\`json), ni texto antes o después. Solo el JSON puro.`;
 
-            const imageParts = [
-                {
-                    inlineData: {
-                        data: base64Data,
-                        mimeType
-                    }
-                }
-            ];
+            const res = await fetch('/api/scan-menu', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ imageBase64: base64Data, mimeType }),
+            });
 
-            const result = await model.generateContent([prompt, ...imageParts]);
-            const response = await result.response;
-            const text = response.text();
-            
-            // Cleanup any markdown blocks just in case
-            const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-            
-            const parsedArray = JSON.parse(cleanText);
-            
+            if (!res.ok) {
+                const errBody = await res.text().catch(() => '');
+                throw new Error(`Error del servidor (HTTP ${res.status}): ${errBody.slice(0, 200)}`);
+            }
+
+            const parsedArray = await res.json();
+
             if (!Array.isArray(parsedArray)) {
                 throw new Error("El formato devuelto no es un arreglo válido.");
             }
 
-            const products = parsedArray.map(p => ({
+            const products = parsedArray.map((p: any) => ({
                 id: crypto.randomUUID(),
                 name: p.name,
                 salePrice: Number(p.salePrice) || 0,
