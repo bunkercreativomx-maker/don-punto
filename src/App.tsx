@@ -17,7 +17,7 @@ import { SubscriptionGate } from './components/auth/SubscriptionGate';
 import { MenuScannerModal } from './components/pos/MenuScannerModal';
 import { MenuImportModal, type ImportPlatforms } from './components/pos/MenuImportModal';
 import { usePOS } from './hooks/usePOS';
-import { supabase } from './lib/supabase';
+import { pb } from './lib/pocketbase';
 import { Building2, Phone, MapPin, PrinterIcon } from 'lucide-react';
 import { InventoryModule } from './components/inventory/InventoryModule';
 import { MenuEngineeringModule } from './components/menu-engineering/MenuEngineeringModule';
@@ -86,8 +86,8 @@ function App() {
   useEffect(() => {
     let isMounted = true;
 
-    const checkSessionAndSubscription = async (session: any) => {
-        if (!session) {
+    const checkSessionAndSubscription = async (user: any) => {
+        if (!user) {
             if (isMounted) {
                 setIsAuthenticated(false);
                 setUserEmail(null);
@@ -100,32 +100,33 @@ function App() {
 
         if (isMounted) {
             setIsAuthenticated(true);
-            setUserEmail(session.user.email);
+            setUserEmail(user.email);
         }
 
         try {
-            const isTestUser = session.user.email === 'pakovipteam@gmail.com' || session.user.email === 'tgudino@me.com';
+            const isTestUser = user.email === 'pakovipteam@gmail.com' || user.email === 'tgudino@me.com';
 
             // Buscar el restaurante del dueño
-            let { data: restaurant, error } = await supabase
-                .from('restaurants')
-                .select('subscription_status, stripe_customer_id')
-                .eq('owner_id', session.user.id)
-                .single();
+            let restaurant: any = null;
+            try {
+                restaurant = await pb.collection('restaurants').getFirstListItem(`owner.id = "${user.id}"`);
+            } catch (e: any) {
+                if (e?.status !== 404) throw e;
+            }
             
-            if (error && error.code === 'PGRST116') {
+            if (!restaurant) {
                 // No existe el restaurante (cuenta nueva), lo creamos
                 const defaultStatus = isTestUser ? 'active' : 'inactive';
-                const { data: newRest } = await supabase.from('restaurants').insert([
-                    { name: 'Mi Restaurante', owner_id: session.user.id, subscription_status: defaultStatus }
-                ]).select().single();
+                const newRest = await pb.collection('restaurants').create(
+                    { name: 'Mi Restaurante', owner: user.id, subscription_status: defaultStatus }
+                );
                 restaurant = newRest;
                 if (isMounted) {
                     setSubscriptionStatus(defaultStatus);
                 }
             } else if (isTestUser && restaurant && restaurant.subscription_status !== 'active') {
                 // Si es usuario de prueba y no tiene status active, lo actualizamos de inmediato en Supabase
-                await supabase.from('restaurants').update({ subscription_status: 'active' }).eq('owner_id', session.user.id);
+                await pb.collection('restaurants').update(restaurant.id, { subscription_status: 'active' });
                 if (isMounted) {
                     setSubscriptionStatus('active');
                 }
@@ -167,18 +168,27 @@ function App() {
     };
 
     // 1. Verificar sesión inicial de inmediato
-    supabase.auth.getSession().then(({ data: { session } }) => {
-        checkSessionAndSubscription(session);
-    }).catch(() => {
-        if (isMounted) {
+    (async () => {
+        if (pb.authStore.isValid) {
+            try {
+                const model = await pb.collection('users').authRefresh();
+                checkSessionAndSubscription(model);
+            } catch {
+                pb.authStore.clear();
+                if (isMounted) {
+                    setIsAuthChecking(false);
+                    setIsCloudMenuLoaded(true);
+                }
+            }
+        } else if (isMounted) {
             setIsAuthChecking(false);
             setIsCloudMenuLoaded(true);
         }
-    });
+    })();
 
     // 2. Suscribirse a los cambios de estado de auth
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_OUT') {
+    const unsubscribe = pb.authStore.onChange((_token, model) => {
+        if (!model) {
             if (isMounted) {
                 setIsAuthenticated(false);
                 setUserEmail(null);
@@ -186,8 +196,8 @@ function App() {
                 setIsAuthChecking(false);
                 setIsCloudMenuLoaded(false);
             }
-        } else if (session) {
-            checkSessionAndSubscription(session);
+        } else {
+            checkSessionAndSubscription(model);
         }
     });
 
@@ -201,7 +211,7 @@ function App() {
 
     return () => {
         isMounted = false;
-        subscription.unsubscribe();
+        unsubscribe();
         clearTimeout(timeout);
     };
   }, []);
@@ -211,8 +221,8 @@ function App() {
     if (!isAuthenticated || !isCloudMenuLoaded) return;
 
     const syncMenuToCloud = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      const user = pb.authStore.model;
+      if (!user) return;
 
       const menuPayload = {
         menu: {
@@ -223,10 +233,8 @@ function App() {
       };
 
       try {
-        await supabase
-          .from('restaurants')
-          .update({ stripe_customer_id: JSON.stringify(menuPayload) })
-          .eq('owner_id', session.user.id);
+        const restaurant = await pb.collection('restaurants').getFirstListItem(`owner.id = "${user.id}"`);
+        await pb.collection('restaurants').update(restaurant.id, { stripe_customer_id: JSON.stringify(menuPayload) });
       } catch (e) {
         console.error("Error backing up menu to cloud:", e);
       }
@@ -243,12 +251,10 @@ function App() {
   const handleSimulatePayment = async () => {
       // Para efectos del prototipo, esto simula que Stripe aprobó el pago
       // y actualizamos el status en la base de datos de Supabase real
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = pb.authStore.model;
       if (user) {
-          await supabase
-              .from('restaurants')
-              .update({ subscription_status: 'active' })
-              .eq('owner_id', user.id);
+          const restaurant = await pb.collection('restaurants').getFirstListItem(`owner.id = "${user.id}"`);
+          await pb.collection('restaurants').update(restaurant.id, { subscription_status: 'active' });
       }
       setSubscriptionStatus('active');
   };
@@ -714,7 +720,7 @@ function App() {
             <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Ajustes</span>
           </button>
           <button
-            onClick={() => supabase.auth.signOut()}
+            onClick={() => pb.authStore.clear()}
             className="p-3 lg:px-3 rounded-xl transition-all text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 flex items-center gap-3 border border-transparent"
             title="Cerrar Sesión"
           >

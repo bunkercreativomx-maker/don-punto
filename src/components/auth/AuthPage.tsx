@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Mail, Lock, Building2, ChevronRight, AlertCircle, Loader2 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { pb } from '../../lib/pocketbase';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -24,29 +24,20 @@ export function AuthPage({ onAuthSuccess }: { onAuthSuccess: () => void }) {
 
         try {
             if (isLogin) {
-                const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
-                if (authError) throw authError;
+                await pb.collection('users').authWithPassword(email, password);
                 onAuthSuccess();
             } else {
                 if (!restaurantName.trim()) {
                     throw new Error("El nombre del negocio es obligatorio para el registro.");
                 }
 
-                // Register user
-                const { data, error: authError } = await supabase.auth.signUp({ email, password });
-                if (authError) throw authError;
-                
-                // Si requiere confirmación por email, mostramos mensaje. Si no, insertamos restaurante.
-                if (data.user) {
-                    const { error: dbError } = await supabase.from('restaurants').insert([
-                        { name: restaurantName, owner_id: data.user.id }
-                    ]);
-                    if (dbError) throw dbError;
-                    
-                    onAuthSuccess();
-                } else {
-                    throw new Error("No se pudo crear el usuario. Revisa las configuraciones de Supabase.");
-                }
+                // Registrar usuario en PocketBase
+                const newUser = await pb.collection('users').create({ email, password, passwordConfirm: password });
+                // Iniciar sesión inmediatamente
+                await pb.collection('users').authWithPassword(email, password);
+                // Crear su restaurante
+                await pb.collection('restaurants').create({ name: restaurantName, owner: newUser.id });
+                onAuthSuccess();
             }
         } catch (err: any) {
             setError(err.message || 'Ocurrió un error en la autenticación.');
