@@ -104,8 +104,6 @@ function App() {
         }
 
         try {
-            const isTestUser = user.email === 'pakovipteam@gmail.com' || user.email === 'tgudino@me.com';
-
             // Buscar el restaurante del dueño
             let restaurant: any = null;
             try {
@@ -116,28 +114,22 @@ function App() {
             
             if (!restaurant) {
                 // No existe el restaurante (cuenta nueva), lo creamos
-                const defaultStatus = isTestUser ? 'active' : 'inactive';
                 const newRest = await pb.collection('restaurants').create(
-                    { name: 'Mi Restaurante', owner: user.id, subscription_status: defaultStatus }
+                    { name: 'Mi Restaurante', owner: user.id }
                 );
                 restaurant = newRest;
-                if (isMounted) {
-                    setSubscriptionStatus(defaultStatus);
-                }
-            } else if (isTestUser && restaurant && restaurant.subscription_status !== 'active') {
-                // Si es usuario de prueba y no tiene status active, lo actualizamos de inmediato en Supabase
-                await pb.collection('restaurants').update(restaurant.id, { subscription_status: 'active' });
-                if (isMounted) {
-                    setSubscriptionStatus('active');
-                }
-            } else if (restaurant && restaurant.subscription_status === 'active') {
-                if (isMounted) {
-                    setSubscriptionStatus('active');
-                }
-            } else {
-                if (isMounted) {
-                    setSubscriptionStatus('inactive');
-                }
+            }
+
+            // Estado de membresía: SOLO lectura desde subscriptions (lo activa el servidor/webhook)
+            let subscription: any = null;
+            try {
+                subscription = await pb.collection('subscriptions').getFirstListItem(`owner.id = "${user.id}"`);
+            } catch (e: any) {
+                if (e?.status !== 404) throw e;
+            }
+            const subStatus = subscription?.status === 'active' ? 'active' : 'inactive';
+            if (isMounted) {
+                setSubscriptionStatus(subStatus);
             }
 
             // Recuperar el menú respaldado en la nube
@@ -249,14 +241,10 @@ function App() {
   }, [rows, categories, modifierGroups, isAuthenticated, isCloudMenuLoaded]);
 
   const handleSimulatePayment = async () => {
-      // Para efectos del prototipo, esto simula que Stripe aprobó el pago
-      // y actualizamos el status en la base de datos de Supabase real
-      const user = pb.authStore.model;
-      if (user) {
-          const restaurant = await pb.collection('restaurants').getFirstListItem(`owner.id = "${user.id}"`);
-          await pb.collection('restaurants').update(restaurant.id, { subscription_status: 'active' });
-      }
-      setSubscriptionStatus('active');
+      // Stripe aún no conectado: la membresía NO se puede activar desde el cliente.
+      // Solo el servidor (webhook de Stripe con firma verificada) puede activarla.
+      alert('El pago en línea estará disponible pronto. Contacta a soporte para activar tu cuenta.');
+      setSubscriptionStatus('inactive');
   };
 
   const [isScannerOpen, setIsScannerOpen] = useState(false);
