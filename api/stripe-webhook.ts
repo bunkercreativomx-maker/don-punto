@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { adminToken, pbFetch, stripe } from './_lib/server.js';
+import { sendToUser } from './_lib/push.js';
 
 // Webhook de Stripe: ÚNICA vía para activar/desactivar membresías (firma verificada)
 export const config = { api: { bodyParser: false } };
@@ -63,6 +64,8 @@ async function upsertSubscription(uid: string, sub: any) {
     // No pisar una suscripción vigente distinta con un evento de otra suscripción ya cancelada
     if (rec && rec.stripe_subscription_id && rec.stripe_subscription_id !== sub.id && fields.status !== 'active') return;
   }
+  const prevStatus = rec?.status;
+  const owner = rec?.owner || uid;
   if (rec) {
     const r = await pbFetch(`/api/collections/subscriptions/records/${rec.id}`, { method: 'PATCH', token, body: fields });
     if (!r.ok) throw new Error('PB update ' + JSON.stringify(r.data));
@@ -71,6 +74,17 @@ async function upsertSubscription(uid: string, sub: any) {
     if (!r.ok) throw new Error('PB create ' + JSON.stringify(r.data));
   } else {
     console.warn('Webhook sin uid para suscripción', sub.id);
+    return;
+  }
+  // Aviso al dueño cuando cambia el estado de su membresía
+  if (owner && prevStatus !== fields.status) {
+    const msg: Record<string, [string, string]> = {
+      active: ['Tu membresía está activa', 'Gracias por tu pago. Don Punto ya está listo para cobrar.'],
+      past_due: ['No pudimos cobrar tu membresía', 'Actualiza tu tarjeta en "Mi plan" para no perder el acceso.'],
+      canceled: ['Tu membresía terminó', 'Tus datos siguen guardados. Puedes reactivar cuando quieras.'],
+    };
+    const m = msg[String(fields.status)];
+    if (m) await sendToUser(owner, { title: m[0], body: m[1], url: '/', tag: 'membresia' }).catch(() => 0);
   }
 }
 

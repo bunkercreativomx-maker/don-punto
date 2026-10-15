@@ -2,6 +2,7 @@ import { Plus, Trash2, TrendingUp } from 'lucide-react';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import type { ProductRowData, CalculationResult } from '../types/calculator';
+import { money } from '../lib/format';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs));
@@ -97,7 +98,7 @@ export function ProfitGrid({ rows, results, updateRow, removeRow, addRow }: Prof
                                 <div className="md:text-right font-mono flex md:block justify-between items-center">
                                     <span className="md:hidden text-[10px] text-slate-500 uppercase tracking-wider">Monto a Recibir</span>
                                     <span className="text-emerald-300/90 font-medium whitespace-nowrap">
-                                        ${res.netRevenue.toFixed(2)}
+                                        ${money(res.netRevenue)}
                                     </span>
                                 </div>
 
@@ -105,7 +106,7 @@ export function ProfitGrid({ rows, results, updateRow, removeRow, addRow }: Prof
                                 <div className="md:text-right font-mono flex md:block justify-between items-center">
                                     <span className="md:hidden text-[10px] text-slate-500 uppercase tracking-wider">IVA (desglose)</span>
                                     <span className="text-violet-300/90 font-medium whitespace-nowrap">
-                                        ${res.ivaDesglose.toFixed(2)}
+                                        ${money(res.ivaDesglose)}
                                     </span>
                                 </div>
 
@@ -116,7 +117,7 @@ export function ProfitGrid({ rows, results, updateRow, removeRow, addRow }: Prof
                                         "text-base font-bold tracking-tight",
                                         res.netProfit > 0 ? "text-white" : res.netProfit < 0 ? "text-rose-400" : "text-slate-400"
                                     )}>
-                                        ${res.netProfit.toFixed(2)}
+                                        ${money(res.netProfit)}
                                     </span>
                                 </div>
 

@@ -1,6 +1,7 @@
 import type { POSSummary, POSPaymentMethod, PaperSize } from '../../types/pos';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { money } from '../../lib/format';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -53,7 +54,7 @@ export function CorteTicket({ summary, date, paperSize = '58mm' }: CorteTicketPr
                 return (
                     <div key={method} className="flex-row-print">
                         <span className="uppercase">{method}:</span>
-                        <span>${amount.toFixed(2)}</span>
+                        <span>${money(amount)}</span>
                     </div>
                 );
             })}
@@ -65,11 +66,11 @@ export function CorteTicket({ summary, date, paperSize = '58mm' }: CorteTicketPr
         <div className="space-y-1">
             <div className="flex-row-print">
                 <span>IVA RECAUDADO:</span>
-                <span>${summary.totalIVA.toFixed(2)}</span>
+                <span>${money(summary.totalIVA)}</span>
             </div>
             <div className="flex-row-print">
                 <span>IVA EFECTIVO*:</span>
-                <span>${summary.cashIVA.toFixed(2)}</span>
+                <span>${money(summary.cashIVA)}</span>
             </div>
         </div>
         <p className="text-[8px] mt-2 italic text-black/60">* Incluye Efectivo y Didi Efectivo</p>
@@ -78,7 +79,7 @@ export function CorteTicket({ summary, date, paperSize = '58mm' }: CorteTicketPr
       <div className="pt-2 border-t border-black mb-10">
         <div className="flex-row-print text-sm font-black uppercase">
             <span>TOTAL VENTA:</span>
-            <span>${summary.total.toFixed(2)}</span>
+            <span>${money(summary.total)}</span>
         </div>
       </div>
 

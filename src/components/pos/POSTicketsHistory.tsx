@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { twMerge } from 'tailwind-merge';
 import clsx from 'clsx';
+import { money } from '../../lib/format';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -228,7 +229,7 @@ export function POSTicketsHistory() {
 
                   <div className="flex items-center gap-2 shrink-0 pl-2">
                     <div className="text-right">
-                      <div className="text-base font-black text-white">${tx.amount.toFixed(2)}</div>
+                      <div className="text-base font-black text-white">${money(tx.amount)}</div>
                     </div>
                     <ChevronRight size={16} className="text-slate-600 group-hover:text-white transition-colors" />
                   </div>
@@ -345,17 +346,17 @@ export function POSTicketsHistory() {
                     <>
                       <div className="flex justify-between">
                         <span>Subtotal:</span>
-                        <span>${(selectedTicket.amount + selectedTicket.discountAmount).toFixed(2)}</span>
+                        <span>${money((selectedTicket.amount + selectedTicket.discountAmount))}</span>
                       </div>
                       <div className="flex justify-between text-emerald-600 font-bold">
                         <span>Descuento:</span>
-                        <span>-${selectedTicket.discountAmount.toFixed(2)}</span>
+                        <span>-${money(selectedTicket.discountAmount)}</span>
                       </div>
                     </>
                   )}
                   <div className="flex justify-between text-base font-black border-t border-dashed border-slate-300 pt-2 mt-2">
                     <span>TOTAL:</span>
-                    <span>${selectedTicket.amount.toFixed(2)}</span>
+                    <span>${money(selectedTicket.amount)}</span>
                   </div>
                   <div className="flex justify-between pt-1">
                     <span className="text-slate-500">Forma de Pago:</span>

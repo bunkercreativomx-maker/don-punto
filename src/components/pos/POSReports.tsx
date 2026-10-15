@@ -5,6 +5,7 @@ import { CorteTicket } from './CorteTicket';
 
 import { twMerge } from 'tailwind-merge';
 import clsx from 'clsx';
+import { money } from '../../lib/format';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -51,21 +52,21 @@ export function POSReports() {
             </div>
             <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3">{card.label}</p>
             <div className="space-y-1">
-                <div className="text-3xl font-black text-white tracking-tighter">${card.data.total.toFixed(2)}</div>
+                <div className="text-3xl font-black text-white tracking-tighter">${money(card.data.total)}</div>
                 <div className="flex justify-between items-center text-[10px] font-bold">
                     <span className="text-slate-500">IVA TOTAL</span>
-                    <span className={card.color}>+${card.data.totalIVA.toFixed(2)}</span>
+                    <span className={card.color}>+${money(card.data.totalIVA)}</span>
                 </div>
                 <div className="flex justify-between items-center text-[10px] font-bold">
                     <span className="text-slate-500">IVA EFECTIVO</span>
-                    <span className="text-slate-300">${card.data.cashIVA.toFixed(2)}</span>
+                    <span className="text-slate-300">${money(card.data.cashIVA)}</span>
                 </div>
                 <div className="h-px bg-white/5 my-2" />
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                     {Object.entries(card.data.byDestination).map(([dest, amt]) => (
                         <div key={dest} className="flex justify-between text-[9px] font-bold">
                             <span className="text-slate-600 uppercase">{dest}</span>
-                            <span className="text-slate-400">${amt.toFixed(2)}</span>
+                            <span className="text-slate-400">${money(amt)}</span>
                         </div>
                     ))}
                 </div>
@@ -91,12 +92,12 @@ export function POSReports() {
                 <div className="mt-8 space-y-4 p-4 bg-slate-950/50 rounded-2xl border border-white/5">
                     <div className="flex justify-between items-center">
                         <span className="text-xs text-slate-500 font-bold">VENTA DEL DÍA</span>
-                        <span className="text-lg font-black text-white">${dailyIVA.total.toFixed(2)}</span>
+                        <span className="text-lg font-black text-white">${money(dailyIVA.total)}</span>
                     </div>
                     <div className="h-px bg-white/5" />
                     <div className="flex justify-between items-center">
                         <span className="text-xs text-slate-500 font-bold uppercase">IVA Recaudado</span>
-                        <span className="text-emerald-500 font-bold text-sm">${dailyIVA.totalIVA.toFixed(2)}</span>
+                        <span className="text-emerald-500 font-bold text-sm">${money(dailyIVA.totalIVA)}</span>
                     </div>
 
                     <button 
@@ -152,7 +153,7 @@ export function POSReports() {
                                         {tx.destination === 'Tienda' ? <Store size={16}/> : <Bike size={16}/>}
                                     </div>
                                     <div>
-                                        <div className="text-sm font-bold text-white leading-tight">{tx.customerName || 'Venta Mostrador'}</div>
+                                        <div className="text-sm font-bold text-white leading-tight">{tx.customerName || (tx.destination === 'Tienda' ? 'Venta en mostrador' : `Pedido ${tx.destination === 'Didi' ? 'DiDi' : tx.destination}`)}</div>
                                         <div className="text-[10px] text-slate-500 mt-0.5 italic line-clamp-1">{tx.notes}</div>
                                         <div className="flex items-center gap-2 text-[10px] font-medium mt-1">
                                             <span className="text-slate-500">{new Date(tx.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -165,14 +166,18 @@ export function POSReports() {
                                                 tx.paymentMethod === 'Didi' ? "text-orange-500" : 
                                                 tx.paymentMethod === 'Didi Efectivo' ? "text-orange-400 font-black border-b border-orange-500/30" : "text-pink-500"
                                             )}>{tx.paymentMethod.toUpperCase()}</span>
-                                            <span className="text-white/20">•</span>
-                                            <span className="text-indigo-400 font-black uppercase">{tx.destination || 'TIENDA'}</span>
+                                            {tx.destination && tx.destination.toUpperCase() !== tx.paymentMethod.toUpperCase() && (
+                                                <>
+                                                    <span className="text-white/20">•</span>
+                                                    <span className="text-indigo-400 font-black uppercase">{tx.destination}</span>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-6">
                                     <div className="text-right">
-                                        <div className="text-sm font-black text-white">${tx.amount.toFixed(2)}</div>
+                                        <div className="text-sm font-black text-white">${money(tx.amount)}</div>
                                         <div className="text-[9px] text-slate-600 font-bold uppercase tracking-tight">Neto</div>
                                     </div>
                                     <button 

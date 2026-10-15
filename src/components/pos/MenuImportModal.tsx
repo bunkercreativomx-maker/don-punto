@@ -90,13 +90,13 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-xl animate-in fade-in duration-300 no-print">
-            <div className="bg-slate-900 border border-white/10 rounded-3xl w-full max-w-2xl shadow-[0_0_100px_-20px_rgba(99,102,241,0.3)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="bg-slate-900 border border-white/10 rounded-3xl w-full max-w-2xl shadow-[0_0_100px_-20px_rgba(22,137,95,0.3)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
                 
                 {/* Header */}
                 <div className="p-6 border-b border-white/5 flex justify-between items-center bg-slate-800/30 relative overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10" />
                     <div className="relative flex items-center gap-3">
-                        <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.2)]">
+                        <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30 shadow-[0_0_20px_rgba(22,137,95,0.2)]">
                             <FileSpreadsheet size={20} />
                         </div>
                         <div>
@@ -230,7 +230,7 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
                                 className={cn(
                                     "border rounded-2xl p-4 cursor-pointer transition-all duration-300 relative flex items-center justify-between group overflow-hidden",
                                     platforms.rappi 
-                                        ? "bg-pink-500/10 border-pink-500/30 shadow-[0_0_20px_rgba(236,72,153,0.1)]" 
+                                        ? "bg-pink-500/10 border-pink-500/30 shadow-[0_0_20px_rgba(245,179,35,0.1)]" 
                                         : "bg-slate-950/40 border-white/5 hover:border-white/10"
                                 )}
                             >

@@ -5,6 +5,7 @@ import { pb } from './lib/pocketbase';
 import { hydrateUser, attachUserOffline, clearUser, flushAll, onSyncStatus, type SyncStatus } from './lib/cloudStore';
 import { apiPost } from './lib/api';
 import { supportLink } from './config';
+import { Mark } from './components/brand/Logo';
 
 const App = lazy(() => import('./App'));
 const LandingPage = lazy(() => import('./components/landing/LandingPage').then((m) => ({ default: m.LandingPage })));
@@ -12,7 +13,7 @@ const LandingPage = lazy(() => import('./components/landing/LandingPage').then((
 function Splash({ text = 'Cargando Don Punto…' }: { text?: string }) {
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-4">
-      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white font-black text-2xl animate-pulse shadow-[0_0_30px_rgba(99,102,241,0.4)]">D</div>
+      <Mark size={56} className="animate-pulse" />
       <div className="text-slate-500 text-[10px] font-black tracking-widest uppercase animate-pulse">{text}</div>
     </div>
   );
@@ -44,7 +45,7 @@ function SyncBadge() {
   useEffect(() => onSyncStatus(setS), []);
   if (s === 'ok') return null;
   return (
-    <div className="fixed bottom-3 right-3 z-[200] no-print pointer-events-none">
+    <div className="fixed top-2 left-1/2 -translate-x-1/2 z-[200] no-print pointer-events-none">
       <div className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-lg ${s === 'offline' ? 'bg-amber-500/15 text-amber-300 border-amber-500/30' : 'bg-slate-800/90 text-slate-300 border-white/10'}`}>
         {s === 'offline' ? 'Sin internet · se guarda en este equipo' : 'Guardando en la nube…'}
       </div>
@@ -99,6 +100,12 @@ export default function Root() {
     }
     setPhase('ready');
   }, []);
+
+  // Color de la barra del navegador: claro en la página de ventas, oscuro dentro de la app
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    meta?.setAttribute('content', phase === 'landing' ? '#FAFAF7' : '#0D100E');
+  }, [phase]);
 
   // Sesión guardada
   useEffect(() => {

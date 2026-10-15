@@ -1,20 +1,139 @@
 @import "tailwindcss";
+@import "@fontsource-variable/bricolage-grotesque";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
 
+/*
+ * Identidad Don Punto
+ *  - Agave (primario): verde profundo = dinero que sí se queda
+ *  - Maíz (acento): el "punto" del logo
+ *  - Carbón (neutros): grises con un toque cálido-verde
+ * Las paletas indigo/slate/pink/cyan/violet de la app se remapean aquí para que
+ * TODA la interfaz tome la nueva identidad sin tocar cada componente.
+ */
 @theme {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+  --font-display: "Bricolage Grotesque Variable", "Geist Variable", ui-sans-serif, sans-serif;
+
   --color-uber: #06C167;
   --color-didi: #FF7800;
   --color-rappi: #FF424D;
-  --color-dark-bg: #0F172A;
-  --color-dark-panel: #1E293B;
+  --color-dark-bg: #191D19;
+  --color-dark-panel: #272C27;
+
+  /* Agave */
+  --color-agave-50: #EAF7F1;
+  --color-agave-100: #CDEEDF;
+  --color-agave-200: #9EDCC2;
+  --color-agave-300: #66C39F;
+  --color-agave-400: #34A87F;
+  --color-agave-500: #16895F;
+  --color-agave-600: #0E6F4D;
+  --color-agave-700: #0C5A40;
+  --color-agave-800: #0B4735;
+  --color-agave-900: #093A2C;
+  --color-agave-950: #04211A;
+
+  /* Maíz */
+  --color-maiz-50: #FFF8E6;
+  --color-maiz-100: #FFEDBF;
+  --color-maiz-200: #FFDC85;
+  --color-maiz-300: #FCC84D;
+  --color-maiz-400: #F5B323;
+  --color-maiz-500: #E39B0B;
+  --color-maiz-600: #C07A06;
+  --color-maiz-700: #985A09;
+  --color-maiz-800: #7B480F;
+  --color-maiz-900: #663C10;
+  --color-maiz-950: #3B1F04;
+
+  /* Carbón (neutros) */
+  --color-carbon-50: #F6F7F5;
+  --color-carbon-100: #ECEEEA;
+  --color-carbon-200: #D7DBD4;
+  --color-carbon-300: #B5BCB2;
+  --color-carbon-400: #8A9387;
+  --color-carbon-500: #697266;
+  --color-carbon-600: #535B51;
+  --color-carbon-700: #3E453D;
+  --color-carbon-800: #272C27;
+  --color-carbon-900: #191D19;
+  --color-carbon-950: #0D100E;
+
+  /* ---- Remapeo de la interfaz existente ---- */
+  /* slate → carbón */
+  --color-slate-50: #F6F7F5;
+  --color-slate-100: #ECEEEA;
+  --color-slate-200: #D7DBD4;
+  --color-slate-300: #B5BCB2;
+  --color-slate-400: #A7AFA4;
+  --color-slate-500: #8C9589;
+  --color-slate-600: #6E776B;
+  --color-slate-700: #3E453D;
+  --color-slate-800: #272C27;
+  --color-slate-900: #191D19;
+  --color-slate-950: #0D100E;
+
+  /* indigo (acción principal) → agave, un paso más claro para leerse sobre fondo oscuro */
+  --color-indigo-50: #EAF7F1;
+  --color-indigo-100: #CDEEDF;
+  --color-indigo-200: #9EDCC2;
+  --color-indigo-300: #66C39F;
+  --color-indigo-400: #3DBA8C;
+  --color-indigo-500: #16895F;
+  --color-indigo-600: #0E6F4D;
+  --color-indigo-700: #0C5A40;
+  --color-indigo-800: #0B4735;
+  --color-indigo-900: #093A2C;
+  --color-indigo-950: #04211A;
+
+  /* pink (acentos) → maíz */
+  --color-pink-300: #FCC84D;
+  --color-pink-400: #F5B323;
+  --color-pink-500: #E39B0B;
+  --color-pink-600: #C07A06;
+
+  /* cyan (degradados) → lima suave que acompaña al agave */
+  --color-cyan-300: #C8E37A;
+  --color-cyan-400: #ADD14E;
+  --color-cyan-500: #8DB52C;
+  --color-cyan-600: #6F9320;
+  --color-cyan-900: #2C3C10;
+
+  /* violet → agave profundo */
+  --color-violet-300: #9EDCC2;
+  --color-violet-400: #66C39F;
+  --color-violet-500: #34A87F;
+  --color-violet-600: #16895F;
 }
 
 @layer base {
   body {
-    background-color: theme('colors.slate.950');
-    color: theme('colors.slate.100');
-    font-family: 'Inter', 'Outfit', sans-serif;
+    background-color: var(--color-carbon-950);
+    color: var(--color-carbon-100);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
+  }
+  .font-display {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-maiz-400);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
@@ -36,15 +155,15 @@
     background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(99, 102, 241, 0.25);
+    background: rgba(52, 168, 127, 0.3);
     border-radius: 9999px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(99, 102, 241, 0.5);
+    background: rgba(52, 168, 127, 0.55);
   }
   .custom-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: rgba(99,102,241,0.25) transparent;
+    scrollbar-color: rgba(52,168,127,0.3) transparent;
   }
 }
 
@@ -157,3 +276,18 @@
 .print-only-ticket, .print-only-corte {
   display: none;
 }
+
+
+/* ---- Movimiento de la landing (una sola secuencia de entrada + respuesta del ticket) ---- */
+@keyframes dp-rise {
+  from { opacity: 0; transform: translateY(18px); filter: blur(6px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+.hero-in { animation: dp-rise 0.9s cubic-bezier(0.32, 0.72, 0, 1) both; }
+.hero-in-late { animation-delay: 0.18s; }
+@keyframes dp-pop {
+  0% { transform: translateY(4px); opacity: 0.4; }
+  100% { transform: none; opacity: 1; }
+}
+.ticket-pop { animation: dp-pop 0.35s cubic-bezier(0.32, 0.72, 0, 1); }
+input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }

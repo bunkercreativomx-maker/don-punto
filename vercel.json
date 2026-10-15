@@ -1,7 +1,8 @@
 {
   "cleanUrls": true,
+  "crons": [{ "path": "/api/cron-daily", "schedule": "0 4 * * *" }],
   "rewrites": [
-    { "source": "/((?!api/|privacidad|terminos|assets/|favicon|og-image|apple-touch|robots|sitemap).*)", "destination": "/" }
+    { "source": "/((?!api/|privacidad|terminos|assets/|brand/|favicon|og-image|apple-touch|pwa-|manifest|sw\\.js|workbox-|robots|sitemap).*)", "destination": "/" }
   ],
   "headers": [
     {
@@ -13,9 +14,8 @@
         { "key": "Permissions-Policy", "value": "camera=(self), microphone=(), geolocation=()" }
       ]
     },
-    {
-      "source": "/assets/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
-    }
+    { "source": "/assets/(.*)", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }] },
+    { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }, { "key": "Service-Worker-Allowed", "value": "/" }] },
+    { "source": "/manifest.webmanifest", "headers": [{ "key": "Content-Type", "value": "application/manifest+json" }] }
   ]
 }

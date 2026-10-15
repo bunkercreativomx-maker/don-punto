@@ -1,5 +1,6 @@
 import { Plus, Trash2, TrendingUp } from 'lucide-react';
 import type { ProductRowData, PricingCalculationResult } from '../types/calculator';
+import { money } from '../lib/format';
 
 interface PricingGridProps {
     rows: ProductRowData[];
@@ -45,7 +46,7 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
                         </div>
                         <div className="text-xs text-slate-400 max-w-xl leading-relaxed">
                             <span className="text-yellow-400 font-bold uppercase tracking-wider block mb-0.5">Tip Pro:</span>
-                            En <span className="text-yellow-500 font-semibold italic">"VAS A RECIBIR"</span> coloca el precio de tu restaurante. Haz clic en el botón azul para hacerlo automáticamente.
+                            En <span className="text-yellow-500 font-semibold italic">"VAS A RECIBIR"</span> coloca el precio de tu restaurante. Toca el botón verde para hacerlo automáticamente.
                         </div>
                     </div>
                     <button
@@ -105,7 +106,7 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
 
                                             {/* 2. Utilidad ($) — computed */}
                                             <div className={`text-right font-black px-2 ${utilidadColor} bg-emerald-500/5 py-1.5 rounded-xl border border-emerald-500/10`}>
-                                                ${res.utilidad.toFixed(2)}
+                                                ${money(res.utilidad)}
                                             </div>
 
                                             {/* 3. Costo de Producción — input */}
@@ -163,12 +164,12 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
 
                                             {/* 8. PRECIO UNITARIO PLATAFORMA — computed */}
                                             <div className="text-right text-white font-black bg-white/5 py-1.5 px-3 rounded-xl border border-white/5 shadow-inner">
-                                                ${res.platformUnitPrice.toFixed(2)}
+                                                ${money(res.platformUnitPrice)}
                                             </div>
 
                                             {/* 9. TOTAL PRODUCTO */}
                                             <div className="text-right text-slate-400 px-2 tracking-tighter">
-                                                ${res.totalProduct.toFixed(2)}
+                                                ${money(res.totalProduct)}
                                             </div>
 
                                             {/* 10. % DESCUENTO */}
@@ -186,12 +187,12 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
 
                                             {/* 11. PRECIO PARA EL CLIENTE */}
                                             <div className="text-right text-indigo-400 bg-indigo-500/5 py-1 px-2 rounded-lg border border-indigo-500/10">
-                                                ${res.priceForClientBase.toFixed(2)}
+                                                ${money(res.priceForClientBase)}
                                             </div>
 
                                             {/* 12. DESCUENTO ($) */}
                                             <div className="text-right text-slate-500 px-2">
-                                                -${res.discountAmount.toFixed(2)}
+                                                -${money(res.discountAmount)}
                                             </div>
 
                                             {/* 13. % APOYO PLATAFORMA */}
@@ -206,7 +207,7 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
 
                                             {/* 14. APOYO PLATAFORMA ($) */}
                                             <div className="text-right text-slate-500 px-2">
-                                                +${res.subsidyAmount.toFixed(2)}
+                                                +${money(res.subsidyAmount)}
                                             </div>
 
                                             {/* 15. COSTO ENVÍO REPARTO PROPIO */}
@@ -223,7 +224,7 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
                                             </div>
 
                                             {/* 17. COMISIÓN PLATAFORMA */}
-                                            <div className="text-right text-rose-400/60 px-2 tracking-tighter">-${res.platformCommission.toFixed(2)}</div>
+                                            <div className="text-right text-rose-400/60 px-2 tracking-tighter">-${money(res.platformCommission)}</div>
 
                                             {/* 18. BORRAR */}
                                             <div className="flex justify-center">
@@ -265,13 +266,13 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
                     border-radius: 10px;
                 }
                 .custom-scrollbar::-webkit-scrollbar-thumb {
-                    background: rgba(99, 102, 241, 0.3);
+                    background: rgba(22,137,95, 0.3);
                     border-radius: 10px;
                     border: 3px solid transparent;
                     background-clip: content-box;
                 }
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                    background: rgba(99, 102, 241, 0.5);
+                    background: rgba(22,137,95, 0.5);
                     background-clip: content-box;
                 }
             `}</style>

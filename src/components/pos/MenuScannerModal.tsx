@@ -149,13 +149,13 @@ export function MenuScannerModal({ onClose, onScanSuccess }: MenuScannerModalPro
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-xl animate-in fade-in duration-300 no-print">
-            <div className="bg-slate-900 border border-white/10 rounded-3xl w-full max-w-xl shadow-[0_0_100px_-20px_rgba(99,102,241,0.3)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="bg-slate-900 border border-white/10 rounded-3xl w-full max-w-xl shadow-[0_0_100px_-20px_rgba(22,137,95,0.3)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
                 
                 {/* Header */}
                 <div className="p-6 border-b border-white/5 flex justify-between items-center bg-slate-800/30 relative overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10" />
                     <div className="relative flex items-center gap-3">
-                        <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.2)]">
+                        <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30 shadow-[0_0_20px_rgba(22,137,95,0.2)]">
                             <Sparkles size={20} className={step === 'scanning' ? "animate-spin-slow" : ""} />
                         </div>
                         <div>
@@ -207,7 +207,7 @@ export function MenuScannerModal({ onClose, onScanSuccess }: MenuScannerModalPro
                                 
                                 {/* Scanner Line */}
                                 <div 
-                                    className="absolute left-0 right-0 h-1 bg-indigo-400 shadow-[0_0_20px_2px_rgba(99,102,241,1)] z-20 transition-all duration-300"
+                                    className="absolute left-0 right-0 h-1 bg-indigo-400 shadow-[0_0_20px_2px_rgba(22,137,95,1)] z-20 transition-all duration-300"
                                     style={{ top: `${progress}%` }}
                                 />
                                 <div 

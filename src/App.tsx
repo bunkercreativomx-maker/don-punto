@@ -15,11 +15,15 @@ import { MenuScannerModal } from './components/pos/MenuScannerModal';
 import { MenuImportModal, type ImportPlatforms } from './components/pos/MenuImportModal';
 import { usePOS } from './hooks/usePOS';
 import { Building2, Phone, MapPin, PrinterIcon } from 'lucide-react';
+import { Mark, Wordmark } from './components/brand/Logo';
+import { NotificationsCard } from './components/pwa/NotificationsCard';
+import { InstallAppButton } from './components/pwa/InstallApp';
 import { InventoryModule } from './components/inventory/InventoryModule';
 import { MenuEngineeringModule } from './components/menu-engineering/MenuEngineeringModule';
 import { RecipesModule } from './components/recipes/RecipesModule';
 import { FinancialModule } from './components/financial/FinancialModule';
 import { storeGet, storeSet } from './lib/cloudStore';
+import { money } from './lib/format';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -65,9 +69,20 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
   useEffect(() => { setPricingPage(1); }, [pricingSearch]);
 
   const [activeTab, setActiveTab] = useState<'profits' | 'pricing' | 'pos' | 'menu' | 'reports' | 'tickets' | 'settings' | 'inventory' | 'engineering' | 'recipes' | 'financial'>(() => {
-    const saved = storeGet('donPuntoActiveTab');
-    return (saved as any) || 'profits';
+    const saved = (storeGet('donPuntoActiveTab') || '').replace(/"/g, '');
+    const valid = ['profits', 'pricing', 'pos', 'menu', 'reports', 'tickets', 'inventory', 'engineering', 'recipes', 'financial'];
+    return (valid.includes(saved) ? saved : 'pos') as any;
   });
+
+  // Accesos directos de la app instalada / notificaciones: /?tab=pos, /?tab=reports
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    const allowed = ['profits', 'pricing', 'pos', 'menu', 'reports', 'tickets', 'inventory', 'engineering', 'recipes', 'financial'];
+    if (tab && allowed.includes(tab)) setActiveTab(tab as typeof activeTab);
+    if (params.has('tab') || params.has('source')) window.history.replaceState({}, '', '/');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     storeSet('donPuntoActiveTab', activeTab);
@@ -424,6 +439,11 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
 
       {/* --- PREMIUM SIDEBAR --- */}
       <nav className="w-16 lg:w-52 bg-slate-900/40 border-r border-white/5 flex flex-col items-center lg:items-stretch py-4 gap-3 relative z-30 backdrop-blur-xl shrink-0 no-print overflow-y-auto no-scrollbar">
+        <div className="flex items-center justify-center lg:justify-start gap-2.5 px-2 lg:px-4 pt-1 pb-2">
+          <Mark size={34} />
+          <Wordmark tone="dark" height={20} className="hidden lg:block" />
+        </div>
+
         {/* User Avatar */}
         <div className="flex items-center gap-3 px-2 lg:px-4 py-1 mb-1 group cursor-default">
           <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-slate-400 shrink-0 hover:border-white/20 transition-all">
@@ -513,6 +533,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
             <Settings size={20} className="shrink-0" />
             <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Ajustes</span>
           </button>
+          <InstallAppButton compact label="Instalar app" className="p-3 lg:px-3 rounded-xl transition-all text-maiz-400 hover:bg-maiz-500/10 gap-3 border border-transparent" />
           <button
             onClick={onBilling}
             className="p-3 lg:px-3 rounded-xl transition-all text-slate-500 hover:text-indigo-300 hover:bg-indigo-500/10 flex items-center gap-3 border border-transparent"
@@ -640,7 +661,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                             </div>
                             <p className="text-[10px] font-black text-emerald-400/70 uppercase tracking-[0.2em] mb-3">ROI Neto Estimado</p>
                             <div className="text-4xl font-black text-emerald-400 tracking-tighter">
-                                ${results.reduce((acc, r) => acc + r.netProfit, 0).toFixed(2)}
+                                ${money(results.reduce((acc, r) => acc + r.netProfit, 0))}
                             </div>
                             <p className="text-[10px] text-emerald-500/50 font-bold mt-3 uppercase tracking-wide">Ganancia total de todos los productos</p>
                         </div>
@@ -704,6 +725,8 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
               )}
               {activeTab === 'settings' && (
                   <div className="max-w-2xl space-y-6">
+
+                      <NotificationsCard />
 
                       {/* Business Info */}
                       <div className="bg-slate-900 border border-white/5 rounded-3xl p-8 space-y-6">

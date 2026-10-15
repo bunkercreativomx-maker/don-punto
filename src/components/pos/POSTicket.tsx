@@ -2,6 +2,7 @@ import type { CartItem, POSPaymentMethod, OrderDestination, PaperSize } from '..
 import { useCalculator } from '../../hooks/useCalculator';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { money } from '../../lib/format';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -103,17 +104,17 @@ export function POSTicket({ items, total, paymentMethod, destination, customerNa
             <>
               <div className="flex-row-print">
                 <span>Subtotal:</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>${money(subtotal)}</span>
               </div>
               <div className="flex-row-print">
                 <span>Descuento:</span>
-                <span>-${discountAmount.toFixed(2)}</span>
+                <span>-${money(discountAmount)}</span>
               </div>
             </>
           )}
           <div className="flex-row-print text-sm font-bold">
             <span>TOTAL:</span>
-            <span>${total.toFixed(2)}</span>
+            <span>${money(total)}</span>
           </div>
           <div className="flex-row-print">
             <span>Metodo de Pago:</span>
@@ -123,11 +124,11 @@ export function POSTicket({ items, total, paymentMethod, destination, customerNa
             <>
               <div className="flex-row-print">
                 <span>Recibido:</span>
-                <span>${receivedAmount.toFixed(2)}</span>
+                <span>${money(receivedAmount)}</span>
               </div>
               <div className="flex-row-print font-bold border-t border-black pt-1 mt-1">
                 <span>CAMBIO:</span>
-                <span>${(receivedAmount - total).toFixed(2)}</span>
+                <span>${money((receivedAmount - total))}</span>
               </div>
             </>
           )}

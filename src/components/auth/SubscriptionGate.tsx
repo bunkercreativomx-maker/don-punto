@@ -113,7 +113,7 @@ export function SubscriptionGate({ status, email, verifyingPayment, hasStripeCus
                   key={key}
                   className={
                     pro
-                      ? 'bg-indigo-900/40 backdrop-blur-xl border border-indigo-500/50 rounded-3xl p-8 flex flex-col relative shadow-[0_0_50px_-12px_rgba(99,102,241,0.5)]'
+                      ? 'bg-indigo-900/40 backdrop-blur-xl border border-indigo-500/50 rounded-3xl p-8 flex flex-col relative shadow-[0_0_50px_-12px_rgba(22,137,95,0.5)]'
                       : 'bg-slate-900/60 backdrop-blur-xl border border-white/5 rounded-3xl p-8 flex flex-col relative'
                   }
                 >

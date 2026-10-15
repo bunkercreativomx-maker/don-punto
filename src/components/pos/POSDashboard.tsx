@@ -7,6 +7,7 @@ import { POSTicket } from './POSTicket';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import type { ProductRowData } from '../../types/calculator';
+import { money } from '../../lib/format';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -465,7 +466,7 @@ export function POSDashboard() {
                             className="bg-slate-800/40 border border-white/5 p-4 rounded-2xl text-left hover:border-indigo-500/50 hover:bg-slate-800/60 transition-all group relative overflow-hidden h-32 flex flex-col justify-between"
                         >
                             <div className="font-bold text-slate-200 group-hover:text-indigo-300 text-sm leading-tight line-clamp-2">{p.name}</div>
-                            <div className="font-black text-white text-lg tracking-tighter">${getItemPrice(p.id, []).toFixed(2)}</div>
+                            <div className="font-black text-white text-lg tracking-tighter">${money(getItemPrice(p.id, []))}</div>
                             {(() => {
                                 const hasMods = (p.modifierGroupIds && p.modifierGroupIds.length > 0) || 
                                     modifierGroups.some(g => p.categoryId && g.appliedToCategories?.includes(p.categoryId));
@@ -500,7 +501,7 @@ export function POSDashboard() {
                                             <div className="text-sm font-bold text-slate-200 leading-tight pr-2">{p?.name}</div>
                                             {item.customerNote && <div className="text-[10px] text-indigo-400 font-bold uppercase tracking-tight mt-0.5">{item.customerNote}</div>}
                                         </div>
-                                        <div className="text-sm font-black text-white whitespace-nowrap">${(unitPrice * item.quantity).toFixed(2)}</div>
+                                        <div className="text-sm font-black text-white whitespace-nowrap">${money((unitPrice * item.quantity))}</div>
                                     </div>
                                     {item.selectedModifiers.map(g => (
                                         <div key={g.groupId} className="flex flex-wrap gap-1">
@@ -510,7 +511,7 @@ export function POSDashboard() {
                                         </div>
                                     ))}
                                     <div className="flex items-center justify-between mt-1">
-                                        <span className="text-[10px] text-slate-600">${unitPrice.toFixed(2)} c/u</span>
+                                        <span className="text-[10px] text-slate-600">${money(unitPrice)} c/u</span>
                                         <div className="flex items-center gap-2 bg-slate-900 px-2 py-1 rounded-lg border border-white/5">
                                             <button onClick={() => requirePin(() => updateCartQuantity(item.cartId, -1))} className="text-slate-500 hover:text-white"><Minus size={14}/></button>
                                             <span className="text-xs font-black text-white w-4 text-center">{item.quantity}</span>
@@ -577,18 +578,18 @@ export function POSDashboard() {
                         {discountAmount > 0 && (
                             <div className="flex justify-between items-center text-xs font-bold text-slate-500 px-1">
                                 <span>Subtotal</span>
-                                <span>${cartTotal.toFixed(2)}</span>
+                                <span>${money(cartTotal)}</span>
                             </div>
                         )}
                         {discountAmount > 0 && (
                             <div className="flex justify-between items-center text-xs font-bold text-emerald-500 px-1">
                                 <span>Descuento</span>
-                                <span>-${discountAmount.toFixed(2)}</span>
+                                <span>-${money(discountAmount)}</span>
                             </div>
                         )}
                         <div className="flex justify-between items-end mb-2 pt-1 px-1">
                             <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Total Cobrar</span>
-                            <span className="text-3xl font-black text-white tracking-tighter">${finalTotal.toFixed(2)}</span>
+                            <span className="text-3xl font-black text-white tracking-tighter">${money(finalTotal)}</span>
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                             <button 
@@ -709,7 +710,7 @@ export function POSDashboard() {
                 <div className="p-8 space-y-8">
                     <div className="flex justify-between items-baseline">
                         <span className="text-sm font-bold text-slate-500">Total a Cobrar:</span>
-                        <span className="text-3xl font-black text-white">${finalTotal.toFixed(2)}</span>
+                        <span className="text-3xl font-black text-white">${money(finalTotal)}</span>
                     </div>
 
                     <div className="space-y-4">
@@ -740,7 +741,7 @@ export function POSDashboard() {
                                 onClick={() => setReceivedAmount(finalTotal.toFixed(2))}
                                 className="col-span-3 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-[10px] font-black text-indigo-400 hover:bg-indigo-500/20 transition-all"
                             >
-                                EXACTO (${finalTotal.toFixed(2)})
+                                EXACTO (${money(finalTotal)})
                             </button>
                         </div>
                     </div>
@@ -748,7 +749,7 @@ export function POSDashboard() {
                     {Number(receivedAmount) >= finalTotal && (
                         <div className="p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex justify-between items-center animate-in fade-in slide-in-from-top-2">
                             <span className="text-xs font-bold text-emerald-500/80 uppercase">Cambio a entregar:</span>
-                            <span className="text-3xl font-black text-emerald-400">${(Number(receivedAmount) - finalTotal).toFixed(2)}</span>
+                            <span className="text-3xl font-black text-emerald-400">${money((Number(receivedAmount) - finalTotal))}</span>
                         </div>
                     )}
                 </div>
@@ -835,7 +836,7 @@ export function POSDashboard() {
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <div className="text-right">
-                                        <div className="text-lg font-black text-white">${ticket.total.toFixed(2)}</div>
+                                        <div className="text-lg font-black text-white">${money(ticket.total)}</div>
                                     </div>
                                     <div className="flex gap-2">
                                         <button 
