@@ -1,7 +1,7 @@
 {
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/((?!api/|privacidad|terminos|assets/|favicon|og-image|apple-touch|robots|sitemap).*)", "destination": "/index.html" }
+    { "source": "/((?!api/|privacidad|terminos|assets/|favicon|og-image|apple-touch|robots|sitemap).*)", "destination": "/" }
   ],
   "headers": [
     {
