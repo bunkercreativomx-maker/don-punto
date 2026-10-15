@@ -5,11 +5,15 @@ import { adminToken, pbFetch, stripe } from './_lib/server.js';
 export const config = { api: { bodyParser: false } };
 
 async function rawBody(req: any): Promise<string> {
+  // Leer el stream ANTES de tocar req.body (el getter de Vercel lo parsea y la firma dejaría de cuadrar)
+  const chunks: Buffer[] = [];
+  if (req.readable !== false && typeof req[Symbol.asyncIterator] === 'function') {
+    for await (const c of req) chunks.push(typeof c === 'string' ? Buffer.from(c) : c);
+  }
+  if (chunks.length) return Buffer.concat(chunks).toString('utf8');
   if (typeof req.body === 'string') return req.body;
   if (Buffer.isBuffer(req.body)) return req.body.toString('utf8');
-  const chunks: Buffer[] = [];
-  for await (const c of req) chunks.push(typeof c === 'string' ? Buffer.from(c) : c);
-  return Buffer.concat(chunks).toString('utf8');
+  return '';
 }
 
 function verify(payload: string, header: string, secret: string): boolean {
