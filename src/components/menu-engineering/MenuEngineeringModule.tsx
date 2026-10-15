@@ -3,6 +3,8 @@ import { usePOS } from '../../hooks/usePOS';
 import { useCalculator } from '../../hooks/useCalculator';
 import { Sparkles, Loader2, Trophy, AlertCircle } from 'lucide-react';
 import clsx from 'clsx';
+import { storeGet, storeSet } from '../../lib/cloudStore';
+import { pb } from '../../lib/pocketbase';
 
 const MONTH_NAMES = [
   'Enero','Febrero','Marzo','Abril','Mayo','Junio',
@@ -118,14 +120,14 @@ const COMBO_USAGE_KEY = 'donPuntoComboUsage';
 
 function getComboUsage(): { month: string; count: number } {
   try {
-    return JSON.parse(localStorage.getItem(COMBO_USAGE_KEY) || '{}');
+    return JSON.parse(storeGet(COMBO_USAGE_KEY) || '{}');
   } catch { return { month: '', count: 0 }; }
 }
 
 function incrementComboUsage(monthKey: string) {
   const usage = getComboUsage();
   const count = usage.month === monthKey ? usage.count + 1 : 1;
-  localStorage.setItem(COMBO_USAGE_KEY, JSON.stringify({ month: monthKey, count }));
+  storeSet(COMBO_USAGE_KEY, JSON.stringify({ month: monthKey, count }));
   return count;
 }
 
@@ -158,17 +160,20 @@ export function MenuEngineeringModule() {
     try {
       const res = await fetch('/api/combos', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: pb.authStore.token },
         body: JSON.stringify({
           products: top10.map(p => ({ name: p.name, quantity: p.quantity, price: 0 })),
         }),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error || `HTTP ${res.status}`);
+      }
       const data = await res.json();
       incrementComboUsage(monthKey);
       setCombos(data.combos || []);
-    } catch {
-      setError('No se pudo conectar con el generador. Verifica la configuración del servidor.');
+    } catch (err: any) {
+      setError(err?.message && !err.message.startsWith('HTTP') ? err.message : 'No se pudo conectar con el generador. Intenta de nuevo en unos minutos.');
     } finally {
       setLoading(false);
     }

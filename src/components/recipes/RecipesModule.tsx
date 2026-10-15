@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Plus, Trash2, Edit3, Save, X, BookOpen, ChevronLeft, ChefHat } from 'lucide-react';
 import clsx from 'clsx';
+import { storeGet, storeSet } from '../../lib/cloudStore';
 
 interface Ingredient {
   id: string;
@@ -33,11 +34,11 @@ const FAMILIAS = ['Entradas', 'Sopas', 'Ensaladas', 'Platos Fuertes', 'Postres',
 
 function useLocalRecipes(): [Recipe[], (d: Recipe[]) => void] {
   const [recipes, setState] = useState<Recipe[]>(() => {
-    try { return JSON.parse(localStorage.getItem('donPuntoRecetario') || '[]'); } catch { return []; }
+    try { return JSON.parse(storeGet('donPuntoRecetario') || '[]'); } catch { return []; }
   });
   const setRecipes = (d: Recipe[]) => {
     setState(d);
-    localStorage.setItem('donPuntoRecetario', JSON.stringify(d));
+    storeSet('donPuntoRecetario', JSON.stringify(d));
   };
   return [recipes, setRecipes];
 }

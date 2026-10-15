@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Plus, Trash2, Save, TrendingUp, TrendingDown, DollarSign, ChevronDown, ChevronUp, Search, Calendar } from 'lucide-react';
 import clsx from 'clsx';
 import { usePOS } from '../../hooks/usePOS';
+import { storeGet, storeSet } from '../../lib/cloudStore';
 
 // ── Tipos ──────────────────────────────────────────────
 interface CustomExpense {
@@ -78,7 +79,7 @@ export function FinancialModule() {
 
   // Expenses state (persisted in localStorage)
   const [expenses, setExpenses] = useState<PeriodExpenses>(() => {
-    const saved = localStorage.getItem('donPuntoFinancialExpenses');
+    const saved = storeGet('donPuntoFinancialExpenses');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -110,7 +111,7 @@ export function FinancialModule() {
   // Persist expenses
   function saveExpenses(e: PeriodExpenses) {
     setExpenses(e);
-    localStorage.setItem('donPuntoFinancialExpenses', JSON.stringify(e));
+    storeSet('donPuntoFinancialExpenses', JSON.stringify(e));
   }
 
   // Calculate date range

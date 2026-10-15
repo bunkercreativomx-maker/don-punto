@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { Camera, UploadCloud, X, Sparkles, CheckCircle2, ScanLine, AlertCircle, Check, Building2, Bike } from 'lucide-react';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { pb } from '../../lib/pocketbase';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -92,13 +93,13 @@ export function MenuScannerModal({ onClose, onScanSuccess }: MenuScannerModalPro
 
             const res = await fetch('/api/scan-menu', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', Authorization: pb.authStore.token },
                 body: JSON.stringify({ imageBase64: base64Data, mimeType }),
             });
 
             if (!res.ok) {
-                const errBody = await res.text().catch(() => '');
-                throw new Error(`Error del servidor (HTTP ${res.status}): ${errBody.slice(0, 200)}`);
+                const errBody = await res.json().catch(() => ({}));
+                throw new Error(errBody?.error || `Error del servidor (HTTP ${res.status})`);
             }
 
             const parsedArray = await res.json();

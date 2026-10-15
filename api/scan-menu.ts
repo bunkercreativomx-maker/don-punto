@@ -1,8 +1,17 @@
+import { requireMember, rateLimit, sendError } from './_lib/server.js';
+
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  try {
+    const m = await requireMember(req, { pro: true });
+    rateLimit(`scan-menu:${m.user.id}`, 15, 60 * 60 * 1000);
+  } catch (e) {
+    return sendError(res, e);
+  }
+
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY no configurada en el servidor.' });
+  if (!apiKey) return res.status(503).json({ error: 'La función de IA no está disponible por el momento.' });
 
   let body = req.body;
   if (typeof body === 'string') {
@@ -11,6 +20,7 @@ export default async function handler(req: any, res: any) {
 
   const { imageBase64, mimeType } = body || {};
   if (!imageBase64) return res.status(400).json({ error: 'Se requiere imageBase64' });
+  if (String(imageBase64).length > 6_000_000) return res.status(413).json({ error: 'La imagen es demasiado grande. Usa una foto más ligera.' });
 
   const prompt = `Analiza esta imagen de un menú de restaurante.
 Extrae todos los platillos y sus precios. 
@@ -46,7 +56,7 @@ No agregues formato Markdown (\\\`\\\`\\\`json), ni texto antes o después. Solo
     if (!response.ok) {
       const err = await response.text();
       console.error('Gemini scan error:', err);
-      return res.status(502).json({ error: 'Error en Gemini API', details: err });
+      return res.status(502).json({ error: 'El servicio de IA no respondió. Intenta de nuevo.' });
     }
 
     const data = await response.json();
@@ -57,6 +67,6 @@ No agregues formato Markdown (\\\`\\\`\\\`json), ni texto antes o después. Solo
     return res.status(200).json(parsed);
   } catch (err: any) {
     console.error('scan-menu handler error:', err);
-    return res.status(500).json({ error: 'Error interno', details: err?.message });
+    return res.status(500).json({ error: 'Error interno. Intenta de nuevo.' });
   }
 }

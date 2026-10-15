@@ -6,6 +6,8 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import * as XLSX from 'xlsx';
+import { storeGet, storeSet } from '../../lib/cloudStore';
+import { pb } from '../../lib/pocketbase';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -72,9 +74,9 @@ const BLANK_INSUMO: Omit<Insumo, 'id'> = {
 function useInsumos(): [Insumo[], (d: Insumo[]) => void] {
   const [items, setState] = useState<Insumo[]>(() => {
     try {
-      const raw = localStorage.getItem('donPuntoInsumos2');
+      const raw = storeGet('donPuntoInsumos2');
       if (raw) return JSON.parse(raw);
-      const old = localStorage.getItem('donPuntoInventario');
+      const old = storeGet('donPuntoInventario');
       if (old) {
         return (JSON.parse(old) as any[]).map(i => ({
           id: i.id,
@@ -92,31 +94,31 @@ function useInsumos(): [Insumo[], (d: Insumo[]) => void] {
       return [];
     } catch { return []; }
   });
-  const set = (d: Insumo[]) => { setState(d); localStorage.setItem('donPuntoInsumos2', JSON.stringify(d)); };
+  const set = (d: Insumo[]) => { setState(d); storeSet('donPuntoInsumos2', JSON.stringify(d)); };
   return [items, set];
 }
 
 function useComprasHoy(): [CompraDelDia[], (d: CompraDelDia[]) => void] {
   const [items, setState] = useState<CompraDelDia[]>(() => {
-    try { return JSON.parse(localStorage.getItem('donPuntoComprasHoy') || '[]'); } catch { return []; }
+    try { return JSON.parse(storeGet('donPuntoComprasHoy') || '[]'); } catch { return []; }
   });
-  const set = (d: CompraDelDia[]) => { setState(d); localStorage.setItem('donPuntoComprasHoy', JSON.stringify(d)); };
+  const set = (d: CompraDelDia[]) => { setState(d); storeSet('donPuntoComprasHoy', JSON.stringify(d)); };
   return [items, set];
 }
 
 function useHistorial(): [RegistroDiario[], (d: RegistroDiario[]) => void] {
   const [items, setState] = useState<RegistroDiario[]>(() => {
-    try { return JSON.parse(localStorage.getItem('donPuntoHistorial') || '[]'); } catch { return []; }
+    try { return JSON.parse(storeGet('donPuntoHistorial') || '[]'); } catch { return []; }
   });
-  const set = (d: RegistroDiario[]) => { setState(d); localStorage.setItem('donPuntoHistorial', JSON.stringify(d)); };
+  const set = (d: RegistroDiario[]) => { setState(d); storeSet('donPuntoHistorial', JSON.stringify(d)); };
   return [items, set];
 }
 
 function useCierresDiarios(): [CierreDelDia[], (d: CierreDelDia[]) => void] {
   const [items, setState] = useState<CierreDelDia[]>(() => {
-    try { return JSON.parse(localStorage.getItem('donPuntoCierresDiarios') || '[]'); } catch { return []; }
+    try { return JSON.parse(storeGet('donPuntoCierresDiarios') || '[]'); } catch { return []; }
   });
-  const set = (d: CierreDelDia[]) => { setState(d); localStorage.setItem('donPuntoCierresDiarios', JSON.stringify(d)); };
+  const set = (d: CierreDelDia[]) => { setState(d); storeSet('donPuntoCierresDiarios', JSON.stringify(d)); };
   return [items, set];
 }
 
@@ -180,12 +182,12 @@ function FacturaModal({ onClose, onConfirm }: { onClose: () => void; onConfirm: 
       const { base64, mimeType } = await fileToBase64(file);
       const res = await fetch('/api/factura', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: pb.authStore.token },
         body: JSON.stringify({ imageBase64: base64, mimeType }),
       });
       if (!res.ok) {
-        const body = await res.text().catch(() => '');
-        throw new Error(`HTTP ${res.status}: ${body.slice(0, 200)}`);
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error || `HTTP ${res.status}`);
       }
       const data = await res.json();
       if (!data.items?.length) {

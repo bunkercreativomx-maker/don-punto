@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'scripts']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -19,5 +19,13 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // El código usa `any` en bordes de API/JSON; se deja como aviso, no como error
+      '@typescript-eslint/no-explicit-any': 'warn',
+    },
+  },
+  {
+    files: ['api/**/*.ts', 'scripts/**/*.{ts,mts}'],
+    languageOptions: { globals: globals.node },
   },
 ])

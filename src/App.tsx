@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { useCalculator } from './hooks/useCalculator';
 import type { Platform, PaymentMethod } from './types/calculator';
-import { BarChart3, ShoppingBasket, Calculator, Layers, User, LineChart, Settings, Plus, Lock, Key, Sparkles, Receipt, LogOut, FileSpreadsheet, TrendingUp, Package, Target, BookOpen, Wallet, Search } from 'lucide-react';
+import { CreditCard, BarChart3, ShoppingBasket, Calculator, Layers, User, LineChart, Settings, Plus, Lock, Key, Sparkles, Receipt, LogOut, FileSpreadsheet, TrendingUp, Package, Target, BookOpen, Wallet, Search } from 'lucide-react';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { ProfitGrid } from './components/ProfitGrid';
@@ -11,24 +11,27 @@ import { POSDashboard } from './components/pos/POSDashboard';
 import { MenuManagement } from './components/pos/MenuManagement';
 import { POSReports } from './components/pos/POSReports';
 import { POSTicketsHistory } from './components/pos/POSTicketsHistory';
-import { LandingPage } from './components/landing/LandingPage';
-import { AuthPage } from './components/auth/AuthPage';
-import { SubscriptionGate } from './components/auth/SubscriptionGate';
 import { MenuScannerModal } from './components/pos/MenuScannerModal';
 import { MenuImportModal, type ImportPlatforms } from './components/pos/MenuImportModal';
 import { usePOS } from './hooks/usePOS';
-import { pb } from './lib/pocketbase';
 import { Building2, Phone, MapPin, PrinterIcon } from 'lucide-react';
 import { InventoryModule } from './components/inventory/InventoryModule';
 import { MenuEngineeringModule } from './components/menu-engineering/MenuEngineeringModule';
 import { RecipesModule } from './components/recipes/RecipesModule';
 import { FinancialModule } from './components/financial/FinancialModule';
+import { storeGet, storeSet } from './lib/cloudStore';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
 
-function App() {
+export interface AppProps {
+  userEmail: string | null;
+  onLogout: () => void;
+  onBilling: () => void;
+}
+
+function App({ userEmail, onLogout, onBilling }: AppProps) {
   const {
     settings,
     updateSetting,
@@ -51,18 +54,6 @@ function App() {
     loadCloudMenu,
   } = useCalculator();
 
-  const [isAuthChecking, setIsAuthChecking] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [geminiApiKey, setGeminiApiKey] = useState(() => localStorage.getItem("donPuntoGeminiApiKey") || "");
-  const [showAuthFlow, setShowAuthFlow] = useState(false);
-  const [subscriptionStatus, setSubscriptionStatus] = useState<'active' | 'inactive' | 'checking'>('checking');
-  const [isCloudMenuLoaded, setIsCloudMenuLoaded] = useState(false);
-
-  const loadCloudMenuRef = useRef(loadCloudMenu);
-  useEffect(() => {
-    loadCloudMenuRef.current = loadCloudMenu;
-  }, [loadCloudMenu]);
   
   const [profitsSearch, setProfitsSearch] = useState('');
   const [pricingSearch, setPricingSearch] = useState('');
@@ -74,178 +65,14 @@ function App() {
   useEffect(() => { setPricingPage(1); }, [pricingSearch]);
 
   const [activeTab, setActiveTab] = useState<'profits' | 'pricing' | 'pos' | 'menu' | 'reports' | 'tickets' | 'settings' | 'inventory' | 'engineering' | 'recipes' | 'financial'>(() => {
-    const saved = localStorage.getItem('donPuntoActiveTab');
+    const saved = storeGet('donPuntoActiveTab');
     return (saved as any) || 'profits';
   });
 
   useEffect(() => {
-    localStorage.setItem('donPuntoActiveTab', activeTab);
+    storeSet('donPuntoActiveTab', activeTab);
   }, [activeTab]);
 
-  // Combined robust Auth & Subscription Listener with Cloud Menu Recovery
-  useEffect(() => {
-    let isMounted = true;
-
-    const checkSessionAndSubscription = async (user: any) => {
-        if (!user) {
-            if (isMounted) {
-                setIsAuthenticated(false);
-                setUserEmail(null);
-                setSubscriptionStatus('inactive');
-                setIsAuthChecking(false);
-                setIsCloudMenuLoaded(false);
-            }
-            return;
-        }
-
-        if (isMounted) {
-            setIsAuthenticated(true);
-            setUserEmail(user.email);
-        }
-
-        try {
-            // Buscar el restaurante del dueño
-            let restaurant: any = null;
-            try {
-                restaurant = await pb.collection('restaurants').getFirstListItem(`owner.id = "${user.id}"`);
-            } catch (e: any) {
-                if (e?.status !== 404) throw e;
-            }
-            
-            if (!restaurant) {
-                // No existe el restaurante (cuenta nueva), lo creamos
-                const newRest = await pb.collection('restaurants').create(
-                    { name: 'Mi Restaurante', owner: user.id }
-                );
-                restaurant = newRest;
-            }
-
-            // Estado de membresía: SOLO lectura desde subscriptions (lo activa el servidor/webhook)
-            let subscription: any = null;
-            try {
-                subscription = await pb.collection('subscriptions').getFirstListItem(`owner.id = "${user.id}"`);
-            } catch (e: any) {
-                if (e?.status !== 404) throw e;
-            }
-            const subStatus = subscription?.status === 'active' ? 'active' : 'inactive';
-            if (isMounted) {
-                setSubscriptionStatus(subStatus);
-            }
-
-            // Recuperar el menú respaldado en la nube
-            if (restaurant && restaurant.stripe_customer_id) {
-                try {
-                    const parsed = JSON.parse(restaurant.stripe_customer_id);
-                    if (parsed && parsed.menu) {
-                        const { rows: cloudRows, categories: cloudCategories, modifierGroups: cloudModifierGroups } = parsed.menu;
-                        if (isMounted && loadCloudMenuRef.current) {
-                            loadCloudMenuRef.current(cloudRows, cloudCategories, cloudModifierGroups);
-                        }
-                    }
-                } catch (e) {
-                    console.error("Error al procesar respaldo de menú:", e);
-                }
-            }
-        } catch (err) {
-            console.error("Error al validar sesión de restaurante:", err);
-            if (isMounted) {
-                setSubscriptionStatus('inactive');
-            }
-        } finally {
-            if (isMounted) {
-                setIsCloudMenuLoaded(true);
-                setIsAuthChecking(false);
-            }
-        }
-    };
-
-    // 1. Verificar sesión inicial de inmediato
-    (async () => {
-        if (pb.authStore.isValid) {
-            try {
-                const model = await pb.collection('users').authRefresh();
-                checkSessionAndSubscription(model);
-            } catch {
-                pb.authStore.clear();
-                if (isMounted) {
-                    setIsAuthChecking(false);
-                    setIsCloudMenuLoaded(true);
-                }
-            }
-        } else if (isMounted) {
-            setIsAuthChecking(false);
-            setIsCloudMenuLoaded(true);
-        }
-    })();
-
-    // 2. Suscribirse a los cambios de estado de auth
-    const unsubscribe = pb.authStore.onChange((_token, model) => {
-        if (!model) {
-            if (isMounted) {
-                setIsAuthenticated(false);
-                setUserEmail(null);
-                setSubscriptionStatus('inactive');
-                setIsAuthChecking(false);
-                setIsCloudMenuLoaded(false);
-            }
-        } else {
-            checkSessionAndSubscription(model);
-        }
-    });
-
-    // Timeout de seguridad (4 segundos)
-    const timeout = setTimeout(() => {
-        if (isMounted && isAuthChecking) {
-            setIsAuthChecking(false);
-            setIsCloudMenuLoaded(true);
-        }
-    }, 4000);
-
-    return () => {
-        isMounted = false;
-        unsubscribe();
-        clearTimeout(timeout);
-    };
-  }, []);
-
-  // Automatic Cloud Menu Backup & Sync
-  useEffect(() => {
-    if (!isAuthenticated || !isCloudMenuLoaded) return;
-
-    const syncMenuToCloud = async () => {
-      const user = pb.authStore.model;
-      if (!user) return;
-
-      const menuPayload = {
-        menu: {
-          rows,
-          categories,
-          modifierGroups
-        }
-      };
-
-      try {
-        const restaurant = await pb.collection('restaurants').getFirstListItem(`owner.id = "${user.id}"`);
-        await pb.collection('restaurants').update(restaurant.id, { stripe_customer_id: JSON.stringify(menuPayload) });
-      } catch (e) {
-        console.error("Error backing up menu to cloud:", e);
-      }
-    };
-
-    // Debounce cloud sync to avoid spamming writes on every keystroke
-    const timer = setTimeout(() => {
-       syncMenuToCloud();
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, [rows, categories, modifierGroups, isAuthenticated, isCloudMenuLoaded]);
-
-  const handleSimulatePayment = async () => {
-      // Stripe aún no conectado: la membresía NO se puede activar desde el cliente.
-      // Solo el servidor (webhook de Stripe con firma verificada) puede activarla.
-      alert('El pago en línea estará disponible pronto. Contacta a soporte para activar tu cuenta.');
-      setSubscriptionStatus('inactive');
-  };
 
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -311,7 +138,7 @@ function App() {
                   let categoryId: string | undefined = undefined;
                   if (categoryName) {
                       // Check in existing categories first
-                      let existingCat = currentCategories.find(c => c.name.trim().toLowerCase() === categoryName.toLowerCase());
+                      const existingCat = currentCategories.find(c => c.name.trim().toLowerCase() === categoryName.toLowerCase());
                       if (existingCat) {
                           categoryId = existingCat.id;
                       } else {
@@ -325,8 +152,8 @@ function App() {
                   }
 
                   // 2. Process Product Base
-                  let existingProduct = currentProducts.find(p => p.name.trim().toLowerCase() === productName.toLowerCase() || p.id === itemId);
-                  let prodId = existingProduct ? existingProduct.id : undefined;
+                  const existingProduct = currentProducts.find(p => p.name.trim().toLowerCase() === productName.toLowerCase() || p.id === itemId);
+                  const prodId = existingProduct ? existingProduct.id : undefined;
 
                   let prod = importedProductsMap.get(itemId);
                   if (!prod) {
@@ -365,7 +192,7 @@ function App() {
                   if (optionGroupName && optionName) {
                       const groupKey = `${itemId}_${optionGroupName}`;
                       
-                      let existingGroup = currentModifierGroups.find(g => g.name.trim().toLowerCase() === optionGroupName.toLowerCase() && (existingProduct && existingProduct.modifierGroupIds?.includes(g.id)));
+                      const existingGroup = currentModifierGroups.find(g => g.name.trim().toLowerCase() === optionGroupName.toLowerCase() && (existingProduct && existingProduct.modifierGroupIds?.includes(g.id)));
                       let group = importedModifierGroupsMap.get(groupKey);
                       
                       if (!group) {
@@ -378,7 +205,7 @@ function App() {
                           importedModifierGroupsMap.set(groupKey, group);
                       }
 
-                      let existingOpt = group.options.find(o => o.name.trim().toLowerCase() === optionName.trim().toLowerCase());
+                      const existingOpt = group.options.find(o => o.name.trim().toLowerCase() === optionName.trim().toLowerCase());
                       if (!existingOpt) {
                           group.options.push({
                               id: crypto.randomUUID(),
@@ -540,29 +367,8 @@ function App() {
       }
   };
 
-  if (isAuthChecking) {
-      return (
-          <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white font-black text-2xl animate-pulse shadow-[0_0_30px_rgba(99,102,241,0.4)]">
-                D
-              </div>
-              <div className="text-slate-500 text-[10px] font-black tracking-widest uppercase animate-pulse">Cargando Don Punto...</div>
-          </div>
-      );
-  }
-
-  if (!isAuthenticated) {
-    if (showAuthFlow) {
-        return <AuthPage onAuthSuccess={() => setIsAuthenticated(true)} />;
-    }
-    return <LandingPage onLogin={() => setShowAuthFlow(true)} onSubscribe={() => setShowAuthFlow(true)} />;
-  }
-
   return (
-    <SubscriptionGate 
-        status={subscriptionStatus} 
-        onSimulatePayment={handleSimulatePayment}
-    >
+    <>
       <div className="min-h-screen w-full bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/30 flex overflow-hidden">
       
       {/* --- AI MENU SCANNER MODAL --- */}
@@ -708,7 +514,15 @@ function App() {
             <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Ajustes</span>
           </button>
           <button
-            onClick={() => pb.authStore.clear()}
+            onClick={onBilling}
+            className="p-3 lg:px-3 rounded-xl transition-all text-slate-500 hover:text-indigo-300 hover:bg-indigo-500/10 flex items-center gap-3 border border-transparent"
+            title="Mi plan y facturación"
+          >
+            <CreditCard size={20} className="shrink-0" />
+            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Mi plan</span>
+          </button>
+          <button
+            onClick={onLogout}
             className="p-3 lg:px-3 rounded-xl transition-all text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 flex items-center gap-3 border border-transparent"
             title="Cerrar Sesión"
           >
@@ -978,6 +792,9 @@ function App() {
                                       placeholder="1234"
                                       className="w-full bg-transparent text-white text-sm font-bold outline-none placeholder:text-slate-700 tracking-[0.5em]"
                                   />
+                                  {(posSettings.adminPin || '1234') === '1234' && (
+                                      <p className="text-[11px] font-bold text-amber-400 mt-2">⚠ Estás usando el PIN de fábrica. Cámbialo para proteger tu caja.</p>
+                                  )}
                               </div>
                           </div>
                       </div>
@@ -1028,7 +845,7 @@ function App() {
         </div>
       </div>
     </div>
-    </SubscriptionGate>
+    </>
   );
 }
 

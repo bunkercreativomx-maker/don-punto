@@ -1,14 +1,20 @@
 import { useState } from 'react';
-import { Mail, Lock, Building2, ChevronRight, AlertCircle, Loader2 } from 'lucide-react';
+import { Mail, Lock, Building2, ChevronRight, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
 import { pb } from '../../lib/pocketbase';
-import clsx from 'clsx';
-import { twMerge } from 'tailwind-merge';
 
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
+
+function friendlyError(err: any, isLogin: boolean): string {
+    const data = err?.response?.data || err?.data?.data || {};
+    if (data.email?.code === 'validation_not_unique' || data.email?.code === 'validation_invalid_email')
+        return data.email.code === 'validation_not_unique' ? 'Ese correo ya tiene cuenta. Inicia sesión.' : 'El correo no es válido.';
+    if (data.password) return 'La contraseña debe tener al menos 8 caracteres.';
+    if (err?.status === 400 && isLogin) return 'Correo o contraseña incorrectos.';
+    if (err?.status === 429) return 'Demasiados intentos. Espera un minuto.';
+    if (!err?.status && err?.isAbort !== true && /fetch|network/i.test(err?.message || '')) return 'Sin conexión. Revisa tu internet.';
+    return err?.message && !/Failed to|Something went wrong/i.test(err.message) ? err.message : 'Ocurrió un error. Intenta de nuevo.';
 }
 
-export function AuthPage({ onAuthSuccess }: { onAuthSuccess: () => void }) {
+export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void; onBack?: () => void }) {
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -24,23 +30,27 @@ export function AuthPage({ onAuthSuccess }: { onAuthSuccess: () => void }) {
 
         try {
             if (isLogin) {
-                await pb.collection('users').authWithPassword(email, password);
+                await pb.collection('users').authWithPassword(email.trim().toLowerCase(), password);
                 onAuthSuccess();
             } else {
                 if (!restaurantName.trim()) {
                     throw new Error("El nombre del negocio es obligatorio para el registro.");
                 }
+                if (password.length < 8) {
+                    throw new Error("La contraseña debe tener al menos 8 caracteres.");
+                }
 
                 // Registrar usuario en PocketBase
-                const newUser = await pb.collection('users').create({ email, password, passwordConfirm: password });
+                const cleanEmail = email.trim().toLowerCase();
+                const newUser = await pb.collection('users').create({ email: cleanEmail, password, passwordConfirm: password });
                 // Iniciar sesión inmediatamente
-                await pb.collection('users').authWithPassword(email, password);
+                await pb.collection('users').authWithPassword(cleanEmail, password);
                 // Crear su restaurante
-                await pb.collection('restaurants').create({ name: restaurantName, owner: newUser.id });
+                await pb.collection('restaurants').create({ name: restaurantName.trim(), owner: newUser.id });
                 onAuthSuccess();
             }
         } catch (err: any) {
-            setError(err.message || 'Ocurrió un error en la autenticación.');
+            setError(friendlyError(err, isLogin));
         } finally {
             setLoading(false);
         }
@@ -53,6 +63,11 @@ export function AuthPage({ onAuthSuccess }: { onAuthSuccess: () => void }) {
             <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-pink-500/10 rounded-full blur-[100px] pointer-events-none" />
 
             <div className="w-full max-w-md z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                {onBack && (
+                    <button onClick={onBack} className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-white">
+                        <ArrowLeft size={16} /> Volver
+                    </button>
+                )}
                 <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
                     <div className="text-center mb-8">
                         <div className="inline-flex p-3 bg-indigo-500/20 text-indigo-400 rounded-2xl mb-4 shadow-[0_0_30px_rgba(99,102,241,0.2)]">
@@ -102,6 +117,7 @@ export function AuthPage({ onAuthSuccess }: { onAuthSuccess: () => void }) {
                                 <input
                                     type="email"
                                     required
+                                    autoComplete="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     className="w-full bg-slate-950/50 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
@@ -119,6 +135,8 @@ export function AuthPage({ onAuthSuccess }: { onAuthSuccess: () => void }) {
                                 <input
                                     type="password"
                                     required
+                                    minLength={isLogin ? undefined : 8}
+                                    autoComplete={isLogin ? 'current-password' : 'new-password'}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="w-full bg-slate-950/50 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
@@ -141,6 +159,11 @@ export function AuthPage({ onAuthSuccess }: { onAuthSuccess: () => void }) {
                                 </>
                             )}
                         </button>
+                        {!isLogin && (
+                            <p className="text-[11px] text-slate-500 text-center leading-relaxed">
+                                Al crear tu cuenta aceptas los <a href="/terminos" target="_blank" className="underline hover:text-slate-300">Términos</a> y el <a href="/privacidad" target="_blank" className="underline hover:text-slate-300">Aviso de Privacidad</a>.
+                            </p>
+                        )}
                     </form>
 
                     <div className="mt-8 text-center">

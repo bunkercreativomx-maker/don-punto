@@ -7,6 +7,7 @@ import type {
     Category,
     ModifierGroup
 } from '../types/calculator';
+import { storeGet, storeSet } from '../lib/cloudStore';
 
 const DEFAULT_STATE: CalculatorState = {
     platform: 'Uber',
@@ -27,7 +28,7 @@ export function useCalculator(
     // Initialize from localStorage or use defaults
     const [settings, setSettings] = useState<CalculatorState>(() => {
         if (persist) {
-            const savedSettings = localStorage.getItem(`${prefix}Settings`);
+            const savedSettings = storeGet(`${prefix}Settings`);
             if (savedSettings) {
                 try { return JSON.parse(savedSettings); } catch (e) { }
             }
@@ -37,7 +38,7 @@ export function useCalculator(
 
     const [rows, setRows] = useState<ProductRowData[]>(() => {
         if (persist) {
-            const savedRows = localStorage.getItem(`${prefix}Rows`);
+            const savedRows = storeGet(`${prefix}Rows`);
             if (savedRows) {
                 try { return JSON.parse(savedRows); } catch (e) { }
             }
@@ -47,7 +48,7 @@ export function useCalculator(
 
     const [categories, setCategories] = useState<Category[]>(() => {
         if (persist) {
-            const saved = localStorage.getItem(`${prefix}Categories`);
+            const saved = storeGet(`${prefix}Categories`);
             if (saved) {
                 try { return JSON.parse(saved); } catch (e) { }
             }
@@ -57,7 +58,7 @@ export function useCalculator(
 
     const [modifierGroups, setModifierGroups] = useState<ModifierGroup[]>(() => {
         if (persist) {
-            const saved = localStorage.getItem(`${prefix}ModifierGroups`);
+            const saved = storeGet(`${prefix}ModifierGroups`);
             if (saved) {
                 try { return JSON.parse(saved); } catch (e) { }
             }
@@ -68,25 +69,25 @@ export function useCalculator(
     // Save to localStorage whenever state changes
     useEffect(() => {
         if (persist) {
-            localStorage.setItem(`${prefix}Settings`, JSON.stringify(settings));
+            storeSet(`${prefix}Settings`, JSON.stringify(settings));
         }
     }, [settings, prefix, persist]);
 
     useEffect(() => {
         if (persist) {
-            localStorage.setItem(`${prefix}Rows`, JSON.stringify(rows));
+            storeSet(`${prefix}Rows`, JSON.stringify(rows));
         }
     }, [rows, prefix, persist]);
 
     useEffect(() => {
         if (persist) {
-            localStorage.setItem(`${prefix}Categories`, JSON.stringify(categories));
+            storeSet(`${prefix}Categories`, JSON.stringify(categories));
         }
     }, [categories, prefix, persist]);
 
     useEffect(() => {
         if (persist) {
-            localStorage.setItem(`${prefix}ModifierGroups`, JSON.stringify(modifierGroups));
+            storeSet(`${prefix}ModifierGroups`, JSON.stringify(modifierGroups));
         }
     }, [modifierGroups, prefix, persist]);
 

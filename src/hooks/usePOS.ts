@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { POSTransaction, POSSettings, POSSummary, POSPaymentMethod, OrderDestination, OpenTicket, CartItem } from '../types/pos';
+import { storeGet, storeSet } from '../lib/cloudStore';
 
 const STORAGE_KEY = 'delivery_calculator_pos_txs';
 const SETTINGS_KEY = 'delivery_calculator_pos_settings';
@@ -7,17 +8,17 @@ const TICKETS_KEY = 'delivery_calculator_pos_tickets';
 
 export function usePOS() {
   const [transactions, setTransactions] = useState<POSTransaction[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = storeGet(STORAGE_KEY);
     return saved ? JSON.parse(saved) : [];
   });
 
   const [openTickets, setOpenTickets] = useState<OpenTicket[]>(() => {
-    const saved = localStorage.getItem(TICKETS_KEY);
+    const saved = storeGet(TICKETS_KEY);
     return saved ? JSON.parse(saved) : [];
   });
 
   const [settings, setSettings] = useState<POSSettings>(() => {
-    const saved = localStorage.getItem(SETTINGS_KEY);
+    const saved = storeGet(SETTINGS_KEY);
     const parsed = saved ? JSON.parse(saved) : {};
     return { 
       ivaPercentage: 16,
@@ -30,15 +31,15 @@ export function usePOS() {
   });
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+    storeSet(STORAGE_KEY, JSON.stringify(transactions));
   }, [transactions]);
 
   useEffect(() => {
-    localStorage.setItem(TICKETS_KEY, JSON.stringify(openTickets));
+    storeSet(TICKETS_KEY, JSON.stringify(openTickets));
   }, [openTickets]);
 
   useEffect(() => {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    storeSet(SETTINGS_KEY, JSON.stringify(settings));
   }, [settings]);
 
   const addTransaction = (

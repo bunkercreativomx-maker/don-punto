@@ -1,11 +1,20 @@
+import { requireMember, rateLimit, sendError } from './_lib/server.js';
+
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  try {
+    const m = await requireMember(req);
+    rateLimit(`combos:${m.user.id}`, 20, 60 * 60 * 1000);
+  } catch (e) {
+    return sendError(res, e);
+  }
+
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: 'GEMINI_API_KEY no configurada en el servidor.' });
+    return res.status(503).json({ error: 'La función de IA no está disponible por el momento.' });
   }
 
   let body = req.body;
@@ -62,7 +71,7 @@ Responde ÚNICAMENTE con un JSON válido con esta estructura exacta, sin texto a
     if (!response.ok) {
       const errText = await response.text();
       console.error('Gemini error:', errText);
-      return res.status(502).json({ error: 'Error en Gemini API', details: errText });
+      return res.status(502).json({ error: 'El servicio de IA no respondió. Intenta de nuevo.' });
     }
 
     const data = await response.json();
@@ -73,6 +82,6 @@ Responde ÚNICAMENTE con un JSON válido con esta estructura exacta, sin texto a
     return res.status(200).json(parsed);
   } catch (err: any) {
     console.error('combos handler error:', err);
-    return res.status(500).json({ error: 'Error interno', details: err?.message });
+    return res.status(500).json({ error: 'Error interno. Intenta de nuevo.' });
   }
 }
