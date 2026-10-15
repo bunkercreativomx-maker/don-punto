@@ -2,7 +2,7 @@
 // VITE_SUPPORT_WHATSAPP: solo dígitos con lada de país, ej. 5216561234567
 // VITE_SUPPORT_EMAIL: correo de soporte
 export const SUPPORT_WHATSAPP = (import.meta.env.VITE_SUPPORT_WHATSAPP || '').replace(/\D/g, '');
-export const SUPPORT_EMAIL = import.meta.env.VITE_SUPPORT_EMAIL || '';
+export const SUPPORT_EMAIL = import.meta.env.VITE_SUPPORT_EMAIL || 'soporte@donpunto.com';
 
 export function whatsappLink(message: string): string | null {
   if (!SUPPORT_WHATSAPP) return null;
