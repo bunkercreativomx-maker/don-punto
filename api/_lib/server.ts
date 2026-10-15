@@ -95,7 +95,12 @@ export async function adminToken(): Promise<string> {
   const password = process.env.PB_ADMIN_PASSWORD;
   if (!email || !password) throw new HttpError(503, 'PB_ADMIN_EMAIL/PB_ADMIN_PASSWORD no configurados', 'pb_admin_missing');
   const r = await pbFetch('/api/collections/_superusers/auth-with-password', { method: 'POST', body: { identity: email, password } });
-  if (!r.ok) throw new HttpError(503, 'No se pudo autenticar el servidor con PocketBase', 'pb_admin_auth');
+  if (!r.ok) {
+    // Diagnóstico sin exponer secretos: estado HTTP y forma de las variables
+    const detail = `HTTP ${r.status} ${String(r.data?.message || '').slice(0, 80)} | email=${email.length}c@${email.split('@')[1] || '?'} pass=${password.length}c trimmed=${password === password.trim()} url=${PB_URL}`;
+    console.error('pb admin auth failed', detail);
+    throw new HttpError(503, 'No se pudo autenticar el servidor con PocketBase: ' + detail, 'pb_admin_auth');
+  }
   adminCache = { token: r.data.token, at: Date.now() };
   return adminCache.token;
 }
