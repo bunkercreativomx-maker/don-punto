@@ -90,7 +90,7 @@ async function upsertSubscription(uid: string, sub: any) {
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  const secret = (process.env.STRIPE_WEBHOOK_SECRET || '').trim();
   if (!secret) return res.status(503).json({ error: 'STRIPE_WEBHOOK_SECRET no configurado' });
 
   const payload = await rawBody(req);

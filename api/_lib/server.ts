@@ -1,7 +1,9 @@
 // Utilidades de servidor compartidas por las funciones /api (los archivos con "_" no son rutas en Vercel)
 
-export const PB_URL = (process.env.PB_URL || 'https://donpunto-pb.bunkeragent.cloud').replace(/\/$/, '');
-export const APP_URL = (process.env.APP_URL || 'https://donpunto.com').replace(/\/$/, '');
+// .trim(): las variables pegadas en Vercel a veces traen espacios o tabuladores invisibles
+const env = (k: string) => (process.env[k] || '').trim();
+export const PB_URL = (env('PB_URL') || 'https://donpunto-pb.bunkeragent.cloud').replace(/\/$/, '');
+export const APP_URL = (env('APP_URL') || 'https://donpunto.com').replace(/\/$/, '');
 // El WAF de Cloudflare frente a PocketBase bloquea agentes que no parecen navegador
 const UA = 'Mozilla/5.0 (DonPunto-Server) Chrome/130';
 
@@ -91,13 +93,13 @@ export function rateLimit(key: string, max: number, windowMs: number) {
 let adminCache: { token: string; at: number } | null = null;
 export async function adminToken(): Promise<string> {
   if (adminCache && Date.now() - adminCache.at < 30 * 60 * 1000) return adminCache.token;
-  const email = process.env.PB_ADMIN_EMAIL;
-  const password = process.env.PB_ADMIN_PASSWORD;
+  const email = env('PB_ADMIN_EMAIL');
+  const password = env('PB_ADMIN_PASSWORD');
   if (!email || !password) throw new HttpError(503, 'PB_ADMIN_EMAIL/PB_ADMIN_PASSWORD no configurados', 'pb_admin_missing');
   const r = await pbFetch('/api/collections/_superusers/auth-with-password', { method: 'POST', body: { identity: email, password } });
   if (!r.ok) {
     // Diagnóstico sin exponer secretos: estado HTTP y forma de las variables
-    const detail = `HTTP ${r.status} ${String(r.data?.message || '').slice(0, 80)} | email=${email.length}c@${email.split('@')[1] || '?'} pass=${password.length}c trimmed=${password === password.trim()} url=${PB_URL}`;
+    const detail = `HTTP ${r.status}`;
     console.error('pb admin auth failed', detail);
     throw new HttpError(503, 'No se pudo autenticar el servidor con PocketBase: ' + detail, 'pb_admin_auth');
   }
@@ -118,11 +120,11 @@ function formEncode(obj: any, prefix = ''): string[] {
 }
 
 export function stripeConfigured() {
-  return !!process.env.STRIPE_SECRET_KEY;
+  return !!env('STRIPE_SECRET_KEY');
 }
 
 export async function stripe(method: 'GET' | 'POST', path: string, params?: any): Promise<any> {
-  const key = process.env.STRIPE_SECRET_KEY;
+  const key = env('STRIPE_SECRET_KEY');
   if (!key) throw new HttpError(503, 'El pago en línea aún no está activo.', 'stripe_not_configured');
   const body = params ? formEncode(params).join('&') : undefined;
   const url = 'https://api.stripe.com/v1' + path + (method === 'GET' && body ? `?${body}` : '');
