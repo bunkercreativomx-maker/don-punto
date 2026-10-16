@@ -132,7 +132,7 @@ export function RecipesModule() {
           <select
             value={filterFamilia}
             onChange={e => setFilterFamilia(e.target.value)}
-            className="bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-sm text-slate-300 focus:outline-none"
+            className="bg-slate-900 border border-carbon-950/10 rounded-xl px-3 py-2 text-sm text-slate-300 focus:outline-none"
           >
             {familias.map(f => <option key={f} value={f}>{f}</option>)}
           </select>
@@ -142,7 +142,7 @@ export function RecipesModule() {
         </div>
 
         {filteredRecipes.length === 0 ? (
-          <div className="text-center py-16 border border-white/5 rounded-2xl bg-slate-900/30 flex-1">
+          <div className="text-center py-16 border border-carbon-950/10 rounded-2xl bg-slate-900 flex-1">
             <ChefHat size={36} className="mx-auto text-slate-600 mb-3" />
             <div className="text-slate-500 font-bold mb-1">Sin recetas</div>
             <div className="text-slate-600 text-sm">Crea tu primer receta estándar.</div>
@@ -158,12 +158,12 @@ export function RecipesModule() {
                   onClick={() => { setSelectedId(r.id); setEditMode(false); }}
                   className={clsx(
                     'w-full text-left rounded-xl border p-3 transition-all',
-                    selectedId === r.id ? 'bg-orange-500/10 border-orange-500/30' : 'bg-slate-900/40 border-white/5 hover:border-white/10'
+                    selectedId === r.id ? 'bg-orange-500/10 border-orange-500/30' : 'bg-slate-900 border-carbon-950/10 hover:border-carbon-950/10'
                   )}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <div className="font-bold text-white text-sm">{r.nombre}</div>
+                      <div className="font-bold text-carbon-950 text-sm">{r.nombre}</div>
                       {r.familia && <div className="text-xs text-slate-500 mt-0.5">{r.familia}</div>}
                     </div>
                     <div className={clsx('text-xs font-black px-2 py-0.5 rounded-full shrink-0', cp > 0.35 ? 'bg-rose-500/20 text-rose-400' : 'bg-emerald-500/20 text-emerald-400')}>
@@ -186,14 +186,14 @@ export function RecipesModule() {
       <div className="lg:col-span-8">
         {/* View mode */}
         {selected && !editMode && (
-          <div className="bg-slate-900/40 border border-white/5 rounded-2xl p-5 space-y-5">
+          <div className="bg-slate-900 border border-carbon-950/10 rounded-2xl p-5 space-y-5">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <div className="text-2xl font-black text-white">{selected.nombre}</div>
+                <div className="text-2xl font-black text-carbon-950">{selected.nombre}</div>
                 {selected.familia && <div className="text-slate-500 text-sm mt-1">{selected.familia}</div>}
               </div>
               <div className="flex gap-2">
-                <button onClick={() => openEdit(selected)} className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-bold transition-all">
+                <button onClick={() => openEdit(selected)} className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-carbon-950 rounded-xl text-sm font-bold transition-all">
                   <Edit3 size={14} /> Editar
                 </button>
                 <button onClick={() => deleteRecipe(selected.id)} className="flex items-center gap-1.5 px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-xl text-sm font-bold transition-all">
@@ -214,11 +214,11 @@ export function RecipesModule() {
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-slate-800/50 rounded-xl p-3 text-center">
                 <div className="text-xs text-slate-500 font-bold uppercase">Costo Total</div>
-                <div className="text-xl font-black text-white mt-1">${F(totalCost(selected))}</div>
+                <div className="text-xl font-black text-carbon-950 mt-1">${F(totalCost(selected))}</div>
               </div>
               <div className="bg-slate-800/50 rounded-xl p-3 text-center">
                 <div className="text-xs text-slate-500 font-bold uppercase">PVP</div>
-                <div className="text-xl font-black text-white mt-1">{selected.pvp > 0 ? `$${F(selected.pvp)}` : '—'}</div>
+                <div className="text-xl font-black text-carbon-950 mt-1">{selected.pvp > 0 ? `$${F(selected.pvp)}` : '—'}</div>
               </div>
               <div className={clsx('rounded-xl p-3 text-center', costPct(selected) > 0.35 ? 'bg-rose-500/10' : 'bg-emerald-500/10')}>
                 <div className={clsx('text-xs font-bold uppercase', costPct(selected) > 0.35 ? 'text-rose-400' : 'text-emerald-400')}>% Costo</div>
@@ -232,10 +232,10 @@ export function RecipesModule() {
             {selected.ingredientes.length > 0 && (
               <div>
                 <div className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">Ingredientes</div>
-                <div className="rounded-xl overflow-hidden border border-white/5">
+                <div className="rounded-xl overflow-hidden border border-carbon-950/10">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="bg-slate-800/30 border-b border-white/5">
+                      <tr className="bg-slate-800/30 border-b border-carbon-950/10">
                         <th className="px-3 py-2 text-left text-xs font-black text-slate-500">Ingrediente</th>
                         <th className="px-3 py-2 text-right text-xs font-black text-slate-500">Cantidad</th>
                         <th className="px-3 py-2 text-right text-xs font-black text-slate-500">U.</th>
@@ -243,19 +243,19 @@ export function RecipesModule() {
                         <th className="px-3 py-2 text-right text-xs font-black text-slate-500">Subtotal</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
+                    <tbody className="divide-y divide-carbon-950/5">
                       {selected.ingredientes.map(i => (
-                        <tr key={i.id} className="hover:bg-white/[0.02]">
+                        <tr key={i.id} className="hover:bg-carbon-950/[0.02]">
                           <td className="px-3 py-2 text-slate-300">{i.nombre}</td>
                           <td className="px-3 py-2 text-right text-slate-400 tabular-nums">{i.cantidad}</td>
                           <td className="px-3 py-2 text-right text-slate-500 text-xs">{i.unidad}</td>
                           <td className="px-3 py-2 text-right text-slate-400 tabular-nums">${F(i.costoUnitario)}</td>
-                          <td className="px-3 py-2 text-right font-bold text-white tabular-nums">${F(i.cantidad * i.costoUnitario)}</td>
+                          <td className="px-3 py-2 text-right font-bold text-carbon-950 tabular-nums">${F(i.cantidad * i.costoUnitario)}</td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
-                      <tr className="border-t border-white/10">
+                      <tr className="border-t border-carbon-950/10">
                         <td colSpan={4} className="px-3 py-2 text-right text-xs font-black text-slate-500 uppercase tracking-widest">TOTAL</td>
                         <td className="px-3 py-2 text-right font-black text-orange-400 tabular-nums">${F(totalCost(selected))}</td>
                       </tr>
@@ -269,42 +269,42 @@ export function RecipesModule() {
 
         {/* Edit mode */}
         {editMode && (
-          <div className="bg-slate-900/40 border border-white/5 rounded-2xl p-5 space-y-5">
+          <div className="bg-slate-900 border border-carbon-950/10 rounded-2xl p-5 space-y-5">
             <div className="flex items-center justify-between">
-              <span className="font-black text-white text-lg">{selectedId && recipes.find(r => r.id === selectedId) ? 'Editar Receta' : 'Nueva Receta'}</span>
-              <button onClick={() => setEditMode(false)} className="text-slate-500 hover:text-white transition-colors"><X size={18} /></button>
+              <span className="font-black text-carbon-950 text-lg">{selectedId && recipes.find(r => r.id === selectedId) ? 'Editar Receta' : 'Nueva Receta'}</span>
+              <button onClick={() => setEditMode(false)} className="text-slate-500 hover:text-carbon-950 transition-colors"><X size={18} /></button>
             </div>
 
             {/* Basic info */}
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
               <div className="col-span-2 lg:col-span-2">
                 <label className="block text-xs text-slate-500 font-bold mb-1">NOMBRE DE LA RECETA</label>
-                <input className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500/50" value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Ej. Chilaquiles Verdes con Chorizo" />
+                <input className="w-full bg-slate-800 border border-carbon-950/10 rounded-xl px-3 py-2 text-carbon-950 text-sm focus:outline-none focus:border-orange-500/50" value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Ej. Chilaquiles Verdes con Chorizo" />
               </div>
               <div>
                 <label className="block text-xs text-slate-500 font-bold mb-1">FAMILIA</label>
-                <input list="familias-list" className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500/50" value={form.familia} onChange={e => setForm(f => ({ ...f, familia: e.target.value }))} placeholder="Ej. Desayunos" />
+                <input list="familias-list" className="w-full bg-slate-800 border border-carbon-950/10 rounded-xl px-3 py-2 text-carbon-950 text-sm focus:outline-none focus:border-orange-500/50" value={form.familia} onChange={e => setForm(f => ({ ...f, familia: e.target.value }))} placeholder="Ej. Desayunos" />
                 <datalist id="familias-list">{FAMILIAS.map(f => <option key={f} value={f} />)}</datalist>
               </div>
               <div>
                 <label className="block text-xs text-slate-500 font-bold mb-1">PVP ($)</label>
-                <input type="number" min={0} className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500/50" value={form.pvp || ''} onChange={e => setForm(f => ({ ...f, pvp: parseFloat(e.target.value) || 0 }))} />
+                <input type="number" min={0} className="w-full bg-slate-800 border border-carbon-950/10 rounded-xl px-3 py-2 text-carbon-950 text-sm focus:outline-none focus:border-orange-500/50" value={form.pvp || ''} onChange={e => setForm(f => ({ ...f, pvp: parseFloat(e.target.value) || 0 }))} />
               </div>
               <div>
                 <label className="block text-xs text-slate-500 font-bold mb-1">PORCIONES</label>
-                <input type="number" min={1} className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500/50" value={form.porciones || ''} onChange={e => setForm(f => ({ ...f, porciones: parseInt(e.target.value) || 1 }))} />
+                <input type="number" min={1} className="w-full bg-slate-800 border border-carbon-950/10 rounded-xl px-3 py-2 text-carbon-950 text-sm focus:outline-none focus:border-orange-500/50" value={form.porciones || ''} onChange={e => setForm(f => ({ ...f, porciones: parseInt(e.target.value) || 1 }))} />
               </div>
               <div>
                 <label className="block text-xs text-slate-500 font-bold mb-1">TIEMPO (min)</label>
-                <input type="number" min={0} className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500/50" value={form.tiempoMin || ''} onChange={e => setForm(f => ({ ...f, tiempoMin: parseInt(e.target.value) || 0 }))} />
+                <input type="number" min={0} className="w-full bg-slate-800 border border-carbon-950/10 rounded-xl px-3 py-2 text-carbon-950 text-sm focus:outline-none focus:border-orange-500/50" value={form.tiempoMin || ''} onChange={e => setForm(f => ({ ...f, tiempoMin: parseInt(e.target.value) || 0 }))} />
               </div>
               <div>
                 <label className="block text-xs text-slate-500 font-bold mb-1">EQUIPO PRINCIPAL</label>
-                <input className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500/50" value={form.equipo} onChange={e => setForm(f => ({ ...f, equipo: e.target.value }))} placeholder="Ej. Estufa, Freidora" />
+                <input className="w-full bg-slate-800 border border-carbon-950/10 rounded-xl px-3 py-2 text-carbon-950 text-sm focus:outline-none focus:border-orange-500/50" value={form.equipo} onChange={e => setForm(f => ({ ...f, equipo: e.target.value }))} placeholder="Ej. Estufa, Freidora" />
               </div>
               <div className="col-span-2">
                 <label className="block text-xs text-slate-500 font-bold mb-1">CONSERVACIÓN</label>
-                <input className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500/50" value={form.conservacion} onChange={e => setForm(f => ({ ...f, conservacion: e.target.value }))} placeholder="Ej. Refrigerar hasta 3 días en recipiente hermético" />
+                <input className="w-full bg-slate-800 border border-carbon-950/10 rounded-xl px-3 py-2 text-carbon-950 text-sm focus:outline-none focus:border-orange-500/50" value={form.conservacion} onChange={e => setForm(f => ({ ...f, conservacion: e.target.value }))} placeholder="Ej. Refrigerar hasta 3 días en recipiente hermético" />
               </div>
             </div>
 
@@ -322,25 +322,25 @@ export function RecipesModule() {
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
                     <div className="col-span-2">
                       <label className="block text-xs text-slate-500 font-bold mb-1">INGREDIENTE</label>
-                      <input className="w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-orange-500/50" value={ingForm.nombre} onChange={e => setIngForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Ej. Tomate verde" />
+                      <input className="w-full bg-slate-800 border border-carbon-950/10 rounded-lg px-3 py-1.5 text-carbon-950 text-sm focus:outline-none focus:border-orange-500/50" value={ingForm.nombre} onChange={e => setIngForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Ej. Tomate verde" />
                     </div>
                     <div>
                       <label className="block text-xs text-slate-500 font-bold mb-1">CANTIDAD</label>
-                      <input type="number" min={0} step={0.001} className="w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-orange-500/50" value={ingForm.cantidad || ''} onChange={e => setIngForm(f => ({ ...f, cantidad: parseFloat(e.target.value) || 0 }))} />
+                      <input type="number" min={0} step={0.001} className="w-full bg-slate-800 border border-carbon-950/10 rounded-lg px-3 py-1.5 text-carbon-950 text-sm focus:outline-none focus:border-orange-500/50" value={ingForm.cantidad || ''} onChange={e => setIngForm(f => ({ ...f, cantidad: parseFloat(e.target.value) || 0 }))} />
                     </div>
                     <div>
                       <label className="block text-xs text-slate-500 font-bold mb-1">UNIDAD</label>
-                      <select className="w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-orange-500/50" value={ingForm.unidad} onChange={e => setIngForm(f => ({ ...f, unidad: e.target.value }))}>
+                      <select className="w-full bg-slate-800 border border-carbon-950/10 rounded-lg px-3 py-1.5 text-carbon-950 text-sm focus:outline-none focus:border-orange-500/50" value={ingForm.unidad} onChange={e => setIngForm(f => ({ ...f, unidad: e.target.value }))}>
                         {UNIDADES.map(u => <option key={u} value={u}>{u}</option>)}
                       </select>
                     </div>
                     <div className="col-span-2">
                       <label className="block text-xs text-slate-500 font-bold mb-1">COSTO UNITARIO ($/{ingForm.unidad})</label>
-                      <input type="number" min={0} step={0.01} className="w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-orange-500/50" value={ingForm.costoUnitario || ''} onChange={e => setIngForm(f => ({ ...f, costoUnitario: parseFloat(e.target.value) || 0 }))} />
+                      <input type="number" min={0} step={0.01} className="w-full bg-slate-800 border border-carbon-950/10 rounded-lg px-3 py-1.5 text-carbon-950 text-sm focus:outline-none focus:border-orange-500/50" value={ingForm.costoUnitario || ''} onChange={e => setIngForm(f => ({ ...f, costoUnitario: parseFloat(e.target.value) || 0 }))} />
                     </div>
                   </div>
                   <div className="flex gap-2 justify-end">
-                    <button onClick={() => setShowIngForm(false)} className="text-xs text-slate-500 hover:text-white px-3 py-1.5 font-bold">Cancelar</button>
+                    <button onClick={() => setShowIngForm(false)} className="text-xs text-slate-500 hover:text-carbon-950 px-3 py-1.5 font-bold">Cancelar</button>
                     <button onClick={addIngredient} className="text-xs flex items-center gap-1.5 bg-orange-500 hover:bg-orange-400 text-white px-3 py-1.5 rounded-lg font-black transition-all">
                       <Save size={12} /> Guardar
                     </button>
@@ -349,10 +349,10 @@ export function RecipesModule() {
               )}
 
               {form.ingredientes.length > 0 && (
-                <div className="rounded-xl overflow-hidden border border-white/5 mb-3">
+                <div className="rounded-xl overflow-hidden border border-carbon-950/10 mb-3">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="bg-slate-800/30 border-b border-white/5">
+                      <tr className="bg-slate-800/30 border-b border-carbon-950/10">
                         <th className="px-3 py-2 text-left text-xs font-black text-slate-500">Ingrediente</th>
                         <th className="px-3 py-2 text-right text-xs font-black text-slate-500">Cant.</th>
                         <th className="px-3 py-2 text-right text-xs font-black text-slate-500">U.</th>
@@ -361,17 +361,17 @@ export function RecipesModule() {
                         <th className="px-2 py-2" />
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
+                    <tbody className="divide-y divide-carbon-950/5">
                       {form.ingredientes.map(i => (
                         <tr key={i.id} className="group">
                           <td className="px-3 py-2 text-slate-300">{i.nombre}</td>
                           <td className="px-3 py-2 text-right text-slate-400 tabular-nums">{i.cantidad}</td>
                           <td className="px-3 py-2 text-right text-slate-500 text-xs">{i.unidad}</td>
                           <td className="px-3 py-2 text-right text-slate-400 tabular-nums">${i.costoUnitario}</td>
-                          <td className="px-3 py-2 text-right font-bold text-white tabular-nums">${F(i.cantidad * i.costoUnitario)}</td>
+                          <td className="px-3 py-2 text-right font-bold text-carbon-950 tabular-nums">${F(i.cantidad * i.costoUnitario)}</td>
                           <td className="px-2 py-2">
                             <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => openEditIng(i)} className="text-slate-500 hover:text-white transition-colors"><Edit3 size={12} /></button>
+                              <button onClick={() => openEditIng(i)} className="text-slate-500 hover:text-carbon-950 transition-colors"><Edit3 size={12} /></button>
                               <button onClick={() => removeIngredient(i.id)} className="text-slate-500 hover:text-rose-400 transition-colors"><Trash2 size={12} /></button>
                             </div>
                           </td>
@@ -379,7 +379,7 @@ export function RecipesModule() {
                       ))}
                     </tbody>
                     <tfoot>
-                      <tr className="border-t border-white/10">
+                      <tr className="border-t border-carbon-950/10">
                         <td colSpan={4} className="px-3 py-2 text-right text-xs font-black text-slate-500 uppercase tracking-widest">TOTAL COSTO</td>
                         <td className="px-3 py-2 text-right font-black text-orange-400 tabular-nums">${F(recipeTotal(form))}</td>
                         <td />
@@ -400,7 +400,7 @@ export function RecipesModule() {
             </div>
 
             <div className="flex justify-end gap-3">
-              <button onClick={() => setEditMode(false)} className="px-4 py-2 rounded-xl text-slate-500 hover:text-white text-sm font-bold transition-colors">Cancelar</button>
+              <button onClick={() => setEditMode(false)} className="px-4 py-2 rounded-xl text-slate-500 hover:text-carbon-950 text-sm font-bold transition-colors">Cancelar</button>
               <button onClick={saveRecipe} className="flex items-center gap-2 px-5 py-2.5 bg-orange-500 hover:bg-orange-400 text-white rounded-xl font-black text-sm transition-all active:scale-95">
                 <Save size={14} /> Guardar Receta
               </button>
@@ -410,7 +410,7 @@ export function RecipesModule() {
 
         {/* No selection */}
         {!selected && !editMode && (
-          <div className="text-center py-24 border border-white/5 rounded-2xl bg-slate-900/30">
+          <div className="text-center py-24 border border-carbon-950/10 rounded-2xl bg-slate-900">
             <BookOpen size={40} className="mx-auto text-slate-600 mb-4" />
             <div className="text-slate-500 font-bold">Selecciona una receta o crea una nueva</div>
           </div>

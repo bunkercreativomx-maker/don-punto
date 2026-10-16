@@ -30,16 +30,16 @@ export function NotificationsCard() {
   };
 
   return (
-    <div className="bg-slate-900 border border-white/5 rounded-3xl p-8 space-y-5">
+    <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl p-8 space-y-5">
       <div>
-        <h3 className="text-base font-bold text-white tracking-tight mb-1 flex items-center gap-2"><Bell size={18} className="text-maiz-400" /> Notificaciones</h3>
+        <h3 className="text-base font-bold text-carbon-950 tracking-tight mb-1 flex items-center gap-2"><Bell size={18} className="text-maiz-400" /> Notificaciones</h3>
         <p className="text-[13px] text-slate-400">Recibe el cierre del día con tus ventas y avisos de tu membresía en este dispositivo.</p>
       </div>
 
       {state === 'loading' && <Loader2 className="animate-spin text-slate-500" size={18} />}
 
       {state === 'needs-install' && (
-        <div className="rounded-2xl bg-slate-950 border border-white/5 p-4 text-sm text-slate-300 space-y-3">
+        <div className="rounded-2xl bg-slate-950 border border-carbon-950/10 p-4 text-sm text-slate-300 space-y-3">
           <p className="flex items-start gap-2"><Smartphone size={16} className="mt-0.5 shrink-0 text-maiz-400" /> En iPhone primero instala Don Punto en tu pantalla de inicio; después vuelve aquí para activar las notificaciones.</p>
           <InstallAppButton className="rounded-xl bg-agave-500 hover:bg-agave-400 text-white font-semibold px-4 py-2 text-sm" label="Cómo instalar" />
         </div>
@@ -63,9 +63,9 @@ export function NotificationsCard() {
 
       {state === 'on' && (
         <div className="space-y-4">
-          <label className="flex items-center justify-between gap-4 rounded-2xl bg-slate-950 border border-white/5 px-4 py-3 cursor-pointer">
+          <label className="flex items-center justify-between gap-4 rounded-2xl bg-slate-950 border border-carbon-950/10 px-4 py-3 cursor-pointer">
             <span>
-              <span className="block text-sm font-semibold text-white">Cierre del día</span>
+              <span className="block text-sm font-semibold text-carbon-950">Cierre del día</span>
               <span className="block text-xs text-slate-500">Cada noche: total vendido, número de ventas y ticket promedio.</span>
             </span>
             <input
@@ -81,7 +81,7 @@ export function NotificationsCard() {
             />
           </label>
           <div className="flex flex-wrap gap-3">
-            <button disabled={busy} onClick={() => run(() => sendTestPush(), 'Notificación enviada.')} className="rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 font-semibold px-4 py-2 text-sm">
+            <button disabled={busy} onClick={() => run(() => sendTestPush(), 'Notificación enviada.')} className="rounded-xl bg-carbon-950/5 hover:bg-carbon-950/10 border border-carbon-950/10 text-slate-200 font-semibold px-4 py-2 text-sm">
               Enviar prueba
             </button>
             <button disabled={busy} onClick={() => run(async () => setState(await disablePush()))} className="inline-flex items-center gap-2 rounded-xl text-slate-400 hover:text-rose-300 font-semibold px-4 py-2 text-sm">

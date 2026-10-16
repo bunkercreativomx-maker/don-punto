@@ -61,57 +61,77 @@
   --color-carbon-900: #191D19;
   --color-carbon-950: #0D100E;
 
-  /* ---- Remapeo de la interfaz existente ---- */
-  /* slate → carbón */
-  --color-slate-50: #F6F7F5;
-  --color-slate-100: #ECEEEA;
-  --color-slate-200: #D7DBD4;
-  --color-slate-300: #B5BCB2;
-  --color-slate-400: #A7AFA4;
-  --color-slate-500: #8C9589;
-  --color-slate-600: #6E776B;
-  --color-slate-700: #3E453D;
-  --color-slate-800: #272C27;
-  --color-slate-900: #191D19;
-  --color-slate-950: #0D100E;
+  /* ---- Remapeo de la interfaz de la app a TEMA CLARO (mismo lenguaje que la página de ventas) ---- */
+  /* slate → escala invertida: 950 = fondo de página, 900 = tarjetas, 100/50 = texto */
+  --color-slate-50: #0D100E;
+  --color-slate-100: #191D19;
+  --color-slate-200: #272C27;
+  --color-slate-300: #3E453D;
+  --color-slate-400: #464E44;
+  --color-slate-500: #586055;
+  --color-slate-600: #6B7468;
+  --color-slate-700: #C9CEC5;
+  --color-slate-800: #EBEDE8;
+  --color-slate-900: #FFFFFF;
+  --color-slate-950: #F3F4F0;
 
-  /* indigo (acción principal) → agave, un paso más claro para leerse sobre fondo oscuro */
+  /* indigo (acción principal) → agave; tonos claros oscurecidos para leerse sobre blanco */
   --color-indigo-50: #EAF7F1;
   --color-indigo-100: #CDEEDF;
   --color-indigo-200: #9EDCC2;
-  --color-indigo-300: #66C39F;
-  --color-indigo-400: #3DBA8C;
+  --color-indigo-300: #0B4735;
+  --color-indigo-400: #0E6F4D;
   --color-indigo-500: #16895F;
   --color-indigo-600: #0E6F4D;
   --color-indigo-700: #0C5A40;
   --color-indigo-800: #0B4735;
-  --color-indigo-900: #093A2C;
-  --color-indigo-950: #04211A;
+  --color-indigo-900: #EAF7F1;
+  --color-indigo-950: #F3FAF6;
 
   /* pink (acentos) → maíz */
-  --color-pink-300: #FCC84D;
-  --color-pink-400: #F5B323;
+  --color-pink-300: #7B480F;
+  --color-pink-400: #9A5A06;
   --color-pink-500: #E39B0B;
   --color-pink-600: #C07A06;
 
-  /* cyan (degradados) → lima suave que acompaña al agave */
-  --color-cyan-300: #C8E37A;
-  --color-cyan-400: #ADD14E;
+  /* cyan (degradados) → lima */
+  --color-cyan-300: #3F5A0B;
+  --color-cyan-400: #4D6B0F;
   --color-cyan-500: #8DB52C;
   --color-cyan-600: #6F9320;
-  --color-cyan-900: #2C3C10;
+  --color-cyan-900: #EEF5DC;
 
-  /* violet → agave profundo */
-  --color-violet-300: #9EDCC2;
-  --color-violet-400: #66C39F;
-  --color-violet-500: #34A87F;
-  --color-violet-600: #16895F;
+  /* violet → agave */
+  --color-violet-300: #0B4735;
+  --color-violet-400: #0C5A40;
+  --color-violet-500: #16895F;
+  --color-violet-600: #0E6F4D;
+
+  /* acentos semánticos: versiones oscuras para texto sobre fondo claro */
+  --color-emerald-300: #065F46;
+  --color-emerald-400: #047857;
+  --color-emerald-500: #0F9461;
+  --color-rose-300: #9F1239;
+  --color-rose-400: #BE123C;
+  --color-rose-500: #D63A43;
+  --color-amber-300: #92400E;
+  --color-amber-400: #B45309;
+  --color-amber-500: #D08A00;
+  --color-orange-300: #9A3412;
+  --color-orange-400: #C2410C;
+  --color-teal-300: #115E59;
+  --color-teal-400: #0F766E;
+  --color-yellow-300: #854D0E;
+  --color-yellow-400: #A16207;
+  --color-yellow-500: #A16207;
+  --color-green-300: #14532D;
+  --color-green-400: #166534;
 }
 
 @layer base {
   body {
-    background-color: var(--color-carbon-950);
-    color: var(--color-carbon-100);
+    background-color: #F3F4F0;
+    color: var(--color-carbon-900);
     font-family: var(--font-sans);
     font-feature-settings: "ss01", "cv11";
     -webkit-font-smoothing: antialiased;

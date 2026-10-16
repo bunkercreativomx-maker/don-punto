@@ -65,15 +65,15 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
 
             <div className="w-full max-w-md z-10 animate-in fade-in slide-in-from-bottom-8 duration-700">
                 {onBack && (
-                    <button onClick={onBack} className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-white">
+                    <button onClick={onBack} className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-slate-400 hover:text-carbon-950">
                         <ArrowLeft size={16} /> Volver
                     </button>
                 )}
-                <div className="bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+                <div className="bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-3xl p-8 shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)]">
                     <div className="text-center mb-8">
                         <div className="flex justify-center mb-5"><Mark size={56} /></div>
                         <h1 className="sr-only">Don Punto</h1>
-                        <div className="flex justify-center"><Wordmark tone="dark" height={30} /></div>
+                        <div className="flex justify-center"><Wordmark tone="light" height={30} /></div>
                         <p className="text-slate-400 mt-2 text-sm font-medium">
                             {isLogin ? 'Ingresa a tu cuenta para gestionar tu restaurante.' : 'Crea tu cuenta y comienza a vender en minutos.'}
                         </p>
@@ -99,7 +99,7 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
                                         required
                                         value={restaurantName}
                                         onChange={(e) => setRestaurantName(e.target.value)}
-                                        className="w-full bg-slate-950/50 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                                        className="w-full bg-slate-950/50 border border-carbon-950/10 rounded-xl pl-11 pr-4 py-3 text-carbon-950 outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
                                         placeholder="Ej. Pizzería Don Juan"
                                     />
                                 </div>
@@ -118,7 +118,7 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
                                     autoComplete="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full bg-slate-950/50 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                                    className="w-full bg-slate-950/50 border border-carbon-950/10 rounded-xl pl-11 pr-4 py-3 text-carbon-950 outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
                                     placeholder="tu@correo.com"
                                 />
                             </div>
@@ -137,7 +137,7 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
                                     autoComplete={isLogin ? 'current-password' : 'new-password'}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full bg-slate-950/50 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                                    className="w-full bg-slate-950/50 border border-carbon-950/10 rounded-xl pl-11 pr-4 py-3 text-carbon-950 outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
                                     placeholder="••••••••"
                                 />
                             </div>
@@ -146,7 +146,7 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full mt-6 bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 disabled:hover:bg-indigo-500 text-white font-black py-4 rounded-xl shadow-xl shadow-indigo-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
+                            className="w-full mt-6 bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 disabled:hover:bg-indigo-500 text-white font-black py-4 rounded-xl shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
                         >
                             {loading ? (
                                 <Loader2 size={20} className="animate-spin" />

@@ -20,7 +20,7 @@ export function ProfitGrid({ rows, results, updateRow, removeRow, addRow }: Prof
     return (
         <>
             {rows.length > 0 ? (
-                <div className="hidden md:grid md:grid-cols-[2fr_1.2fr_1.2fr_1.5fr_1.2fr_1fr_1fr_40px] gap-3 px-4 py-4 bg-slate-900/80 backdrop-blur-md rounded-t-2xl border-b border-indigo-500/10 text-[9px] lg:text-[10px] font-bold text-slate-400 uppercase tracking-wider items-center shadow-lg">
+                <div className="hidden md:grid md:grid-cols-[2fr_1.2fr_1.2fr_1.5fr_1.2fr_1fr_1fr_40px] gap-3 px-4 py-4 bg-slate-900 backdrop-blur-md rounded-t-2xl border-b border-indigo-500/10 text-[9px] lg:text-[10px] font-bold text-slate-400 uppercase tracking-wider items-center shadow-lg">
                     <div className="text-left pl-2">Producto</div>
                     <div className="text-right">Costo</div>
                     <div className="text-right">Precio</div>
@@ -31,13 +31,13 @@ export function ProfitGrid({ rows, results, updateRow, removeRow, addRow }: Prof
                     <div className="text-center"></div>
                 </div>
             ) : (
-                <div className="bg-slate-900/60 border border-white/5 rounded-2xl p-12 text-center text-slate-400">
+                <div className="bg-slate-900 border border-carbon-950/10 rounded-2xl p-12 text-center text-slate-400">
                     <TrendingUp className="mx-auto h-12 w-12 text-slate-600 mb-4" />
-                    <h3 className="text-lg font-medium text-white mb-2">Aún no hay productos</h3>
+                    <h3 className="text-lg font-medium text-carbon-950 mb-2">Aún no hay productos</h3>
                     <p className="mb-6">Crea productos para calcular tus márgenes de entrega.</p>
                     <button
                         onClick={addRow}
-                        className="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2.5 rounded-xl font-medium transition-all border border-white/5"
+                        className="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-carbon-950 px-4 py-2.5 rounded-xl font-medium transition-all border border-carbon-950/10"
                     >
                         <Plus size={18} />
                         Agregar Primer Producto
@@ -51,7 +51,7 @@ export function ProfitGrid({ rows, results, updateRow, removeRow, addRow }: Prof
                     if (!res) return null;
 
                     return (
-                        <div key={row.id} className="bg-slate-900/60 backdrop-blur-md border border-white/5 md:border-t-0 p-4 md:p-0 md:px-6 md:py-4 rounded-2xl md:rounded-none last:md:rounded-b-2xl first:md:border-t-transparent hover:bg-slate-800/40 transition-colors group">
+                        <div key={row.id} className="bg-slate-900 backdrop-blur-md border border-carbon-950/10 md:border-t-0 p-4 md:p-0 md:px-6 md:py-4 rounded-2xl md:rounded-none last:md:rounded-b-2xl first:md:border-t-transparent hover:bg-slate-800/40 transition-colors group">
                             <div className="grid grid-cols-1 md:grid-cols-[2fr_1.2fr_1.2fr_1.5fr_1.2fr_1fr_1fr_40px] gap-3 items-center">
 
                                 {/* Name */}
@@ -61,7 +61,7 @@ export function ProfitGrid({ rows, results, updateRow, removeRow, addRow }: Prof
                                         type="text"
                                         value={row.name}
                                         onChange={(e) => updateRow(row.id, { name: e.target.value })}
-                                        className="w-full bg-slate-950/80 border border-white/5 shadow-inner rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all font-medium text-sm"
+                                        className="w-full bg-slate-950/80 border border-carbon-950/10 shadow-inner rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all font-medium text-sm"
                                         placeholder="Ej. Hamburguesa"
                                     />
                                 </div>
@@ -75,7 +75,7 @@ export function ProfitGrid({ rows, results, updateRow, removeRow, addRow }: Prof
                                             type="number"
                                             value={row.costPrice || ''}
                                             onChange={(e) => updateRow(row.id, { costPrice: parseFloat(e.target.value) || 0 })}
-                                            className="w-full bg-slate-950/80 border border-white/5 shadow-inner rounded-lg pl-6 pr-2 py-2 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-right font-mono text-sm"
+                                            className="w-full bg-slate-950/80 border border-carbon-950/10 shadow-inner rounded-lg pl-6 pr-2 py-2 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-right font-mono text-sm"
                                         />
                                     </div>
                                 </div>
@@ -89,7 +89,7 @@ export function ProfitGrid({ rows, results, updateRow, removeRow, addRow }: Prof
                                             type="number"
                                             value={row.salePrice || ''}
                                             onChange={(e) => updateRow(row.id, { salePrice: parseFloat(e.target.value) || 0 })}
-                                            className="w-full bg-slate-950/80 border border-white/5 shadow-inner rounded-lg pl-6 pr-2 py-2 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-right font-mono text-sm"
+                                            className="w-full bg-slate-950/80 border border-carbon-950/10 shadow-inner rounded-lg pl-6 pr-2 py-2 text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all text-right font-mono text-sm"
                                         />
                                     </div>
                                 </div>
@@ -115,7 +115,7 @@ export function ProfitGrid({ rows, results, updateRow, removeRow, addRow }: Prof
                                     <span className="md:hidden text-[10px] text-slate-500 uppercase tracking-wider">Ganancia Neta</span>
                                     <span className={cn(
                                         "text-base font-bold tracking-tight",
-                                        res.netProfit > 0 ? "text-white" : res.netProfit < 0 ? "text-rose-400" : "text-slate-400"
+                                        res.netProfit > 0 ? "text-carbon-950" : res.netProfit < 0 ? "text-rose-400" : "text-slate-400"
                                     )}>
                                         ${money(res.netProfit)}
                                     </span>

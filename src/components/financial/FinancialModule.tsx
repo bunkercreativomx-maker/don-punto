@@ -183,7 +183,7 @@ export function FinancialModule() {
           'px-4 py-2 rounded-xl text-xs font-bold transition-all border',
           preset === p
             ? 'bg-emerald-500 border-emerald-400 text-white shadow-lg shadow-emerald-500/20'
-            : 'bg-slate-900 border-white/5 text-slate-400 hover:text-white'
+            : 'bg-slate-900 border-carbon-950/10 text-slate-400 hover:text-carbon-950'
         )}
       >
         {label}
@@ -197,7 +197,7 @@ export function FinancialModule() {
   return (
     <div className="space-y-6">
       {/* ── Date Filter ── */}
-      <div className="bg-slate-900/60 backdrop-blur-xl border border-white/5 rounded-2xl p-5 shadow-xl">
+      <div className="bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-2xl p-5 shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)]">
         <div className="flex items-center gap-2 mb-3">
           <Calendar size={16} className="text-emerald-400" />
           <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Período</span>
@@ -214,14 +214,14 @@ export function FinancialModule() {
                 type="date"
                 value={customFrom}
                 onChange={e => setCustomFrom(e.target.value)}
-                className="bg-slate-800 border border-white/10 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-emerald-500/50"
+                className="bg-slate-800 border border-carbon-950/10 rounded-lg px-3 py-1.5 text-carbon-950 text-xs focus:outline-none focus:border-emerald-500/50"
               />
               <span className="text-slate-600 text-xs">a</span>
               <input
                 type="date"
                 value={customTo}
                 onChange={e => setCustomTo(e.target.value)}
-                className="bg-slate-800 border border-white/10 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-emerald-500/50"
+                className="bg-slate-800 border border-carbon-950/10 rounded-lg px-3 py-1.5 text-carbon-950 text-xs focus:outline-none focus:border-emerald-500/50"
               />
             </div>
           )}
@@ -251,20 +251,20 @@ export function FinancialModule() {
             {utilidadPct.toFixed(1)}%
           </div>
         </div>
-        <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-5">
+        <div className="bg-slate-900 border border-carbon-950/10 rounded-2xl p-5">
           <div className="text-xs text-slate-500 font-bold uppercase tracking-widest">Transacciones</div>
-          <div className="text-3xl font-black text-white mt-1">{filteredTxs.length}</div>
+          <div className="text-3xl font-black text-carbon-950 mt-1">{filteredTxs.length}</div>
           <div className="text-[10px] text-slate-600 mt-1 font-medium">{filteredTxs.filter(tx => tx.amount > 0).length} con monto</div>
         </div>
       </div>
 
       {/* ── Ventas del POS ── */}
-      <div className="bg-slate-900/40 border border-white/5 rounded-2xl overflow-hidden">
+      <div className="bg-slate-900 border border-carbon-950/10 rounded-2xl overflow-hidden">
         <button
           onClick={() => setExpandedSection(s => s === 'ventas' ? null : 'ventas')}
-          className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/[0.02] transition-colors"
+          className="w-full flex items-center justify-between px-5 py-4 hover:bg-carbon-950/[0.02] transition-colors"
         >
-          <span className="font-black text-white">Ventas del Período (desde POS)</span>
+          <span className="font-black text-carbon-950">Ventas del Período (desde POS)</span>
           <span className="text-slate-500">{expandedSection === 'ventas' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>
         </button>
         {expandedSection === 'ventas' && (
@@ -278,7 +278,7 @@ export function FinancialModule() {
                   Rappi: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
                 };
                 return (
-                  <div key={dest} className={clsx('rounded-xl border p-3', colors[dest] || 'text-slate-400 bg-slate-800/30 border-white/5')}>
+                  <div key={dest} className={clsx('rounded-xl border p-3', colors[dest] || 'text-slate-400 bg-slate-800/30 border-carbon-950/10')}>
                     <div className="text-[10px] font-bold uppercase tracking-wider opacity-70">{dest}</div>
                     <div className="font-black text-sm mt-0.5">${F(amount)}</div>
                   </div>
@@ -291,16 +291,16 @@ export function FinancialModule() {
               <div className="overflow-x-auto max-h-64 overflow-y-auto custom-scrollbar">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b border-white/5">
+                    <tr className="border-b border-carbon-950/10">
                       <th className="text-left py-2 pr-3 font-bold text-slate-500">Fecha</th>
                       <th className="text-left py-2 pr-3 font-bold text-slate-500">Cliente</th>
                       <th className="text-left py-2 pr-3 font-bold text-slate-500">Origen</th>
                       <th className="text-right py-2 font-bold text-slate-500">Monto</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="divide-y divide-carbon-950/5">
                     {filteredTxs.map(tx => (
-                      <tr key={tx.id} className="hover:bg-white/[0.02]">
+                      <tr key={tx.id} className="hover:bg-carbon-950/[0.02]">
                         <td className="py-1.5 pr-3 text-slate-400 tabular-nums">
                           {new Date(tx.date).toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit' })}
                         </td>
@@ -333,12 +333,12 @@ export function FinancialModule() {
       </div>
 
       {/* ── Gastos ── */}
-      <div className="bg-slate-900/40 border border-white/5 rounded-2xl overflow-hidden">
+      <div className="bg-slate-900 border border-carbon-950/10 rounded-2xl overflow-hidden">
         <button
           onClick={() => setExpandedSection(s => s === 'gastos' ? null : 'gastos')}
-          className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/[0.02] transition-colors"
+          className="w-full flex items-center justify-between px-5 py-4 hover:bg-carbon-950/[0.02] transition-colors"
         >
-          <span className="font-black text-white">Gastos del Período</span>
+          <span className="font-black text-carbon-950">Gastos del Período</span>
           <span className="text-slate-500">{expandedSection === 'gastos' ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</span>
         </button>
         {expandedSection === 'gastos' && (
@@ -346,7 +346,7 @@ export function FinancialModule() {
             {/* Fixed expenses */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {FIXED_EXPENSES.map(({ key, label }) => (
-                <div key={key} className="flex items-center justify-between gap-3 bg-slate-950/40 rounded-xl px-4 py-3 border border-white/5">
+                <div key={key} className="flex items-center justify-between gap-3 bg-slate-950/40 rounded-xl px-4 py-3 border border-carbon-950/10">
                   <span className="text-sm font-bold text-slate-300">{label}</span>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 text-xs">$</span>
@@ -355,7 +355,7 @@ export function FinancialModule() {
                       min={0}
                       value={(expenses[key] as number) || ''}
                       onChange={e => updateFixed(key, parseFloat(e.target.value) || 0)}
-                      className="w-36 bg-slate-800 border border-white/10 rounded-xl px-3 pl-6 py-2 text-white text-sm text-right focus:outline-none focus:border-emerald-500/50 tabular-nums"
+                      className="w-36 bg-slate-800 border border-carbon-950/10 rounded-xl px-3 pl-6 py-2 text-carbon-950 text-sm text-right focus:outline-none focus:border-emerald-500/50 tabular-nums"
                       placeholder="0"
                     />
                   </div>
@@ -365,7 +365,7 @@ export function FinancialModule() {
 
             {/* Custom expenses */}
             {expenses.custom.length > 0 && (
-              <div className="border-t border-white/5 pt-4">
+              <div className="border-t border-carbon-950/10 pt-4">
                 <div className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3">Gastos Extras</div>
                 <div className="space-y-2">
                   {expenses.custom.map(ce => (
@@ -384,7 +384,7 @@ export function FinancialModule() {
             )}
 
             {/* Add custom expense */}
-            <div className="border-t border-white/5 pt-4">
+            <div className="border-t border-carbon-950/10 pt-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-end gap-3">
                 <div className="flex-1 w-full">
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Concepto</label>
@@ -393,7 +393,7 @@ export function FinancialModule() {
                     value={newCustomConcept}
                     onChange={e => setNewCustomConcept(e.target.value)}
                     placeholder="Ej. Reparación equipo"
-                    className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-500/50"
+                    className="w-full bg-slate-800 border border-carbon-950/10 rounded-xl px-3 py-2 text-carbon-950 text-sm focus:outline-none focus:border-amber-500/50"
                   />
                 </div>
                 <div className="w-full sm:w-36">
@@ -406,7 +406,7 @@ export function FinancialModule() {
                       value={newCustomAmount}
                       onChange={e => setNewCustomAmount(e.target.value)}
                       placeholder="0"
-                      className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 pl-6 py-2 text-white text-sm text-right focus:outline-none focus:border-amber-500/50 tabular-nums"
+                      className="w-full bg-slate-800 border border-carbon-950/10 rounded-xl px-3 pl-6 py-2 text-carbon-950 text-sm text-right focus:outline-none focus:border-amber-500/50 tabular-nums"
                       onKeyDown={e => e.key === 'Enter' && addCustomExpense()}
                     />
                   </div>
@@ -414,7 +414,7 @@ export function FinancialModule() {
                 <button
                   onClick={addCustomExpense}
                   disabled={!newCustomConcept.trim() || !parseFloat(newCustomAmount) || parseFloat(newCustomAmount) <= 0}
-                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-400 disabled:bg-slate-800 disabled:text-slate-600 text-white rounded-xl font-black text-sm transition-all active:scale-95"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-400 disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none disabled:text-slate-600 text-white rounded-xl font-black text-sm transition-all active:scale-95"
                 >
                   <Plus size={15} strokeWidth={3} /> AGREGAR GASTO
                 </button>
@@ -422,7 +422,7 @@ export function FinancialModule() {
             </div>
 
             {/* Expenses total */}
-            <div className="flex items-center justify-between border-t border-white/10 pt-4">
+            <div className="flex items-center justify-between border-t border-carbon-950/10 pt-4">
               <span className="text-base font-bold text-slate-300">Total Gastos</span>
               <span className="text-xl font-black text-rose-400 tabular-nums">${F(totalExpenses)}</span>
             </div>

@@ -89,22 +89,22 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-xl animate-in fade-in duration-300 no-print">
-            <div className="bg-slate-900 border border-white/10 rounded-3xl w-full max-w-2xl shadow-[0_0_100px_-20px_rgba(22,137,95,0.3)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-carbon-950/35 backdrop-blur-xl animate-in fade-in duration-300 no-print">
+            <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl w-full max-w-2xl shadow-[0_0_100px_-20px_rgba(22,137,95,0.3)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
                 
                 {/* Header */}
-                <div className="p-6 border-b border-white/5 flex justify-between items-center bg-slate-800/30 relative overflow-hidden">
+                <div className="p-6 border-b border-carbon-950/10 flex justify-between items-center bg-slate-800/30 relative overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10" />
                     <div className="relative flex items-center gap-3">
                         <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30 shadow-[0_0_20px_rgba(22,137,95,0.2)]">
                             <FileSpreadsheet size={20} />
                         </div>
                         <div>
-                            <h3 className="text-xl font-bold text-white tracking-tight">Importador de Menú Inteligente</h3>
-                            <p className="text-xs text-indigo-200/60 font-medium">Configura canales y carga tu menú de Excel</p>
+                            <h3 className="text-xl font-bold text-carbon-950 tracking-tight">Importador de Menú Inteligente</h3>
+                            <p className="text-xs text-indigo-700/70 font-medium">Configura canales y carga tu menú de Excel</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors relative z-10">
+                    <button onClick={onClose} className="text-slate-500 hover:text-carbon-950 transition-colors relative z-10">
                         <X size={24} />
                     </button>
                 </div>
@@ -129,7 +129,7 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
                                     "border rounded-2xl p-4 cursor-pointer transition-all duration-300 relative flex items-center justify-between group overflow-hidden",
                                     platforms.tienda 
                                         ? "bg-emerald-500/10 border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.1)]" 
-                                        : "bg-slate-950/40 border-white/5 hover:border-white/10"
+                                        : "bg-slate-950/40 border-carbon-950/10 hover:border-carbon-950/10"
                                 )}
                             >
                                 <div className="flex items-center gap-3 relative z-10">
@@ -137,12 +137,12 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
                                         "p-2.5 rounded-xl border transition-colors",
                                         platforms.tienda 
                                             ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400" 
-                                            : "bg-slate-900 border-white/5 text-slate-500"
+                                            : "bg-slate-900 border-carbon-950/10 text-slate-500"
                                     )}>
                                         <Building2 size={18} />
                                     </div>
                                     <div className="text-left">
-                                        <div className="text-sm font-bold text-white">Tienda Física</div>
+                                        <div className="text-sm font-bold text-carbon-950">Tienda Física</div>
                                         <div className="text-[10px] text-slate-400 font-medium">Precios desinflados (/1.42)</div>
                                     </div>
                                 </div>
@@ -150,7 +150,7 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
                                     "w-6 h-6 rounded-full border flex items-center justify-center transition-all",
                                     platforms.tienda 
                                         ? "bg-emerald-500 border-emerald-400 text-white" 
-                                        : "border-white/10 bg-slate-900 text-transparent"
+                                        : "border-carbon-950/10 bg-slate-900 text-transparent"
                                 )}>
                                     <Check size={14} strokeWidth={3} />
                                 </div>
@@ -163,7 +163,7 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
                                     "border rounded-2xl p-4 cursor-pointer transition-all duration-300 relative flex items-center justify-between group overflow-hidden",
                                     platforms.didi 
                                         ? "bg-orange-500/10 border-orange-500/30 shadow-[0_0_20px_rgba(249,115,22,0.1)]" 
-                                        : "bg-slate-950/40 border-white/5 hover:border-white/10"
+                                        : "bg-slate-950/40 border-carbon-950/10 hover:border-carbon-950/10"
                                 )}
                             >
                                 <div className="flex items-center gap-3 relative z-10">
@@ -171,12 +171,12 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
                                         "p-2.5 rounded-xl border transition-colors",
                                         platforms.didi 
                                             ? "bg-orange-500/20 border-orange-500/30 text-orange-400" 
-                                            : "bg-slate-900 border-white/5 text-slate-500"
+                                            : "bg-slate-900 border-carbon-950/10 text-slate-500"
                                     )}>
                                         <Bike size={18} />
                                     </div>
                                     <div className="text-left">
-                                        <div className="text-sm font-bold text-white">DiDi Food</div>
+                                        <div className="text-sm font-bold text-carbon-950">DiDi Food</div>
                                         <div className="text-[10px] text-slate-400 font-medium">Precio del archivo directo</div>
                                     </div>
                                 </div>
@@ -184,7 +184,7 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
                                     "w-6 h-6 rounded-full border flex items-center justify-center transition-all",
                                     platforms.didi 
                                         ? "bg-orange-500 border-orange-400 text-white" 
-                                        : "border-white/10 bg-slate-900 text-transparent"
+                                        : "border-carbon-950/10 bg-slate-900 text-transparent"
                                 )}>
                                     <Check size={14} strokeWidth={3} />
                                 </div>
@@ -197,7 +197,7 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
                                     "border rounded-2xl p-4 cursor-pointer transition-all duration-300 relative flex items-center justify-between group overflow-hidden",
                                     platforms.uber 
                                         ? "bg-green-500/10 border-green-500/30 shadow-[0_0_20px_rgba(34,197,94,0.1)]" 
-                                        : "bg-slate-950/40 border-white/5 hover:border-white/10"
+                                        : "bg-slate-950/40 border-carbon-950/10 hover:border-carbon-950/10"
                                 )}
                             >
                                 <div className="flex items-center gap-3 relative z-10">
@@ -205,12 +205,12 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
                                         "p-2.5 rounded-xl border transition-colors",
                                         platforms.uber 
                                             ? "bg-green-500/20 border-green-500/30 text-green-400" 
-                                            : "bg-slate-900 border-white/5 text-slate-500"
+                                            : "bg-slate-900 border-carbon-950/10 text-slate-500"
                                     )}>
                                         <Bike size={18} />
                                     </div>
                                     <div className="text-left">
-                                        <div className="text-sm font-bold text-white">Uber Eats</div>
+                                        <div className="text-sm font-bold text-carbon-950">Uber Eats</div>
                                         <div className="text-[10px] text-slate-400 font-medium">Precio del archivo directo</div>
                                     </div>
                                 </div>
@@ -218,7 +218,7 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
                                     "w-6 h-6 rounded-full border flex items-center justify-center transition-all",
                                     platforms.uber 
                                         ? "bg-green-500 border-green-400 text-white" 
-                                        : "border-white/10 bg-slate-900 text-transparent"
+                                        : "border-carbon-950/10 bg-slate-900 text-transparent"
                                 )}>
                                     <Check size={14} strokeWidth={3} />
                                 </div>
@@ -231,7 +231,7 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
                                     "border rounded-2xl p-4 cursor-pointer transition-all duration-300 relative flex items-center justify-between group overflow-hidden",
                                     platforms.rappi 
                                         ? "bg-pink-500/10 border-pink-500/30 shadow-[0_0_20px_rgba(245,179,35,0.1)]" 
-                                        : "bg-slate-950/40 border-white/5 hover:border-white/10"
+                                        : "bg-slate-950/40 border-carbon-950/10 hover:border-carbon-950/10"
                                 )}
                             >
                                 <div className="flex items-center gap-3 relative z-10">
@@ -239,12 +239,12 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
                                         "p-2.5 rounded-xl border transition-colors",
                                         platforms.rappi 
                                             ? "bg-pink-500/20 border-pink-500/30 text-pink-400" 
-                                            : "bg-slate-900 border-white/5 text-slate-500"
+                                            : "bg-slate-900 border-carbon-950/10 text-slate-500"
                                     )}>
                                         <Bike size={18} />
                                     </div>
                                     <div className="text-left">
-                                        <div className="text-sm font-bold text-white">Rappi</div>
+                                        <div className="text-sm font-bold text-carbon-950">Rappi</div>
                                         <div className="text-[10px] text-slate-400 font-medium">Precio del archivo directo</div>
                                     </div>
                                 </div>
@@ -252,7 +252,7 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
                                     "w-6 h-6 rounded-full border flex items-center justify-center transition-all",
                                     platforms.rappi 
                                         ? "bg-pink-500 border-pink-400 text-white" 
-                                        : "border-white/10 bg-slate-900 text-transparent"
+                                        : "border-carbon-950/10 bg-slate-900 text-transparent"
                                 )}>
                                     <Check size={14} strokeWidth={3} />
                                 </div>
@@ -288,7 +288,7 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
                             )}
                         >
                             <div className={cn(
-                                "p-4 rounded-2xl shadow-xl transition-all duration-300 mb-4 relative",
+                                "p-4 rounded-2xl shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] transition-all duration-300 mb-4 relative",
                                 file 
                                     ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" 
                                     : "bg-slate-900 border border-indigo-500/20 text-indigo-400 group-hover:scale-105"
@@ -302,7 +302,7 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
 
                             {file ? (
                                 <div className="space-y-1">
-                                    <h4 className="text-base font-bold text-white max-w-sm overflow-hidden text-ellipsis whitespace-nowrap">
+                                    <h4 className="text-base font-bold text-carbon-950 max-w-sm overflow-hidden text-ellipsis whitespace-nowrap">
                                         {file.name}
                                     </h4>
                                     <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">
@@ -311,7 +311,7 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
                                 </div>
                             ) : (
                                 <div className="space-y-2">
-                                    <h4 className="text-base font-bold text-white">Arrastra aquí tu archivo Excel o haz clic</h4>
+                                    <h4 className="text-base font-bold text-carbon-950">Arrastra aquí tu archivo Excel o haz clic</h4>
                                     <p className="text-xs text-slate-400 max-w-xs mx-auto">
                                         Sube la plantilla de catálogo en formato .xlsx o .xls
                                     </p>
@@ -330,10 +330,10 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
                 </div>
 
                 {/* Footer Actions */}
-                <div className="p-6 border-t border-white/5 bg-slate-950/20 flex gap-4">
+                <div className="p-6 border-t border-carbon-950/10 bg-slate-950/20 flex gap-4">
                     <button 
                         onClick={onClose}
-                        className="flex-1 py-4 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-2xl transition-all active:scale-[0.98]"
+                        className="flex-1 py-4 bg-slate-800 hover:bg-slate-700 text-carbon-950 font-black rounded-2xl transition-all active:scale-[0.98]"
                     >
                         CANCELAR
                     </button>
@@ -341,7 +341,7 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
                         onClick={handleProcessImport}
                         disabled={!file}
                         className={cn(
-                            "flex-1 py-4 font-black rounded-2xl transition-all flex items-center justify-center gap-2 shadow-xl active:scale-[0.98]",
+                            "flex-1 py-4 font-black rounded-2xl transition-all flex items-center justify-center gap-2 shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] active:scale-[0.98]",
                             file 
                                 ? "bg-indigo-500 hover:bg-indigo-400 text-white shadow-indigo-500/20" 
                                 : "bg-slate-800 text-slate-600 cursor-not-allowed"

@@ -95,11 +95,11 @@ export function POSTicketsHistory() {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-10rem)] animate-in fade-in slide-in-from-bottom-2 duration-500 no-print">
 
       {/* LEFT SIDE: Tickets list & Filters */}
-      <div className="lg:col-span-4 flex flex-col bg-slate-900/40 backdrop-blur-2xl border border-white/5 rounded-3xl overflow-hidden shadow-2xl h-full">
+      <div className="lg:col-span-4 flex flex-col bg-slate-900 backdrop-blur-2xl border border-carbon-950/10 rounded-3xl overflow-hidden shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] h-full">
         {/* Header and filters */}
-        <div className="p-6 border-b border-white/5 space-y-4 shrink-0 bg-slate-900/60">
+        <div className="p-6 border-b border-carbon-950/10 space-y-4 shrink-0 bg-slate-900">
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-black text-white flex items-center gap-2">
+            <h3 className="text-lg font-black text-carbon-950 flex items-center gap-2">
               <Receipt className="text-indigo-400" size={20} /> Historial de Tickets
             </h3>
             <span className="text-[10px] font-black bg-indigo-500/10 text-indigo-400 px-3 py-1.5 rounded-full border border-indigo-500/20 uppercase tracking-widest">
@@ -115,7 +115,7 @@ export function POSTicketsHistory() {
               placeholder="Buscar por Folio, Cliente o Productos..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-950 border border-white/10 rounded-2xl pl-12 pr-4 py-3.5 text-sm text-white font-medium outline-none focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-slate-700"
+              className="w-full bg-slate-950 border border-carbon-950/10 rounded-2xl pl-12 pr-4 py-3.5 text-sm text-carbon-950 font-medium outline-none focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-slate-500"
             />
           </div>
 
@@ -132,7 +132,7 @@ export function POSTicketsHistory() {
                   "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border transition-all",
                   useDateFilter && selectedDate === s.getDate()
                     ? "bg-indigo-500 border-indigo-400 text-white"
-                    : "bg-slate-950 border-white/5 text-slate-500 hover:text-white"
+                    : "bg-slate-950 border-carbon-950/10 text-slate-500 hover:text-carbon-950"
                 )}
               >{s.label}</button>
             ))}
@@ -140,19 +140,19 @@ export function POSTicketsHistory() {
               onClick={() => setUseDateFilter(false)}
               className={cn(
                 "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border transition-all",
-                !useDateFilter ? "bg-indigo-500 border-indigo-400 text-white" : "bg-slate-950 border-white/5 text-slate-500 hover:text-white"
+                !useDateFilter ? "bg-indigo-500 border-indigo-400 text-white" : "bg-slate-950 border-carbon-950/10 text-slate-500 hover:text-carbon-950"
               )}
             >Todos</button>
           </div>
 
           {/* Date Picker */}
-          <div className="flex items-center gap-2 bg-slate-950 border border-white/5 px-3 py-2 rounded-xl">
+          <div className="flex items-center gap-2 bg-slate-950 border border-carbon-950/10 px-3 py-2 rounded-xl">
             <Calendar className="text-slate-500 shrink-0" size={16} />
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => { setSelectedDate(e.target.value); setUseDateFilter(true); }}
-              className="bg-transparent text-xs font-bold text-white outline-none w-full"
+              className="bg-transparent text-xs font-bold text-carbon-950 outline-none w-full"
             />
           </div>
         </div>
@@ -181,8 +181,8 @@ export function POSTicketsHistory() {
                   className={cn(
                     "w-full text-left p-4 rounded-2xl border flex items-center justify-between transition-all duration-300 group relative overflow-hidden",
                     isSelected 
-                      ? "bg-slate-950 border-indigo-500/50 shadow-xl shadow-indigo-500/5" 
-                      : "bg-slate-950/40 border-white/5 hover:border-white/10 hover:bg-slate-950/20"
+                      ? "bg-slate-950 border-indigo-500/50 shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/5" 
+                      : "bg-slate-950/40 border-carbon-950/10 hover:border-carbon-950/10 hover:bg-slate-950/20"
                   )}
                 >
                   {/* Selected Indicator line */}
@@ -198,13 +198,13 @@ export function POSTicketsHistory() {
                         : "bg-amber-500/10 text-amber-500"
                     )}>
                       {tx.destination === 'Tienda' ? <Store size={18} /> : <Bike size={18} />}
-                      <span className="text-[8px] uppercase font-black tracking-widest mt-0.5">{tx.destination}</span>
+                      <span className="text-[10px] uppercase font-black tracking-widest mt-0.5">{tx.destination}</span>
                     </div>
                     
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-black text-indigo-400 tracking-wider bg-indigo-950/40 border border-indigo-500/10 px-1.5 py-0.5 rounded-md">{tx.folio}</span>
-                        <span className="text-sm font-black text-white">{tx.customerName || 'Venta Mostrador'}</span>
+                        <span className="text-sm font-black text-carbon-950">{tx.customerName || 'Venta Mostrador'}</span>
                       </div>
                       
                       <p className="text-[10px] text-slate-500 mt-1 italic line-clamp-1 w-full max-w-[200px] sm:max-w-[280px]">{tx.notes}</p>
@@ -229,9 +229,9 @@ export function POSTicketsHistory() {
 
                   <div className="flex items-center gap-2 shrink-0 pl-2">
                     <div className="text-right">
-                      <div className="text-base font-black text-white">${money(tx.amount)}</div>
+                      <div className="text-base font-black text-carbon-950">${money(tx.amount)}</div>
                     </div>
-                    <ChevronRight size={16} className="text-slate-600 group-hover:text-white transition-colors" />
+                    <ChevronRight size={16} className="text-slate-600 group-hover:text-carbon-950 transition-colors" />
                   </div>
                 </button>
               );
@@ -241,14 +241,14 @@ export function POSTicketsHistory() {
       </div>
 
       {/* RIGHT SIDE: Ticket Live Preview & Actions */}
-      <div className="lg:col-span-8 flex flex-col bg-slate-900/40 backdrop-blur-2xl border border-white/5 rounded-3xl overflow-hidden shadow-2xl h-full">
+      <div className="lg:col-span-8 flex flex-col bg-slate-900 backdrop-blur-2xl border border-carbon-950/10 rounded-3xl overflow-hidden shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] h-full">
         {selectedTicket ? (
           <div className="flex flex-col h-full">
             {/* Quick Actions Header */}
-            <div className="p-6 border-b border-white/5 bg-slate-900/60 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0">
+            <div className="p-6 border-b border-carbon-950/10 bg-slate-900 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0">
               <div>
                 <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">ACCIONES DE IMPRESIÓN</h4>
-                <div className="text-base font-bold text-white flex items-center gap-2">
+                <div className="text-base font-bold text-carbon-950 flex items-center gap-2">
                   <span>Reimprimir {selectedTicket.folio}</span>
                 </div>
               </div>
@@ -256,7 +256,7 @@ export function POSTicketsHistory() {
               <div className="flex gap-3 w-full sm:w-auto">
                 <button
                   onClick={() => handlePrint(selectedTicket, 'customer')}
-                  className="flex-1 sm:flex-initial bg-indigo-500 hover:bg-indigo-400 text-white px-5 py-3 rounded-2xl font-black text-xs transition-all shadow-xl shadow-indigo-500/20 flex items-center justify-center gap-2 active:scale-95"
+                  className="flex-1 sm:flex-initial bg-indigo-500 hover:bg-indigo-400 text-white px-5 py-3 rounded-2xl font-black text-xs transition-all shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20 flex items-center justify-center gap-2 active:scale-95"
                 >
                   <Printer size={15} /> CLIENTE
                 </button>
@@ -272,7 +272,7 @@ export function POSTicketsHistory() {
             {/* Receipt Preview scrollable area */}
             <div className="flex-grow overflow-y-auto no-scrollbar p-10 bg-slate-950/20 flex justify-center items-start">
               {/* Paper Ticket Representation */}
-              <div className="w-full max-w-[340px] bg-white text-slate-950 p-6 rounded-2xl shadow-2xl relative overflow-hidden border border-black/5 animate-in zoom-in-95 duration-300">
+              <div className="w-full max-w-[340px] bg-white text-carbon-950 p-6 rounded-2xl shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] relative overflow-hidden border border-black/5 animate-in zoom-in-95 duration-300">
                 {/* Vintage receipt thermal edge styling */}
                 <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-b from-slate-200 to-transparent" />
                 
@@ -328,7 +328,7 @@ export function POSTicketsHistory() {
                             </div>
                           )}
                           {item.customerNote && (
-                            <div className="pl-4 text-[9px] font-bold text-slate-700">
+                            <div className="pl-4 text-[9px] font-bold text-slate-500">
                               * {item.customerNote}
                             </div>
                           )}
@@ -366,7 +366,7 @@ export function POSTicketsHistory() {
 
                 {/* Ticket Footer */}
                 <div className="text-center pt-4 border-t border-dashed border-slate-300 text-slate-500 text-[10px]">
-                  <p className="font-bold uppercase text-slate-800">¡GRACIAS POR SU COMPRA!</p>
+                  <p className="font-bold uppercase text-slate-500">¡GRACIAS POR SU COMPRA!</p>
                   <p className="mt-0.5">Vuelva pronto</p>
                 </div>
               </div>
@@ -374,10 +374,10 @@ export function POSTicketsHistory() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-slate-600 p-8">
-            <div className="w-16 h-16 bg-slate-950 rounded-3xl flex items-center justify-center text-slate-500 mb-4 border border-white/5 animate-pulse">
+            <div className="w-16 h-16 bg-slate-950 rounded-3xl flex items-center justify-center text-slate-500 mb-4 border border-carbon-950/10 animate-pulse">
               <Receipt size={32} />
             </div>
-            <h4 className="text-sm font-bold text-white">Ningún Ticket Seleccionado</h4>
+            <h4 className="text-sm font-bold text-carbon-950">Ningún Ticket Seleccionado</h4>
             <p className="text-xs text-slate-500 mt-1 text-center max-w-[260px]">Selecciona un ticket de la lista de la izquierda para ver su detalle y realizar reimpresiones.</p>
           </div>
         )}

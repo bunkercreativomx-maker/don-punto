@@ -73,7 +73,7 @@ export function CorteTicket({ summary, date, paperSize = '58mm' }: CorteTicketPr
                 <span>${money(summary.cashIVA)}</span>
             </div>
         </div>
-        <p className="text-[8px] mt-2 italic text-black/60">* Incluye Efectivo y Didi Efectivo</p>
+        <p className="text-[10px] mt-2 italic text-black/60">* Incluye Efectivo y Didi Efectivo</p>
       </div>
 
       <div className="pt-2 border-t border-black mb-10">

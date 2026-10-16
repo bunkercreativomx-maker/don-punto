@@ -404,13 +404,13 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
 
       {/* --- SETTINGS PIN MODAL --- */}
       {isSettingsPinModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-md no-print">
-              <div className="bg-slate-900 border border-white/10 rounded-3xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-                  <div className="p-6 bg-slate-800/30 border-b border-white/10 text-center">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-carbon-950/35 backdrop-blur-md no-print">
+              <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl w-full max-w-sm shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                  <div className="p-6 bg-slate-800/30 border-b border-carbon-950/10 text-center">
                       <div className="w-12 h-12 bg-pink-500/20 text-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
                           <Lock size={24} />
                       </div>
-                      <h3 className="text-xl font-bold text-white">Configuración del Sistema</h3>
+                      <h3 className="text-xl font-bold text-carbon-950">Configuración del Sistema</h3>
                       <p className="text-slate-400 text-xs mt-2">Ingresa el PIN de administrador para acceder a los ajustes.</p>
                   </div>
                   <div className="p-6">
@@ -422,14 +422,14 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                           onKeyDown={(e) => e.key === 'Enter' && handleSettingsPinSubmit()}
                           placeholder="••••"
                           className={cn(
-                              "w-full bg-slate-950 border-2 rounded-2xl text-center text-4xl tracking-[0.5em] font-black text-white py-4 outline-none transition-all",
-                              settingsPinError ? "border-rose-500 text-rose-500" : "border-white/10 focus:border-indigo-500"
+                              "w-full bg-slate-950 border-2 rounded-2xl text-center text-4xl tracking-[0.5em] font-black text-carbon-950 py-4 outline-none transition-all",
+                              settingsPinError ? "border-rose-500 text-rose-500" : "border-carbon-950/10 focus:border-indigo-500"
                           )}
                       />
                       {settingsPinError && <div className="text-rose-500 text-xs font-bold text-center mt-3 animate-pulse">PIN INCORRECTO</div>}
                       
                       <div className="grid grid-cols-2 gap-3 mt-6">
-                          <button onClick={() => setIsSettingsPinModalOpen(false)} className="py-3 rounded-xl font-bold text-slate-500 hover:text-white transition-all bg-slate-800/50">CANCELAR</button>
+                          <button onClick={() => setIsSettingsPinModalOpen(false)} className="py-3 rounded-xl font-bold text-slate-500 hover:text-carbon-950 transition-all bg-slate-800/50">CANCELAR</button>
                           <button onClick={handleSettingsPinSubmit} className="py-3 rounded-xl font-black text-white bg-pink-500 hover:bg-pink-400 transition-all shadow-lg shadow-pink-500/20 active:scale-95">ACCEDER</button>
                       </div>
                   </div>
@@ -438,15 +438,15 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
       )}
 
       {/* --- PREMIUM SIDEBAR --- */}
-      <nav className="w-16 lg:w-52 bg-slate-900/40 border-r border-white/5 flex flex-col items-center lg:items-stretch py-4 gap-3 relative z-30 backdrop-blur-xl shrink-0 no-print overflow-y-auto no-scrollbar">
+      <nav className="w-16 lg:w-56 bg-white border-r border-carbon-950/10 flex flex-col items-center lg:items-stretch py-4 gap-3 relative z-30 backdrop-blur-xl shrink-0 no-print overflow-y-auto no-scrollbar">
         <div className="flex items-center justify-center lg:justify-start gap-2.5 px-2 lg:px-4 pt-1 pb-2">
           <Mark size={34} />
-          <Wordmark tone="dark" height={20} className="hidden lg:block" />
+          <Wordmark tone="light" height={20} className="hidden lg:block" />
         </div>
 
         {/* User Avatar */}
         <div className="flex items-center gap-3 px-2 lg:px-4 py-1 mb-1 group cursor-default">
-          <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center text-slate-400 shrink-0 hover:border-white/20 transition-all">
+          <div className="w-10 h-10 rounded-full bg-slate-800 border border-carbon-950/10 flex items-center justify-center text-slate-400 shrink-0 hover:border-carbon-950/20 transition-all">
             <User size={20} />
           </div>
           {userEmail && (
@@ -455,81 +455,81 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
         </div>
 
         <div className="w-full px-2 lg:px-3">
-          <div className="h-px bg-white/5 w-full" />
+          <div className="h-px bg-carbon-950/5 w-full" />
         </div>
 
         <div className="flex flex-col gap-1 flex-grow w-full px-2 lg:px-3">
-          <button onClick={() => setActiveTab('profits')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'profits' ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent")}>
+          <button onClick={() => setActiveTab('profits')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'profits' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
             <BarChart3 size={20} className="shrink-0" />
             <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Tienda Física</span>
-            {activeTab === 'profits' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-emerald-500 rounded-r-full" />}
+            {activeTab === 'profits' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-agave-500 rounded-r-full" />}
           </button>
 
-          <button onClick={() => setActiveTab('pricing')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'pricing' ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent")}>
+          <button onClick={() => setActiveTab('pricing')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'pricing' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
             <Calculator size={20} className="shrink-0" />
             <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Plataformas</span>
-            {activeTab === 'pricing' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-500 rounded-r-full" />}
+            {activeTab === 'pricing' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-agave-500 rounded-r-full" />}
           </button>
 
-          <button onClick={() => setActiveTab('pos')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'pos' ? "bg-pink-500/10 text-pink-400 border border-pink-500/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent")}>
+          <button onClick={() => setActiveTab('pos')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'pos' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
             <ShoppingBasket size={20} className="shrink-0" />
             <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Punto de Venta</span>
-            {activeTab === 'pos' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-pink-500 rounded-r-full" />}
+            {activeTab === 'pos' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-agave-500 rounded-r-full" />}
           </button>
 
-          <button onClick={() => setActiveTab('tickets')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'tickets' ? "bg-violet-500/10 text-violet-400 border border-violet-500/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent")}>
+          <button onClick={() => setActiveTab('tickets')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'tickets' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
             <Receipt size={20} className="shrink-0" />
             <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Tickets</span>
-            {activeTab === 'tickets' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-violet-500 rounded-r-full" />}
+            {activeTab === 'tickets' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-agave-500 rounded-r-full" />}
           </button>
 
-          <button onClick={() => setActiveTab('reports')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'reports' ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent")}>
+          <button onClick={() => setActiveTab('reports')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'reports' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
             <LineChart size={20} className="shrink-0" />
             <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Reportes</span>
-            {activeTab === 'reports' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-cyan-500 rounded-r-full" />}
+            {activeTab === 'reports' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-agave-500 rounded-r-full" />}
           </button>
 
-          <button onClick={() => setActiveTab('menu')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'menu' ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent")}>
+          <button onClick={() => setActiveTab('menu')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'menu' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
             <Layers size={20} className="shrink-0" />
             <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Catálogo</span>
-            {activeTab === 'menu' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-amber-500 rounded-r-full" />}
+            {activeTab === 'menu' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-agave-500 rounded-r-full" />}
           </button>
 
           <div className="w-full my-1">
-            <div className="h-px bg-white/5 w-full" />
+            <div className="h-px bg-carbon-950/5 w-full" />
           </div>
 
-          <button onClick={() => setActiveTab('inventory')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'inventory' ? "bg-teal-500/10 text-teal-400 border border-teal-500/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent")}>
+          <button onClick={() => setActiveTab('inventory')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'inventory' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
             <Package size={20} className="shrink-0" />
             <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Inventario</span>
-            {activeTab === 'inventory' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-teal-500 rounded-r-full" />}
+            {activeTab === 'inventory' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-agave-500 rounded-r-full" />}
           </button>
 
-          <button onClick={() => setActiveTab('engineering')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'engineering' ? "bg-rose-500/10 text-rose-400 border border-rose-500/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent")}>
+          <button onClick={() => setActiveTab('engineering')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'engineering' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
             <Target size={20} className="shrink-0" />
             <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Radar de Menú</span>
-            {activeTab === 'engineering' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-rose-500 rounded-r-full" />}
+            {activeTab === 'engineering' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-agave-500 rounded-r-full" />}
           </button>
 
-          <button onClick={() => setActiveTab('recipes')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'recipes' ? "bg-orange-500/10 text-orange-400 border border-orange-500/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent")}>
+          <button onClick={() => setActiveTab('recipes')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'recipes' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
             <BookOpen size={20} className="shrink-0" />
             <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Recetario</span>
-            {activeTab === 'recipes' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-orange-500 rounded-r-full" />}
+            {activeTab === 'recipes' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-agave-500 rounded-r-full" />}
           </button>
 
-          <button onClick={() => setActiveTab('financial')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'financial' ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "text-slate-500 hover:text-slate-300 hover:bg-white/5 border border-transparent")}>
+          <button onClick={() => setActiveTab('financial')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'financial' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
             <Wallet size={20} className="shrink-0" />
             <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Financiero</span>
-            {activeTab === 'financial' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-emerald-500 rounded-r-full" />}
+            {activeTab === 'financial' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-agave-500 rounded-r-full" />}
           </button>
         </div>
 
         <div className="w-full px-2 lg:px-3">
-          <div className="h-px bg-white/5 w-full" />
+          <div className="h-px bg-carbon-950/5 w-full" />
         </div>
 
         <div className="flex flex-col gap-1 shrink-0 w-full px-2 lg:px-3">
-          <button onClick={handleSettingsClick} className={cn("p-3 lg:px-3 rounded-xl transition-all flex items-center gap-3", activeTab === 'settings' ? "bg-white/10 text-white border border-white/10" : "text-slate-600 hover:text-slate-400 hover:bg-white/5 border border-transparent")}>
+          <button onClick={handleSettingsClick} className={cn("p-3 lg:px-3 rounded-xl transition-all flex items-center gap-3", activeTab === 'settings' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-600 hover:text-slate-400 hover:bg-carbon-950/5 border border-transparent")}>
             <Settings size={20} className="shrink-0" />
             <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Ajustes</span>
           </button>
@@ -555,7 +555,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
 
       <div className="flex-grow relative flex overflow-hidden">
         <div className={cn(
-            "absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1000px] h-[500px] opacity-20 blur-[120px] pointer-events-none transition-colors duration-1000 no-print",
+            "absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1000px] h-[500px] opacity-[0.06] blur-[120px] pointer-events-none transition-colors duration-1000 no-print",
             settings.platform === 'Uber' && "bg-green-600",
             settings.platform === 'Didi' && "bg-orange-600",
             settings.platform === 'Rappi' && "bg-pink-600"
@@ -565,10 +565,10 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
           <div className="w-full">
             <header className="mb-6 flex flex-col sm:flex-row items-baseline sm:items-center justify-between gap-4 no-print">
               <div>
-                <h1 className="text-3xl font-black text-white tracking-tighter">
+                <h1 className="font-display text-3xl font-bold text-carbon-950 tracking-[-0.02em]">
                   {activeTab === 'profits' && 'Análisis de Ganancias de Tienda Física'}
                   {activeTab === 'pricing' && 'Estrategia de Precios'}
-                  {activeTab === 'pos' && 'Punto de Venta POS'}
+                  {activeTab === 'pos' && 'Punto de venta'}
                   {activeTab === 'reports' && 'Reportes Financieros'}
                   {activeTab === 'tickets' && 'Historial de Tickets'}
                   {activeTab === 'menu' && 'Catálogo de Productos'}
@@ -597,21 +597,21 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => setIsImportModalOpen(true)}
-                        className="bg-slate-900 border border-emerald-500/30 hover:bg-slate-800 text-emerald-400 px-6 py-3 rounded-2xl font-black text-sm transition-all shadow-xl shadow-emerald-500/10 active:scale-95 flex items-center gap-2"
+                        className="bg-slate-900 border border-emerald-500/30 hover:bg-slate-800 text-emerald-400 px-6 py-3 rounded-2xl font-black text-sm transition-all shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-emerald-500/10 active:scale-95 flex items-center gap-2"
                     >
                         <FileSpreadsheet size={18} />
                         IMPORTAR MENÚ
                     </button>
                     <button
                         onClick={() => setIsScannerOpen(true)}
-                        className="bg-slate-900 border border-indigo-500/30 hover:bg-slate-800 text-indigo-400 px-6 py-3 rounded-2xl font-black text-sm transition-all shadow-xl shadow-indigo-500/10 active:scale-95 flex items-center gap-2"
+                        className="bg-slate-900 border border-indigo-500/30 hover:bg-slate-800 text-indigo-400 px-6 py-3 rounded-2xl font-black text-sm transition-all shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/10 active:scale-95 flex items-center gap-2"
                     >
                         <Sparkles size={18} /> ESCANEAR MENÚ
                     </button>
                     {(activeTab === 'profits' || activeTab === 'pricing') && (
                         <button
                           onClick={addRow}
-                          className="bg-indigo-500 hover:bg-indigo-400 text-white px-6 py-3 rounded-2xl font-black text-sm transition-all shadow-xl shadow-indigo-500/20 active:scale-95 flex items-center gap-2"
+                          className="bg-indigo-500 hover:bg-indigo-400 text-white px-6 py-3 rounded-2xl font-black text-sm transition-all shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20 active:scale-95 flex items-center gap-2"
                         >
                           <Plus size={18} strokeWidth={3} /> AGREGAR PRODUCTO
                         </button>
@@ -636,7 +636,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                                 value={profitsSearch}
                                 onChange={(e) => setProfitsSearch(e.target.value)}
                                 placeholder="Buscar platillo..."
-                                className="w-full bg-slate-900 border border-white/5 rounded-xl pl-9 pr-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/30 transition-all"
+                                className="w-full bg-slate-900 border border-carbon-950/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/30 transition-all"
                             />
                         </div>
                         <ProfitGrid
@@ -648,14 +648,14 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                         />
                         {totalProfitsPages > 1 && (
                             <div className="flex items-center justify-center gap-3 mt-4">
-                                <button onClick={() => setProfitsPage(p => Math.max(1, p - 1))} disabled={safeProfitsPage === 1} className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 border border-white/5 text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all">← Anterior</button>
+                                <button onClick={() => setProfitsPage(p => Math.max(1, p - 1))} disabled={safeProfitsPage === 1} className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 border border-carbon-950/10 text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all">← Anterior</button>
                                 <span className="text-xs text-slate-400 font-medium">Página {safeProfitsPage} de {totalProfitsPages} <span className="text-slate-600">({filteredProfits.length} platillos)</span></span>
-                                <button onClick={() => setProfitsPage(p => Math.min(totalProfitsPages, p + 1))} disabled={safeProfitsPage === totalProfitsPages} className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 border border-white/5 text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all">Siguiente →</button>
+                                <button onClick={() => setProfitsPage(p => Math.min(totalProfitsPages, p + 1))} disabled={safeProfitsPage === totalProfitsPages} className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 border border-carbon-950/10 text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all">Siguiente →</button>
                             </div>
                         )}
                     </div>
                     <div className="lg:col-span-3">
-                         <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+                         <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-6 shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] relative overflow-hidden">
                             <div className="absolute -right-6 -bottom-6 opacity-10 pointer-events-none">
                                 <TrendingUp size={110} className="text-emerald-400" />
                             </div>
@@ -682,7 +682,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                             value={pricingSearch}
                             onChange={(e) => setPricingSearch(e.target.value)}
                             placeholder="Buscar platillo..."
-                            className="w-full bg-slate-900 border border-white/5 rounded-xl pl-9 pr-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 focus:border-indigo-500/30 transition-all"
+                            className="w-full bg-slate-900 border border-carbon-950/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 focus:border-indigo-500/30 transition-all"
                         />
                     </div>
                     <PricingGrid
@@ -695,9 +695,9 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                     />
                     {totalPricingPages > 1 && (
                         <div className="flex items-center justify-center gap-3 mt-4">
-                            <button onClick={() => setPricingPage(p => Math.max(1, p - 1))} disabled={safePricingPage === 1} className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 border border-white/5 text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all">← Anterior</button>
+                            <button onClick={() => setPricingPage(p => Math.max(1, p - 1))} disabled={safePricingPage === 1} className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 border border-carbon-950/10 text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all">← Anterior</button>
                             <span className="text-xs text-slate-400 font-medium">Página {safePricingPage} de {totalPricingPages} <span className="text-slate-600">({filteredPricing.length} platillos)</span></span>
-                            <button onClick={() => setPricingPage(p => Math.min(totalPricingPages, p + 1))} disabled={safePricingPage === totalPricingPages} className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 border border-white/5 text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all">Siguiente →</button>
+                            <button onClick={() => setPricingPage(p => Math.min(totalPricingPages, p + 1))} disabled={safePricingPage === totalPricingPages} className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 border border-carbon-950/10 text-slate-300 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all">Siguiente →</button>
                         </div>
                     )}
                 </div>
@@ -729,13 +729,13 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                       <NotificationsCard />
 
                       {/* Business Info */}
-                      <div className="bg-slate-900 border border-white/5 rounded-3xl p-8 space-y-6">
+                      <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl p-8 space-y-6">
                           <div>
-                              <h3 className="text-base font-black text-white tracking-tight mb-1">Información del Negocio</h3>
+                              <h3 className="text-base font-black text-carbon-950 tracking-tight mb-1">Información del Negocio</h3>
                               <p className="text-[11px] text-slate-500">Aparece en el encabezado de todos tus tickets impresos.</p>
                           </div>
                           <div className="space-y-4">
-                              <div className="flex items-center gap-3 bg-slate-950 border border-white/5 rounded-2xl px-4 py-3">
+                              <div className="flex items-center gap-3 bg-slate-950 border border-carbon-950/10 rounded-2xl px-4 py-3">
                                   <Building2 size={16} className="text-indigo-400 shrink-0" />
                                   <div className="flex-1">
                                       <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Nombre del Negocio</div>
@@ -744,11 +744,11 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                                           value={posSettings.businessName || ''}
                                           onChange={(e) => updatePosSettings({ businessName: e.target.value })}
                                           placeholder="Ej: Mi Negocio"
-                                          className="w-full bg-transparent text-white text-sm font-bold outline-none placeholder:text-slate-700"
+                                          className="w-full bg-transparent text-carbon-950 text-sm font-bold outline-none placeholder:text-slate-500"
                                       />
                                   </div>
                               </div>
-                              <div className="flex items-center gap-3 bg-slate-950 border border-white/5 rounded-2xl px-4 py-3">
+                              <div className="flex items-center gap-3 bg-slate-950 border border-carbon-950/10 rounded-2xl px-4 py-3">
                                   <Phone size={16} className="text-emerald-400 shrink-0" />
                                   <div className="flex-1">
                                       <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Teléfono</div>
@@ -757,11 +757,11 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                                           value={posSettings.businessPhone || ''}
                                           onChange={(e) => updatePosSettings({ businessPhone: e.target.value })}
                                           placeholder="Ej: 656-123-4567"
-                                          className="w-full bg-transparent text-white text-sm font-bold outline-none placeholder:text-slate-700"
+                                          className="w-full bg-transparent text-carbon-950 text-sm font-bold outline-none placeholder:text-slate-500"
                                       />
                                   </div>
                               </div>
-                              <div className="flex items-center gap-3 bg-slate-950 border border-white/5 rounded-2xl px-4 py-3">
+                              <div className="flex items-center gap-3 bg-slate-950 border border-carbon-950/10 rounded-2xl px-4 py-3">
                                   <MapPin size={16} className="text-rose-400 shrink-0" />
                                   <div className="flex-1">
                                       <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Dirección</div>
@@ -770,13 +770,13 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                                           value={posSettings.businessAddress || ''}
                                           onChange={(e) => updatePosSettings({ businessAddress: e.target.value })}
                                           placeholder="Ej: Av. Juárez 123, Col. Centro"
-                                          className="w-full bg-transparent text-white text-sm font-bold outline-none placeholder:text-slate-700"
+                                          className="w-full bg-transparent text-carbon-950 text-sm font-bold outline-none placeholder:text-slate-500"
                                       />
                                   </div>
                               </div>
                           </div>
                           {/* Print Settings */}
-                          <div className="border-t border-white/5 pt-6 space-y-4">
+                          <div className="border-t border-carbon-950/10 pt-6 space-y-4">
                               <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                                   <PrinterIcon size={14} /> Configuración de Impresión
                               </h4>
@@ -784,13 +784,13 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                                   <button
                                       onClick={() => updatePosSettings({ paperSize: '58mm' })}
                                       className={cn("py-3 rounded-2xl text-xs font-black transition-all border",
-                                          (posSettings.paperSize || '58mm') === '58mm' ? "bg-indigo-500 border-indigo-400 text-white" : "bg-slate-950 border-white/5 text-slate-500 hover:text-white"
+                                          (posSettings.paperSize || '58mm') === '58mm' ? "bg-indigo-500 border-indigo-400 text-white" : "bg-slate-950 border-carbon-950/10 text-slate-500 hover:text-carbon-950"
                                       )}
                                   >🖨️ Térmica 58mm</button>
                                   <button
                                       onClick={() => updatePosSettings({ paperSize: 'Standard' })}
                                       className={cn("py-3 rounded-2xl text-xs font-black transition-all border",
-                                          posSettings.paperSize === 'Standard' ? "bg-indigo-500 border-indigo-400 text-white" : "bg-slate-950 border-white/5 text-slate-500 hover:text-white"
+                                          posSettings.paperSize === 'Standard' ? "bg-indigo-500 border-indigo-400 text-white" : "bg-slate-950 border-carbon-950/10 text-slate-500 hover:text-carbon-950"
                                       )}
                                   >🖨️ Normal (A4/Carta)</button>
                               </div>
@@ -798,12 +798,12 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                       </div>
 
                       {/* Security Settings */}
-                      <div className="bg-slate-900 border border-white/5 rounded-3xl p-8 space-y-6">
+                      <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl p-8 space-y-6">
                           <div>
                               <h3 className="text-base font-black text-rose-500 tracking-tight mb-1 flex items-center gap-2"><Lock size={18}/> Seguridad Antifraude</h3>
                               <p className="text-[11px] text-slate-500">Este PIN se solicitará para borrar tickets, eliminar productos y entrar a esta configuración.</p>
                           </div>
-                          <div className="flex items-center gap-3 bg-slate-950 border border-white/5 rounded-2xl px-4 py-3">
+                          <div className="flex items-center gap-3 bg-slate-950 border border-carbon-950/10 rounded-2xl px-4 py-3">
                               <Key size={16} className="text-rose-400 shrink-0" />
                               <div className="flex-1">
                                   <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">PIN de Administrador</div>
@@ -813,7 +813,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                                       value={posSettings.adminPin || '1234'}
                                       onChange={(e) => updatePosSettings({ adminPin: e.target.value })}
                                       placeholder="1234"
-                                      className="w-full bg-transparent text-white text-sm font-bold outline-none placeholder:text-slate-700 tracking-[0.5em]"
+                                      className="w-full bg-transparent text-carbon-950 text-sm font-bold outline-none placeholder:text-slate-500 tracking-[0.5em]"
                                   />
                                   {(posSettings.adminPin || '1234') === '1234' && (
                                       <p className="text-[11px] font-bold text-amber-400 mt-2">⚠ Estás usando el PIN de fábrica. Cámbialo para proteger tu caja.</p>
@@ -823,13 +823,13 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                       </div>
 
                       {/* Calculator Settings */}
-                      <div className="bg-slate-900 border border-white/5 rounded-3xl p-8 space-y-8">
-                          <h3 className="text-base font-black text-white tracking-tight">Configuración de la Calculadora</h3>
+                      <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl p-8 space-y-8">
+                          <h3 className="text-base font-black text-carbon-950 tracking-tight">Configuración de la Calculadora</h3>
                           <div className="space-y-4">
                             <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Plataforma Principal</label>
                             <div className="grid grid-cols-3 gap-4">
                                 {(['Uber', 'Didi', 'Rappi'] as Platform[]).map((p) => (
-                                <button key={p} onClick={() => updateSetting('platform', p)} className={cn("py-4 rounded-2xl text-xs font-black transition-all border", settings.platform === p ? "bg-indigo-500 border-indigo-400 text-white shadow-xl shadow-indigo-500/20" : "bg-slate-950 border-white/5 text-slate-500 hover:text-slate-300")}>{p.toUpperCase()}</button>
+                                <button key={p} onClick={() => updateSetting('platform', p)} className={cn("py-4 rounded-2xl text-xs font-black transition-all border", settings.platform === p ? "bg-indigo-500 border-indigo-400 text-white shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20" : "bg-slate-950 border-carbon-950/10 text-slate-500 hover:text-slate-300")}>{p.toUpperCase()}</button>
                                 ))}
                             </div>
                           </div>
@@ -837,13 +837,13 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                             <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Método de Cobro Predeterminado</label>
                             <div className="grid grid-cols-3 gap-4">
                                 {(['Efectivo', 'Transferencia', 'Tarjeta'] as PaymentMethod[]).map((method) => (
-                                <button key={method} onClick={() => updateSetting('paymentMethod', method)} className={cn("py-4 rounded-2xl text-xs font-black transition-all border", settings.paymentMethod === method ? "bg-indigo-500 border-indigo-400 text-white shadow-xl shadow-indigo-500/20" : "bg-slate-950 border-white/5 text-slate-500 hover:text-slate-300")}>{method.toUpperCase()}</button>
+                                <button key={method} onClick={() => updateSetting('paymentMethod', method)} className={cn("py-4 rounded-2xl text-xs font-black transition-all border", settings.paymentMethod === method ? "bg-indigo-500 border-indigo-400 text-white shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20" : "bg-slate-950 border-carbon-950/10 text-slate-500 hover:text-slate-300")}>{method.toUpperCase()}</button>
                                 ))}
                             </div>
                           </div>
-                          <div className="flex items-center justify-between p-6 bg-slate-950 rounded-2xl border border-white/5">
+                          <div className="flex items-center justify-between p-6 bg-slate-950 rounded-2xl border border-carbon-950/10">
                             <div>
-                                <div className="text-white font-bold">RFC Válido</div>
+                                <div className="text-carbon-950 font-bold">RFC Válido</div>
                                 <div className="text-[10px] text-slate-500 font-bold uppercase tracking-tight">ISR RETENTION IMPACT</div>
                             </div>
                             <label className="relative flex items-center cursor-pointer">
@@ -856,8 +856,8 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                           <div className="space-y-4">
                             <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Tasa de IVA (desglose en precio)</label>
                             <div className="grid grid-cols-2 gap-4">
-                                <button onClick={() => updateSetting('ivaRate', 0.16)} className={cn("py-4 rounded-2xl text-xs font-black transition-all border", (settings.ivaRate ?? 0.16) === 0.16 ? "bg-indigo-500 border-indigo-400 text-white shadow-xl shadow-indigo-500/20" : "bg-slate-950 border-white/5 text-slate-500 hover:text-slate-300")}>16% — Resto de la República</button>
-                                <button onClick={() => updateSetting('ivaRate', 0.08)} className={cn("py-4 rounded-2xl text-xs font-black transition-all border", (settings.ivaRate ?? 0.16) === 0.08 ? "bg-indigo-500 border-indigo-400 text-white shadow-xl shadow-indigo-500/20" : "bg-slate-950 border-white/5 text-slate-500 hover:text-slate-300")}>8% — Zona Fronteriza</button>
+                                <button onClick={() => updateSetting('ivaRate', 0.16)} className={cn("py-4 rounded-2xl text-xs font-black transition-all border", (settings.ivaRate ?? 0.16) === 0.16 ? "bg-indigo-500 border-indigo-400 text-white shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20" : "bg-slate-950 border-carbon-950/10 text-slate-500 hover:text-slate-300")}>16% — Resto de la República</button>
+                                <button onClick={() => updateSetting('ivaRate', 0.08)} className={cn("py-4 rounded-2xl text-xs font-black transition-all border", (settings.ivaRate ?? 0.16) === 0.08 ? "bg-indigo-500 border-indigo-400 text-white shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20" : "bg-slate-950 border-carbon-950/10 text-slate-500 hover:text-slate-300")}>8% — Zona Fronteriza</button>
                             </div>
                           </div>
                       </div>

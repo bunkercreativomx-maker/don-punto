@@ -124,13 +124,13 @@ export function MenuManagement({
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Categorías Section */}
-            <div className="bg-slate-900/60 backdrop-blur-xl border border-white/5 rounded-2xl p-6 shadow-2xl">
+            <div className="bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-2xl p-6 shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)]">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
                         <Layers size={20} />
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-white tracking-tight">Categorías</h2>
+                        <h2 className="text-xl font-bold text-carbon-950 tracking-tight">Categorías</h2>
                         <p className="text-xs text-slate-400">Organiza tu menú (ej. Hamburguesas, Alitas)</p>
                     </div>
                 </div>
@@ -142,7 +142,7 @@ export function MenuManagement({
                         value={newCategoryName}
                         onChange={(e) => setNewCategoryName(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
-                        className="flex-grow bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm"
+                        className="flex-grow bg-slate-950/50 border border-carbon-950/10 rounded-xl px-4 py-2 text-carbon-950 outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all text-sm"
                     />
                     <button
                         onClick={handleAddCategory}
@@ -154,17 +154,17 @@ export function MenuManagement({
 
                 <div className="space-y-2">
                     {categories.length === 0 ? (
-                        <p className="text-center py-8 text-slate-500 text-sm border-2 border-dashed border-white/5 rounded-xl">No hay categorías. Agrega una arriba.</p>
+                        <p className="text-center py-8 text-slate-500 text-sm border-2 border-dashed border-carbon-950/10 rounded-xl">No hay categorías. Agrega una arriba.</p>
                     ) : (
                         categories.map(cat => (
-                            <div key={cat.id} className="flex items-center justify-between bg-slate-800/30 border border-white/5 p-3 rounded-xl group hover:bg-slate-800/50 transition-all">
+                            <div key={cat.id} className="flex items-center justify-between bg-slate-800/30 border border-carbon-950/10 p-3 rounded-xl group hover:bg-slate-800/50 transition-all">
                                 {editingCategoryId === cat.id ? (
                                     <div className="flex-grow flex gap-2">
                                         <input
                                             value={editName}
                                             onChange={(e) => setEditName(e.target.value)}
                                             autoFocus
-                                            className="flex-grow bg-slate-950 border border-indigo-500/50 rounded-lg px-3 py-1 text-sm text-white outline-none"
+                                            className="flex-grow bg-slate-950 border border-indigo-500/50 rounded-lg px-3 py-1 text-sm text-carbon-950 outline-none"
                                         />
                                         <button onClick={saveCategoryEdit} className="text-emerald-400 p-1 hover:bg-emerald-500/10 rounded-md"><Check size={18} /></button>
                                         <button onClick={() => setEditingCategoryId(null)} className="text-slate-400 p-1 hover:bg-slate-500/10 rounded-md"><X size={18} /></button>
@@ -185,14 +185,14 @@ export function MenuManagement({
             </div>
 
             {/* Modificadores Section */}
-            <div className="bg-slate-900/60 backdrop-blur-xl border border-white/5 rounded-2xl p-6 shadow-2xl">
+            <div className="bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-2xl p-6 shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)]">
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-pink-500/20 text-pink-400 border border-pink-500/30">
                             <Tag size={20} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-white tracking-tight">Modificadores</h2>
+                            <h2 className="text-xl font-bold text-carbon-950 tracking-tight">Modificadores</h2>
                             <p className="text-xs text-slate-400">Extras, salsas e ingredientes adicionales</p>
                         </div>
                     </div>
@@ -206,13 +206,13 @@ export function MenuManagement({
 
                 <div className="space-y-4">
                     {modifierGroups.length === 0 ? (
-                        <p className="text-center py-8 text-slate-500 text-sm border-2 border-dashed border-white/5 rounded-xl">Crea grupos de opciones como "Salsas" o "Extras".</p>
+                        <p className="text-center py-8 text-slate-500 text-sm border-2 border-dashed border-carbon-950/10 rounded-xl">Crea grupos de opciones como "Salsas" o "Extras".</p>
                     ) : (
                         modifierGroups.map(group => (
-                            <div key={group.id} className="bg-slate-800/30 border border-white/5 rounded-2xl p-4 group">
+                            <div key={group.id} className="bg-slate-800/30 border border-carbon-950/10 rounded-2xl p-4 group">
                                 <div className="flex justify-between items-start mb-3">
                                     <div>
-                                        <h3 className="font-bold text-white text-sm">{group.name}</h3>
+                                        <h3 className="font-bold text-carbon-950 text-sm">{group.name}</h3>
                                         <span className="text-[10px] text-slate-500 uppercase font-black">{group.selectionType === 'single' ? 'Unica Selección' : 'Selección Múltiple'}</span>
                                     </div>
                                     <div className="flex gap-1">
@@ -222,13 +222,13 @@ export function MenuManagement({
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                     {group.options.map((opt, i) => (
-                                        <span key={i} className="text-[10px] bg-slate-950/50 border border-white/5 text-slate-400 px-2 py-1 rounded-lg">
+                                        <span key={i} className="text-[10px] bg-slate-950/50 border border-carbon-950/10 text-slate-400 px-2 py-1 rounded-lg">
                                             {opt.name} {opt.extraPrice > 0 && <span className="text-emerald-500 ml-1">+${opt.extraPrice}</span>}
                                         </span>
                                     ))}
                                 </div>
                                 {group.appliedToCategories && group.appliedToCategories.length > 0 && (
-                                    <div className="mt-3 pt-2 border-t border-white/5 flex flex-wrap gap-1 items-center">
+                                    <div className="mt-3 pt-2 border-t border-carbon-950/10 flex flex-wrap gap-1 items-center">
                                         <span className="text-[9px] text-slate-500 uppercase font-black mr-1">Aplicado a:</span>
                                         {group.appliedToCategories.map(catId => {
                                             const cat = categories.find(c => c.id === catId);
@@ -247,13 +247,13 @@ export function MenuManagement({
             </div>
 
             {/* Product Assignment Section (Grid wide) */}
-            <div className="lg:col-span-2 bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-2xl p-6">
-                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <div className="lg:col-span-2 bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-2xl p-6">
+                <h3 className="text-lg font-bold text-carbon-950 mb-4 flex items-center gap-2">
                     <Check className="text-indigo-400" size={18} /> Asignación de Productos
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                     {products.map(prod => (
-                        <div key={prod.id} className="bg-slate-950/40 border border-white/5 p-4 rounded-2xl flex flex-col gap-3">
+                        <div key={prod.id} className="bg-slate-950/40 border border-carbon-950/10 p-4 rounded-2xl flex flex-col gap-3">
                             <div className="font-bold text-slate-200 text-sm truncate">{prod.name}</div>
                             
                             <div className="space-y-2">
@@ -261,7 +261,7 @@ export function MenuManagement({
                                 <select 
                                     value={prod.categoryId || ''}
                                     onChange={(e) => updateProduct(prod.id, { categoryId: e.target.value || undefined })}
-                                    className="w-full bg-slate-900 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white outline-none"
+                                    className="w-full bg-slate-900 border border-carbon-950/10 rounded-lg px-2 py-1.5 text-xs text-carbon-950 outline-none"
                                 >
                                     <option value="">Sin Categoría</option>
                                     {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -292,12 +292,12 @@ export function MenuManagement({
                                                         ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 cursor-not-allowed"
                                                         : isDirect
                                                             ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-300" 
-                                                            : "bg-slate-900 border-white/5 text-slate-500 hover:text-slate-300"
+                                                            : "bg-slate-900 border-carbon-950/10 text-slate-500 hover:text-slate-300"
                                                 )}
                                                 title={isByCat ? "Aplicado automáticamente por categoría" : undefined}
                                             >
                                                 {group.name}
-                                                {isByCat && <span className="text-[8px] bg-emerald-500/20 px-1 rounded font-black uppercase">Auto</span>}
+                                                {isByCat && <span className="text-[10px] bg-emerald-500/20 px-1 rounded font-black uppercase">Auto</span>}
                                             </button>
                                         );
                                     })}
@@ -310,11 +310,11 @@ export function MenuManagement({
 
             {/* Modal for Modifier Group Add/Edit */}
             {isModGroupModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-                    <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
-                        <div className="p-6 border-b border-white/5 flex justify-between items-center bg-slate-800/20 rounded-t-2xl">
-                            <h3 className="text-xl font-bold text-white tracking-tight">Configurar Grupo de Modificadores</h3>
-                            <button onClick={() => setIsModGroupModalOpen(false)} className="text-slate-400 hover:text-white transition-colors"><X/></button>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-carbon-950/35 backdrop-blur-sm">
+                    <div className="bg-slate-900 border border-carbon-950/10 rounded-2xl w-full max-w-lg shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] flex flex-col max-h-[90vh]">
+                        <div className="p-6 border-b border-carbon-950/10 flex justify-between items-center bg-slate-800/20 rounded-t-2xl">
+                            <h3 className="text-xl font-bold text-carbon-950 tracking-tight">Configurar Grupo de Modificadores</h3>
+                            <button onClick={() => setIsModGroupModalOpen(false)} className="text-slate-400 hover:text-carbon-950 transition-colors"><X/></button>
                         </div>
                         
                         <div className="p-6 space-y-6 overflow-y-auto">
@@ -324,7 +324,7 @@ export function MenuManagement({
                                     value={modGroupName}
                                     onChange={(e) => setModGroupName(e.target.value)}
                                     placeholder="Nombre del grupo..."
-                                    className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-white outline-none focus:ring-2 focus:ring-indigo-500/50"
+                                    className="w-full bg-slate-950 border border-carbon-950/10 rounded-xl px-4 py-2.5 text-carbon-950 outline-none focus:ring-2 focus:ring-indigo-500/50"
                                 />
                             </div>
 
@@ -333,18 +333,18 @@ export function MenuManagement({
                                 <div className="grid grid-cols-2 gap-2">
                                     <button 
                                         onClick={() => setSelectionType('single')}
-                                        className={cn("py-2 rounded-xl text-xs font-bold border transition-all", selectionType === 'single' ? "bg-indigo-500 border-indigo-400 text-white shadow-lg" : "bg-slate-950 border-white/5 text-slate-500")}
+                                        className={cn("py-2 rounded-xl text-xs font-bold border transition-all", selectionType === 'single' ? "bg-indigo-500 border-indigo-400 text-white shadow-lg" : "bg-slate-950 border-carbon-950/10 text-slate-500")}
                                     >SOLO UNA (Radio)</button>
                                     <button 
                                         onClick={() => setSelectionType('multiple')}
-                                        className={cn("py-2 rounded-xl text-xs font-bold border transition-all", selectionType === 'multiple' ? "bg-indigo-500 border-indigo-400 text-white shadow-lg" : "bg-slate-950 border-white/5 text-slate-500")}
+                                        className={cn("py-2 rounded-xl text-xs font-bold border transition-all", selectionType === 'multiple' ? "bg-indigo-500 border-indigo-400 text-white shadow-lg" : "bg-slate-950 border-carbon-950/10 text-slate-500")}
                                     >VARIAS (Checkbox)</button>
                                 </div>
                             </div>
 
                             <div>
                                 <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Aplicar Automáticamente a Categorías</label>
-                                <div className="flex flex-wrap gap-2 bg-slate-950/50 p-3 rounded-xl border border-white/5">
+                                <div className="flex flex-wrap gap-2 bg-slate-950/50 p-3 rounded-xl border border-carbon-950/10">
                                     {categories.map(cat => {
                                         const isChecked = selectedCategories.includes(cat.id);
                                         return (
@@ -362,7 +362,7 @@ export function MenuManagement({
                                                     "px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5",
                                                     isChecked 
                                                         ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-300" 
-                                                        : "bg-slate-900 border-white/5 text-slate-500 hover:text-slate-400"
+                                                        : "bg-slate-900 border-carbon-950/10 text-slate-500 hover:text-slate-400"
                                                 )}
                                             >
                                                 {isChecked && <Check size={12} />}
@@ -386,14 +386,14 @@ export function MenuManagement({
                                 </div>
                                 <div className="space-y-2">
                                     {modGroupOptions.map((opt, i) => (
-                                        <div key={i} className="flex gap-2 items-center bg-slate-950/50 p-2 rounded-xl border border-white/5">
+                                        <div key={i} className="flex gap-2 items-center bg-slate-950/50 p-2 rounded-xl border border-carbon-950/10">
                                             <input
                                                 value={opt.name}
                                                 onChange={(e) => updateOption(i, { name: e.target.value })}
                                                 placeholder="Nombre (ej: BBQ)"
-                                                className="flex-grow bg-transparent text-sm text-white outline-none"
+                                                className="flex-grow bg-transparent text-sm text-carbon-950 outline-none"
                                             />
-                                            <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-white/5">
+                                            <div className="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-carbon-950/10">
                                                 <span className="text-[10px] text-slate-600 font-bold">$</span>
                                                 <input
                                                     type="number"
@@ -410,10 +410,10 @@ export function MenuManagement({
                             </div>
                         </div>
 
-                        <div className="p-6 border-t border-white/5 bg-slate-800/10 flex gap-3 rounded-b-2xl">
+                        <div className="p-6 border-t border-carbon-950/10 bg-slate-800/10 flex gap-3 rounded-b-2xl">
                             <button 
                                 onClick={() => setIsModGroupModalOpen(false)}
-                                className="flex-grow py-3 rounded-xl font-bold text-slate-400 hover:bg-white/5 transition-all"
+                                className="flex-grow py-3 rounded-xl font-bold text-slate-400 hover:bg-carbon-950/5 transition-all"
                             >CANCELAR</button>
                             <button 
                                 onClick={saveModGroup}

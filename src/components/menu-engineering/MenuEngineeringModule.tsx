@@ -194,7 +194,7 @@ export function MenuEngineeringModule() {
       </div>
 
       {!hasData ? (
-        <div className="text-center py-20 border border-white/5 rounded-2xl bg-slate-900/30">
+        <div className="text-center py-20 border border-carbon-950/10 rounded-2xl bg-slate-900">
           <Trophy size={40} className="mx-auto text-slate-600 mb-4" />
           <div className="text-slate-400 font-bold mb-2">Sin ventas registradas este mes</div>
           <div className="text-slate-600 text-sm">
@@ -237,7 +237,7 @@ export function MenuEngineeringModule() {
                         >
                           {section.key !== 'rezagados' ? (
                             <div className={clsx(
-                              'w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black text-white shrink-0',
+                              'w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black text-carbon-950 shrink-0',
                               section.dot
                             )}>
                               {product.rank}
@@ -251,7 +251,7 @@ export function MenuEngineeringModule() {
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-bold text-white truncate">{product.name}</div>
+                            <div className="text-sm font-bold text-carbon-950 truncate">{product.name}</div>
                           </div>
                           <div className="text-right shrink-0">
                             <div className={clsx('text-sm font-black tabular-nums', section.color)}>
@@ -269,10 +269,10 @@ export function MenuEngineeringModule() {
           </div>
 
           {/* AI Combo Generator */}
-          <div className="bg-slate-900/60 border border-white/5 rounded-2xl p-6 space-y-5">
+          <div className="bg-slate-900 border border-carbon-950/10 rounded-2xl p-6 space-y-5">
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
-                <div className="text-sm font-black text-white">Generador de Combos con IA</div>
+                <div className="text-sm font-black text-carbon-950">Generador de Combos con IA</div>
                 <div className="text-xs text-slate-500 mt-0.5">
                   Basado en tus top {top10.length} productos del mes &nbsp;·&nbsp;
                   <span className={usosRestantes === 0 ? 'text-rose-400' : 'text-indigo-400'}>
@@ -308,7 +308,7 @@ export function MenuEngineeringModule() {
                     className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4 space-y-3"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <div className="font-black text-white text-sm leading-snug">{combo.nombre}</div>
+                      <div className="font-black text-carbon-950 text-sm leading-snug">{combo.nombre}</div>
                       <div className="text-indigo-300 font-black text-sm shrink-0 bg-indigo-500/20 px-2 py-0.5 rounded-lg">
                         ${combo.precio}
                       </div>

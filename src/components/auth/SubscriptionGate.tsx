@@ -57,7 +57,7 @@ export function SubscriptionGate({ status, email, verifyingPayment, hasStripeCus
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-4 p-6 text-center">
         <Loader2 className="animate-spin text-indigo-400" size={40} />
-        <h1 className="text-2xl font-black text-white">Confirmando tu pago…</h1>
+        <h1 className="text-2xl font-black text-carbon-950">Confirmando tu pago…</h1>
         <p className="text-slate-400 max-w-sm">Esto tarda unos segundos. No cierres esta ventana.</p>
       </div>
     );
@@ -69,7 +69,7 @@ export function SubscriptionGate({ status, email, verifyingPayment, hasStripeCus
 
       <button
         onClick={onLogout}
-        className="absolute top-4 right-4 z-20 flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white bg-white/5 border border-white/10 px-3 py-2 rounded-lg"
+        className="absolute top-4 right-4 z-20 flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-carbon-950 bg-carbon-950/5 border border-carbon-950/10 px-3 py-2 rounded-lg"
       >
         <LogOut size={14} /> Cerrar sesión
       </button>
@@ -79,7 +79,7 @@ export function SubscriptionGate({ status, email, verifyingPayment, hasStripeCus
           <div className="inline-flex p-3 bg-pink-500/20 text-pink-500 rounded-full mb-6">
             {pastDue ? <AlertTriangle size={32} /> : <Lock size={32} />}
           </div>
-          <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-4">
+          <h1 className="text-3xl md:text-5xl font-black text-carbon-950 tracking-tight mb-4">
             {pastDue ? 'Tu pago está pendiente' : 'Activa tu restaurante'}
           </h1>
           <p className="text-slate-400 text-base md:text-lg max-w-xl mx-auto">
@@ -114,7 +114,7 @@ export function SubscriptionGate({ status, email, verifyingPayment, hasStripeCus
                   className={
                     pro
                       ? 'bg-indigo-900/40 backdrop-blur-xl border border-indigo-500/50 rounded-3xl p-8 flex flex-col relative shadow-[0_0_50px_-12px_rgba(22,137,95,0.5)]'
-                      : 'bg-slate-900/60 backdrop-blur-xl border border-white/5 rounded-3xl p-8 flex flex-col relative'
+                      : 'bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-3xl p-8 flex flex-col relative'
                   }
                 >
                   {pro && (
@@ -122,9 +122,9 @@ export function SubscriptionGate({ status, email, verifyingPayment, hasStripeCus
                       <Sparkles size={14} /> MÁS POPULAR
                     </div>
                   )}
-                  <h3 className="text-xl font-bold text-white mb-2">{PLANS[key].name}</h3>
+                  <h3 className="text-xl font-bold text-carbon-950 mb-2">{PLANS[key].name}</h3>
                   <div className="flex items-baseline gap-2 mb-6">
-                    <span className="text-4xl font-black text-white">${PLANS[key].price}</span>
+                    <span className="text-4xl font-black text-carbon-950">${PLANS[key].price}</span>
                     <span className="text-slate-400 text-sm font-bold uppercase tracking-widest">MXN / mes</span>
                   </div>
                   <ul className="space-y-3 mb-8 flex-grow">
@@ -139,8 +139,8 @@ export function SubscriptionGate({ status, email, verifyingPayment, hasStripeCus
                     disabled={!!loadingPlan}
                     onClick={() => checkout(key)}
                     className={
-                      (pro ? 'bg-indigo-500 hover:bg-indigo-400 shadow-xl shadow-indigo-500/20 ' : 'bg-slate-800 hover:bg-slate-700 ') +
-                      'w-full py-4 rounded-2xl font-black text-white transition-all flex items-center justify-center gap-2 disabled:opacity-60'
+                      (pro ? 'bg-indigo-500 hover:bg-indigo-400 shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20 ' : 'bg-slate-800 hover:bg-slate-700 ') +
+                      'w-full py-4 rounded-2xl font-black text-carbon-950 transition-all flex items-center justify-center gap-2 disabled:opacity-60'
                     }
                   >
                     {loadingPlan === key ? <Loader2 className="animate-spin" size={20} /> : <><CreditCard size={20} /> ELEGIR {PLANS[key].name.toUpperCase()}</>}

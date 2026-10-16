@@ -204,21 +204,21 @@ function FacturaModal({ onClose, onConfirm }: { onClose: () => void; onConfirm: 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
-      <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
-        <div className="flex items-center justify-between p-5 border-b border-white/5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-carbon-950/35 backdrop-blur-md">
+      <div className="bg-slate-900 border border-carbon-950/10 rounded-2xl w-full max-w-lg shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] flex flex-col max-h-[90vh] overflow-hidden">
+        <div className="flex items-center justify-between p-5 border-b border-carbon-950/10">
           <div>
-            <div className="font-black text-white">Subir Factura</div>
+            <div className="font-black text-carbon-950">Subir Factura</div>
             <div className="text-xs text-slate-500 mt-0.5">Toma o sube una foto para actualizar el inventario automáticamente</div>
           </div>
-          <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors"><X size={20} /></button>
+          <button onClick={onClose} className="text-slate-500 hover:text-carbon-950 transition-colors"><X size={20} /></button>
         </div>
 
         <div className="p-5 space-y-4 overflow-y-auto flex-1">
           {!preview ? (
             <button
               onClick={() => fileRef.current?.click()}
-              className="w-full border-2 border-dashed border-white/10 hover:border-teal-500/40 rounded-2xl py-14 flex flex-col items-center gap-3 transition-colors group"
+              className="w-full border-2 border-dashed border-carbon-950/10 hover:border-teal-500/40 rounded-2xl py-14 flex flex-col items-center gap-3 transition-colors group"
             >
               <Camera size={36} className="text-slate-600 group-hover:text-teal-400 transition-colors" />
               <div className="text-slate-400 font-bold text-sm">Toca para tomar foto o subir imagen</div>
@@ -226,8 +226,8 @@ function FacturaModal({ onClose, onConfirm }: { onClose: () => void; onConfirm: 
             </button>
           ) : (
             <div className="space-y-3">
-              <img src={preview} alt="Factura" className="w-full rounded-xl max-h-52 object-contain bg-slate-950 border border-white/5" />
-              <button onClick={() => { setPreview(null); setFile(null); setItems([]); }} className="text-xs text-slate-500 hover:text-white transition-colors flex items-center gap-1">
+              <img src={preview} alt="Factura" className="w-full rounded-xl max-h-52 object-contain bg-slate-950 border border-carbon-950/10" />
+              <button onClick={() => { setPreview(null); setFile(null); setItems([]); }} className="text-xs text-slate-500 hover:text-carbon-950 transition-colors flex items-center gap-1">
                 <X size={12} /> Cambiar foto
               </button>
             </div>
@@ -268,13 +268,13 @@ function FacturaModal({ onClose, onConfirm }: { onClose: () => void; onConfirm: 
                 {items.map((item, i) => (
                   <div key={i} className="flex items-center gap-2 bg-slate-950/60 rounded-xl px-3 py-2">
                     <input
-                      className="flex-1 bg-transparent text-white text-sm font-bold outline-none min-w-0"
+                      className="flex-1 bg-transparent text-carbon-950 text-sm font-bold outline-none min-w-0"
                       value={item.nombre}
                       onChange={e => setItems(p => p.map((it, j) => j === i ? { ...it, nombre: e.target.value } : it))}
                     />
                     <input
                       type="number" min={0} step={0.01}
-                      className="w-12 bg-slate-800 border border-white/10 rounded-lg px-1.5 py-1 text-white text-xs text-right outline-none tabular-nums"
+                      className="w-12 bg-slate-800 border border-carbon-950/10 rounded-lg px-1.5 py-1 text-carbon-950 text-xs text-right outline-none tabular-nums"
                       value={item.cantidad}
                       onChange={e => setItems(p => p.map((it, j) => j === i ? { ...it, cantidad: parseFloat(e.target.value) || 0 } : it))}
                     />
@@ -282,7 +282,7 @@ function FacturaModal({ onClose, onConfirm }: { onClose: () => void; onConfirm: 
                     <span className="text-slate-600 text-xs">$</span>
                     <input
                       type="number" min={0} step={0.01}
-                      className="w-12 bg-slate-800 border border-white/10 rounded-lg px-1.5 py-1 text-white text-xs text-right outline-none tabular-nums"
+                      className="w-12 bg-slate-800 border border-carbon-950/10 rounded-lg px-1.5 py-1 text-carbon-950 text-xs text-right outline-none tabular-nums"
                       value={item.precioUnitario || ''}
                       onChange={e => setItems(p => p.map((it, j) => j === i ? { ...it, precioUnitario: parseFloat(e.target.value) || 0 } : it))}
                       placeholder="0.00"
@@ -298,8 +298,8 @@ function FacturaModal({ onClose, onConfirm }: { onClose: () => void; onConfirm: 
         </div>
 
         {items.length > 0 && (
-          <div className="p-5 border-t border-white/5 flex gap-3">
-            <button onClick={onClose} className="flex-1 py-3 rounded-xl text-slate-500 hover:text-white font-bold text-sm transition-colors bg-slate-800/50">Cancelar</button>
+          <div className="p-5 border-t border-carbon-950/10 flex gap-3">
+            <button onClick={onClose} className="flex-1 py-3 rounded-xl text-slate-500 hover:text-carbon-950 font-bold text-sm transition-colors bg-slate-800/50">Cancelar</button>
             <button
               onClick={() => onConfirm(items.filter(it => it.nombre.trim() && it.cantidad > 0))}
               className="flex-1 py-3 rounded-xl bg-teal-500 hover:bg-teal-400 text-white font-black text-sm transition-all active:scale-95"
@@ -556,9 +556,9 @@ export function InventoryModule() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-4">
+        <div className="bg-slate-900 border border-carbon-950/10 rounded-2xl p-4">
           <div className="text-xs text-slate-500 font-bold uppercase tracking-widest">Total Insumos</div>
-          <div className="text-2xl font-black text-white mt-1">{insumos.length}</div>
+          <div className="text-2xl font-black text-carbon-950 mt-1">{insumos.length}</div>
         </div>
         <div className="bg-teal-500/10 border border-teal-500/20 rounded-2xl p-4">
           <div className="text-xs text-teal-400 font-bold uppercase tracking-widest">Valor Saldo Actual</div>
@@ -578,7 +578,7 @@ export function InventoryModule() {
 
       {/* Tabs + Actions */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex bg-slate-900/50 border border-white/5 rounded-xl p-1 gap-1 flex-wrap">
+        <div className="flex bg-slate-900 border border-carbon-950/10 rounded-xl p-1 gap-1 flex-wrap">
           {VIEW_TABS.map(tab => {
             const Icon = tab.icon;
             const active = view === tab.key;
@@ -593,13 +593,13 @@ export function InventoryModule() {
                     : tab.color === 'amber'  ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20'
                     : tab.color === 'violet' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/20'
                     : 'bg-rose-500 text-white shadow-lg shadow-rose-500/20'
-                    : 'text-slate-500 hover:text-white'
+                    : 'text-slate-500 hover:text-carbon-950'
                 )}
               >
                 <Icon size={13} />
                 {tab.label}
                 {tab.key === 'pedido' && alertas.length > 0 && (
-                  <span className={clsx('text-[10px] rounded-full px-1.5', active ? 'bg-white/20' : 'bg-rose-500/20 text-rose-400')}>
+                  <span className={clsx('text-[10px] rounded-full px-1.5', active ? 'bg-carbon-950/20' : 'bg-rose-500/20 text-rose-400')}>
                     {alertas.length}
                   </span>
                 )}
@@ -626,7 +626,7 @@ export function InventoryModule() {
           </button>
           <button
             onClick={openAdd}
-            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white px-4 py-2.5 rounded-xl font-black text-sm transition-all active:scale-95"
+            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-carbon-950/10 text-carbon-950 px-4 py-2.5 rounded-xl font-black text-sm transition-all active:scale-95"
           >
             <Plus size={16} strokeWidth={3} /> INSUMO
           </button>
@@ -635,55 +635,55 @@ export function InventoryModule() {
 
       {/* Add/Edit Form */}
       {showForm && (
-        <div className="bg-slate-900/80 border border-white/10 rounded-2xl p-5 space-y-4">
+        <div className="bg-slate-900 border border-carbon-950/10 rounded-2xl p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <span className="font-black text-white">{editId ? 'Editar Insumo' : 'Nuevo Insumo'}</span>
-            <button onClick={() => setShowForm(false)} className="text-slate-500 hover:text-white"><X size={18} /></button>
+            <span className="font-black text-carbon-950">{editId ? 'Editar Insumo' : 'Nuevo Insumo'}</span>
+            <button onClick={() => setShowForm(false)} className="text-slate-500 hover:text-carbon-950"><X size={18} /></button>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="col-span-2">
               <label className="block text-xs text-slate-500 font-bold mb-1">NOMBRE</label>
-              <input className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-teal-500/50" value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Ej. Tomate roma" />
+              <input className="w-full bg-slate-800 border border-carbon-950/10 rounded-xl px-3 py-2 text-carbon-950 text-sm outline-none focus:border-teal-500/50" value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Ej. Tomate roma" />
             </div>
             <div>
               <label className="block text-xs text-slate-500 font-bold mb-1">UNIDAD</label>
-              <input className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-teal-500/50" value={form.unidad} onChange={e => setForm(f => ({ ...f, unidad: e.target.value }))} placeholder="kg, pz, l..." />
+              <input className="w-full bg-slate-800 border border-carbon-950/10 rounded-xl px-3 py-2 text-carbon-950 text-sm outline-none focus:border-teal-500/50" value={form.unidad} onChange={e => setForm(f => ({ ...f, unidad: e.target.value }))} placeholder="kg, pz, l..." />
             </div>
             <div>
               <label className="block text-xs text-slate-500 font-bold mb-1">GRUPO</label>
-              <select className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-white text-sm outline-none" value={form.grupo} onChange={e => setForm(f => ({ ...f, grupo: e.target.value }))}>
+              <select className="w-full bg-slate-800 border border-carbon-950/10 rounded-xl px-3 py-2 text-carbon-950 text-sm outline-none" value={form.grupo} onChange={e => setForm(f => ({ ...f, grupo: e.target.value }))}>
                 {GRUPOS.map(g => <option key={g}>{g}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-xs text-slate-500 font-bold mb-1">ÁREA</label>
-              <select className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-white text-sm outline-none" value={form.area} onChange={e => setForm(f => ({ ...f, area: e.target.value }))}>
+              <select className="w-full bg-slate-800 border border-carbon-950/10 rounded-xl px-3 py-2 text-carbon-950 text-sm outline-none" value={form.area} onChange={e => setForm(f => ({ ...f, area: e.target.value }))}>
                 {AREAS.map(a => <option key={a}>{a}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-xs text-slate-500 font-bold mb-1">SALDO ACTUAL</label>
-              <input type="number" min={0} step={0.01} className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-teal-500/50" value={form.saldoActual || ''} onChange={e => setForm(f => ({ ...f, saldoActual: parseFloat(e.target.value) || 0 }))} />
+              <input type="number" min={0} step={0.01} className="w-full bg-slate-800 border border-carbon-950/10 rounded-xl px-3 py-2 text-carbon-950 text-sm outline-none focus:border-teal-500/50" value={form.saldoActual || ''} onChange={e => setForm(f => ({ ...f, saldoActual: parseFloat(e.target.value) || 0 }))} />
             </div>
             <div>
               <label className="block text-xs text-slate-500 font-bold mb-1">COSTO UNITARIO ($)</label>
-              <input type="number" min={0} step={0.01} className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-teal-500/50" value={form.costoUnitario || ''} onChange={e => setForm(f => ({ ...f, costoUnitario: parseFloat(e.target.value) || 0 }))} />
+              <input type="number" min={0} step={0.01} className="w-full bg-slate-800 border border-carbon-950/10 rounded-xl px-3 py-2 text-carbon-950 text-sm outline-none focus:border-teal-500/50" value={form.costoUnitario || ''} onChange={e => setForm(f => ({ ...f, costoUnitario: parseFloat(e.target.value) || 0 }))} />
             </div>
             <div>
               <label className="block text-xs text-slate-500 font-bold mb-1">CONSUMO MÍN/DÍA</label>
-              <input type="number" min={0} step={0.01} className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-teal-500/50" value={form.consumoMinDiario || ''} onChange={e => setForm(f => ({ ...f, consumoMinDiario: parseFloat(e.target.value) || 0 }))} />
+              <input type="number" min={0} step={0.01} className="w-full bg-slate-800 border border-carbon-950/10 rounded-xl px-3 py-2 text-carbon-950 text-sm outline-none focus:border-teal-500/50" value={form.consumoMinDiario || ''} onChange={e => setForm(f => ({ ...f, consumoMinDiario: parseFloat(e.target.value) || 0 }))} />
             </div>
             <div>
               <label className="block text-xs text-slate-500 font-bold mb-1">CONSUMO MÁX/DÍA</label>
-              <input type="number" min={0} step={0.01} className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-teal-500/50" value={form.consumoMaxDiario || ''} onChange={e => setForm(f => ({ ...f, consumoMaxDiario: parseFloat(e.target.value) || 0 }))} />
+              <input type="number" min={0} step={0.01} className="w-full bg-slate-800 border border-carbon-950/10 rounded-xl px-3 py-2 text-carbon-950 text-sm outline-none focus:border-teal-500/50" value={form.consumoMaxDiario || ''} onChange={e => setForm(f => ({ ...f, consumoMaxDiario: parseFloat(e.target.value) || 0 }))} />
             </div>
             <div>
               <label className="block text-xs text-slate-500 font-bold mb-1">TIEMPO REPOS. (días)</label>
-              <input type="number" min={1} className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-white text-sm outline-none focus:border-teal-500/50" value={form.tiempoReposicion || ''} onChange={e => setForm(f => ({ ...f, tiempoReposicion: parseInt(e.target.value) || 7 }))} />
+              <input type="number" min={1} className="w-full bg-slate-800 border border-carbon-950/10 rounded-xl px-3 py-2 text-carbon-950 text-sm outline-none focus:border-teal-500/50" value={form.tiempoReposicion || ''} onChange={e => setForm(f => ({ ...f, tiempoReposicion: parseInt(e.target.value) || 7 }))} />
             </div>
           </div>
           <div className="flex justify-end gap-3">
-            <button onClick={() => setShowForm(false)} className="px-4 py-2 rounded-xl text-slate-500 hover:text-white text-sm font-bold transition-colors">Cancelar</button>
+            <button onClick={() => setShowForm(false)} className="px-4 py-2 rounded-xl text-slate-500 hover:text-carbon-950 text-sm font-bold transition-colors">Cancelar</button>
             <button onClick={saveForm} className="flex items-center gap-2 px-5 py-2 bg-teal-500 hover:bg-teal-400 text-white rounded-xl font-black text-sm transition-all active:scale-95">
               <Save size={14} /> Guardar
             </button>
@@ -695,7 +695,7 @@ export function InventoryModule() {
       {view === 'inventario' && (
         <>
           {insumos.length === 0 && !showForm ? (
-            <div className="text-center py-20 border border-white/5 rounded-2xl bg-slate-900/30">
+            <div className="text-center py-20 border border-carbon-950/10 rounded-2xl bg-slate-900">
               <Package size={40} className="mx-auto text-slate-600 mb-4" />
               <div className="text-slate-400 font-bold mb-2">Sin insumos registrados</div>
               <div className="text-slate-600 text-sm mb-6">Sube una factura para agregar insumos automáticamente, o agrégalos manualmente.</div>
@@ -703,16 +703,16 @@ export function InventoryModule() {
                 <button onClick={() => setShowFactura(true)} className="flex items-center gap-2 bg-teal-500 hover:bg-teal-400 text-white px-5 py-3 rounded-xl font-black text-sm transition-all shadow-lg shadow-teal-500/20">
                   <Camera size={16} /> Subir Factura
                 </button>
-                <button onClick={openAdd} className="flex items-center gap-2 bg-slate-800 border border-white/10 text-white px-5 py-3 rounded-xl font-black text-sm transition-all">
+                <button onClick={openAdd} className="flex items-center gap-2 bg-slate-800 border border-carbon-950/10 text-carbon-950 px-5 py-3 rounded-xl font-black text-sm transition-all">
                   <Plus size={16} /> Manual
                 </button>
               </div>
             </div>
           ) : (
-            <div className="bg-slate-900/40 border border-white/5 rounded-2xl overflow-hidden">
+            <div className="bg-slate-900 border border-carbon-950/10 rounded-2xl overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-white/5">
+                  <tr className="border-b border-carbon-950/10">
                     <th className="px-4 py-3 text-left text-xs font-black text-slate-500 uppercase tracking-widest">Insumo</th>
                     <th className="px-4 py-3 text-right text-xs font-black text-slate-500 uppercase tracking-widest">Saldo Actual</th>
                     <th className="px-4 py-3 text-right text-xs font-black text-slate-500 uppercase tracking-widest">Comprado Hoy</th>
@@ -721,17 +721,17 @@ export function InventoryModule() {
                     <th className="px-3 py-3" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-carbon-950/5">
                   {analyzed.map(i => {
                     const meta = STATUS_META[i.status];
                     const compHoy = compradoHoyMap.get(i.id) || 0;
                     return (
-                      <tr key={i.id} className="hover:bg-white/[0.02] transition-colors group">
+                      <tr key={i.id} className="hover:bg-carbon-950/[0.02] transition-colors group">
                         <td className="px-4 py-3">
-                          <div className="font-bold text-white">{i.nombre}</div>
+                          <div className="font-bold text-carbon-950">{i.nombre}</div>
                           <div className="text-xs text-slate-500">{i.grupo} · {i.area}</div>
                         </td>
-                        <td className="px-4 py-3 text-right font-bold text-white tabular-nums">
+                        <td className="px-4 py-3 text-right font-bold text-carbon-950 tabular-nums">
                           {i.saldoActual} <span className="text-slate-500 font-normal text-xs">{i.unidad}</span>
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums text-xs">
@@ -749,7 +749,7 @@ export function InventoryModule() {
                         </td>
                         <td className="px-3 py-3">
                           <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => openEdit(i)} className="text-slate-500 hover:text-white transition-colors"><Edit3 size={14} /></button>
+                            <button onClick={() => openEdit(i)} className="text-slate-500 hover:text-carbon-950 transition-colors"><Edit3 size={14} /></button>
                             <button onClick={() => removeInsumo(i.id)} className="text-slate-500 hover:text-rose-400 transition-colors"><Trash2 size={14} /></button>
                           </div>
                         </td>
@@ -788,10 +788,10 @@ export function InventoryModule() {
             <div className="text-center py-12 text-slate-500">No hay insumos para cerrar.</div>
           ) : (
             <>
-              <div className="bg-slate-900/40 border border-white/5 rounded-2xl overflow-hidden">
+              <div className="bg-slate-900 border border-carbon-950/10 rounded-2xl overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-white/5">
+                    <tr className="border-b border-carbon-950/10">
                       <th className="px-4 py-3 text-left text-xs font-black text-slate-500 uppercase tracking-widest">Insumo</th>
                       <th className="px-4 py-3 text-right text-xs font-black text-slate-500 uppercase tracking-widest">Inicial</th>
                       <th className="px-4 py-3 text-right text-xs font-black text-slate-500 uppercase tracking-widest">Comprado</th>
@@ -799,7 +799,7 @@ export function InventoryModule() {
                       <th className="px-4 py-3 text-right text-xs font-black text-slate-500 uppercase tracking-widest">Consumido</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="divide-y divide-carbon-950/5">
                     {insumos.map(ins => {
                       const compHoy = compradoHoyMap.get(ins.id) || 0;
                       const saldoInicial = ins.saldoActual - compHoy;
@@ -807,9 +807,9 @@ export function InventoryModule() {
                       const saldoFinal = saldoFinalStr !== '' ? parseFloat(saldoFinalStr) || 0 : null;
                       const consumido = saldoFinal !== null ? Math.max(0, saldoInicial + compHoy - saldoFinal) : null;
                       return (
-                        <tr key={ins.id} className="hover:bg-white/[0.02]">
+                        <tr key={ins.id} className="hover:bg-carbon-950/[0.02]">
                           <td className="px-4 py-3">
-                            <div className="font-bold text-white">{ins.nombre}</div>
+                            <div className="font-bold text-carbon-950">{ins.nombre}</div>
                             <div className="text-xs text-slate-500">{ins.unidad}</div>
                           </td>
                           <td className="px-4 py-3 text-right text-slate-400 tabular-nums">{saldoInicial}</td>
@@ -820,7 +820,7 @@ export function InventoryModule() {
                             <input
                               type="number" min={0} step={0.01}
                               placeholder="—"
-                              className="w-20 bg-slate-800 border border-white/10 rounded-lg px-2 py-1.5 text-white text-sm text-right outline-none focus:border-amber-500/50 tabular-nums"
+                              className="w-20 bg-slate-800 border border-carbon-950/10 rounded-lg px-2 py-1.5 text-carbon-950 text-sm text-right outline-none focus:border-amber-500/50 tabular-nums"
                               value={saldoFinalStr}
                               onChange={e => setCierreValues(prev => ({ ...prev, [ins.id]: e.target.value }))}
                             />
@@ -837,7 +837,7 @@ export function InventoryModule() {
                 </table>
               </div>
               <div className="flex justify-end gap-3">
-                <button onClick={() => setView('inventario')} className="px-5 py-2.5 rounded-xl text-slate-500 hover:text-white font-bold text-sm transition-colors bg-slate-800/50">Cancelar</button>
+                <button onClick={() => setView('inventario')} className="px-5 py-2.5 rounded-xl text-slate-500 hover:text-carbon-950 font-bold text-sm transition-colors bg-slate-800/50">Cancelar</button>
                 <button
                   onClick={saveCierre}
                   className="flex items-center gap-2 px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-white rounded-xl font-black text-sm transition-all active:scale-95 shadow-lg shadow-amber-500/20"
@@ -853,13 +853,13 @@ export function InventoryModule() {
       {/* ── HISTORIAL view ── */}
       {view === 'historial' && (
         <div className="space-y-4">
-          <div className="flex bg-slate-900/50 border border-white/5 rounded-xl p-1 gap-1 w-fit">
-            <button onClick={() => setHistorialTab('diario')} className={clsx('px-4 py-2 rounded-lg text-xs font-black transition-all', historialTab === 'diario' ? 'bg-violet-500 text-white' : 'text-slate-500 hover:text-white')}>Diario</button>
-            <button onClick={() => setHistorialTab('mensual')} className={clsx('px-4 py-2 rounded-lg text-xs font-black transition-all', historialTab === 'mensual' ? 'bg-violet-500 text-white' : 'text-slate-500 hover:text-white')}>Mensual</button>
+          <div className="flex bg-slate-900 border border-carbon-950/10 rounded-xl p-1 gap-1 w-fit">
+            <button onClick={() => setHistorialTab('diario')} className={clsx('px-4 py-2 rounded-lg text-xs font-black transition-all', historialTab === 'diario' ? 'bg-violet-500 text-white' : 'text-slate-500 hover:text-carbon-950')}>Diario</button>
+            <button onClick={() => setHistorialTab('mensual')} className={clsx('px-4 py-2 rounded-lg text-xs font-black transition-all', historialTab === 'mensual' ? 'bg-violet-500 text-white' : 'text-slate-500 hover:text-carbon-950')}>Mensual</button>
           </div>
 
           {historial.length === 0 ? (
-            <div className="text-center py-16 border border-white/5 rounded-2xl bg-slate-900/30">
+            <div className="text-center py-16 border border-carbon-950/10 rounded-2xl bg-slate-900">
               <History size={36} className="mx-auto text-slate-600 mb-3" />
               <div className="text-slate-400 font-bold">Sin historial aún</div>
               <div className="text-slate-600 text-sm mt-1">El historial se genera al hacer el Cierre del Día.</div>
@@ -867,14 +867,14 @@ export function InventoryModule() {
           ) : historialTab === 'diario' ? (
             <div className="space-y-4">
               {historialPorFecha.map(([fecha, registros]) => (
-                <div key={fecha} className="bg-slate-900/40 border border-white/5 rounded-2xl overflow-hidden">
-                  <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
+                <div key={fecha} className="bg-slate-900 border border-carbon-950/10 rounded-2xl overflow-hidden">
+                  <div className="px-4 py-3 border-b border-carbon-950/10 flex items-center justify-between">
                     <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{fecha}</span>
                     <span className="text-xs text-slate-600">{registros.length} insumos</span>
                   </div>
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-white/5">
+                      <tr className="border-b border-carbon-950/10">
                         <th className="px-4 py-2 text-left text-[10px] font-black text-slate-600 uppercase tracking-widest">Insumo</th>
                         <th className="px-4 py-2 text-right text-[10px] font-black text-slate-600 uppercase tracking-widest">Inicial</th>
                         <th className="px-4 py-2 text-right text-[10px] font-black text-slate-600 uppercase tracking-widest">Comprado</th>
@@ -882,10 +882,10 @@ export function InventoryModule() {
                         <th className="px-4 py-2 text-right text-[10px] font-black text-slate-600 uppercase tracking-widest">Consumido</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
+                    <tbody className="divide-y divide-carbon-950/5">
                       {registros.map(r => (
-                        <tr key={r.id} className="hover:bg-white/[0.02]">
-                          <td className="px-4 py-2.5 font-bold text-white">{r.insumoNombre} <span className="text-slate-600 font-normal text-xs">{r.unidad}</span></td>
+                        <tr key={r.id} className="hover:bg-carbon-950/[0.02]">
+                          <td className="px-4 py-2.5 font-bold text-carbon-950">{r.insumoNombre} <span className="text-slate-600 font-normal text-xs">{r.unidad}</span></td>
                           <td className="px-4 py-2.5 text-right text-slate-400 tabular-nums">{r.saldoInicial}</td>
                           <td className="px-4 py-2.5 text-right tabular-nums">
                             {r.comprado > 0 ? <span className="text-teal-400">+{r.comprado}</span> : <span className="text-slate-600">0</span>}
@@ -906,8 +906,8 @@ export function InventoryModule() {
                 const label = `${MONTHS[parseInt(m) - 1]} ${y}`;
                 const entries = Array.from(consumoMap.entries()).sort((a, b) => b[1] - a[1]);
                 return (
-                  <div key={mesKey} className="bg-slate-900/40 border border-white/5 rounded-2xl overflow-hidden">
-                    <div className="px-4 py-3 border-b border-white/5">
+                  <div key={mesKey} className="bg-slate-900 border border-carbon-950/10 rounded-2xl overflow-hidden">
+                    <div className="px-4 py-3 border-b border-carbon-950/10">
                       <span className="text-xs font-black text-violet-400 uppercase tracking-widest">{label}</span>
                     </div>
                     <div className="p-4 space-y-2">
@@ -930,7 +930,7 @@ export function InventoryModule() {
       {view === 'pedido' && (
         <div className="space-y-4">
           {alertas.length === 0 ? (
-            <div className="text-center py-16 border border-white/5 rounded-2xl bg-slate-900/30">
+            <div className="text-center py-16 border border-carbon-950/10 rounded-2xl bg-slate-900">
               <CheckCircle size={36} className="mx-auto text-emerald-500 mb-3" />
               <div className="text-emerald-400 font-black mb-1">Inventario OK</div>
               <div className="text-slate-600 text-sm">Todos los insumos están por encima del punto de pedido.</div>
@@ -938,24 +938,24 @@ export function InventoryModule() {
           ) : (
             <>
               <div className="text-sm text-slate-400 font-bold">{alertas.length} insumos requieren atención</div>
-              <div className="bg-slate-900/40 border border-white/5 rounded-2xl overflow-hidden">
+              <div className="bg-slate-900 border border-carbon-950/10 rounded-2xl overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-white/5">
+                    <tr className="border-b border-carbon-950/10">
                       <th className="px-4 py-3 text-left text-xs font-black text-slate-500 uppercase tracking-widest">Insumo</th>
                       <th className="px-4 py-3 text-right text-xs font-black text-slate-500 uppercase tracking-widest">Saldo</th>
                       <th className="px-4 py-3 text-right text-xs font-black text-slate-500 uppercase tracking-widest">Mín Requerido</th>
                       <th className="px-4 py-3 text-center text-xs font-black text-slate-500 uppercase tracking-widest">Prioridad</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody className="divide-y divide-carbon-950/5">
                     {alertas.sort((a, b) => (a.status === 'critical' ? -1 : 1)).map(i => {
                       const meta = STATUS_META[i.status];
                       const minReq = i.consumoMinDiario * i.tiempoReposicion;
                       return (
-                        <tr key={i.id} className="hover:bg-white/[0.02]">
+                        <tr key={i.id} className="hover:bg-carbon-950/[0.02]">
                           <td className="px-4 py-3">
-                            <div className="font-bold text-white">{i.nombre}</div>
+                            <div className="font-bold text-carbon-950">{i.nombre}</div>
                             <div className="text-xs text-slate-500">{i.grupo}</div>
                           </td>
                           <td className="px-4 py-3 text-right font-bold text-rose-400 tabular-nums">{i.saldoActual} {i.unidad}</td>
