@@ -1,3 +1,4 @@
+import { ResetPasswordPage } from './components/auth/ResetPasswordPage';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { AuthPage } from './components/auth/AuthPage';
 import { SubscriptionGate } from './components/auth/SubscriptionGate';
@@ -54,6 +55,11 @@ function SyncBadge() {
 }
 
 export default function Root() {
+  if (window.location.pathname.startsWith('/restablecer')) return <ResetPasswordPage />;
+  return <RootApp />;
+}
+
+function RootApp() {
   const initialPhase: Phase = pb.authStore.isValid ? 'checking' : window.location.pathname.startsWith('/login') ? 'auth' : 'landing';
   const [phase, setPhase] = useState<Phase>(initialPhase);
   const [uid, setUid] = useState<string | null>(null);

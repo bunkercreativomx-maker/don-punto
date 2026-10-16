@@ -17,6 +17,8 @@ function friendlyError(err: any, isLogin: boolean): string {
 
 export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void; onBack?: () => void }) {
     const [isLogin, setIsLogin] = useState(true);
+    const [forgot, setForgot] = useState(false);
+    const [resetSent, setResetSent] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [restaurantName, setRestaurantName] = useState('');
@@ -30,7 +32,11 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
         setError('');
 
         try {
-            if (isLogin) {
+            if (forgot) {
+                // Respuesta igual exista o no la cuenta (no revela qué correos están registrados)
+                await pb.collection('users').requestPasswordReset(email.trim().toLowerCase());
+                setResetSent(true);
+            } else if (isLogin) {
                 await pb.collection('users').authWithPassword(email.trim().toLowerCase(), password);
                 onAuthSuccess();
             } else {
@@ -51,7 +57,8 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
                 onAuthSuccess();
             }
         } catch (err: any) {
-            setError(friendlyError(err, isLogin));
+            if (forgot && err?.status !== 429 && err?.status) setResetSent(true);
+            else setError(friendlyError(err, isLogin && !forgot));
         } finally {
             setLoading(false);
         }
@@ -75,7 +82,7 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
                         <h1 className="sr-only">Don Punto</h1>
                         <div className="flex justify-center"><Wordmark tone="light" height={30} /></div>
                         <p className="text-slate-400 mt-2 text-sm font-medium">
-                            {isLogin ? 'Ingresa a tu cuenta para gestionar tu restaurante.' : 'Crea tu cuenta y comienza a vender en minutos.'}
+                            {forgot ? 'Escribe tu correo y te mandamos un enlace para crear una contraseña nueva.' : isLogin ? 'Ingresa a tu cuenta para gestionar tu restaurante.' : 'Crea tu cuenta y comienza a vender en minutos.'}
                         </p>
                     </div>
 
@@ -86,6 +93,14 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
                         </div>
                     )}
 
+                    {resetSent ? (
+                        <div className="text-center space-y-4">
+                            <div className="mx-auto w-12 h-12 rounded-full bg-agave-50 flex items-center justify-center"><Mail size={22} className="text-agave-700" /></div>
+                            <p className="text-carbon-900 font-semibold">Revisa tu correo</p>
+                            <p className="text-sm text-slate-400 leading-relaxed">Si <b className="text-carbon-900">{email.trim().toLowerCase()}</b> tiene cuenta, te llegará un enlace en unos minutos. Revisa también la carpeta de spam o promociones.</p>
+                            <button type="button" onClick={() => { setForgot(false); setResetSent(false); setError(''); }} className="w-full mt-2 bg-agave-600 hover:bg-agave-700 text-white font-bold py-3 rounded-xl transition-colors">Volver a iniciar sesión</button>
+                        </div>
+                    ) : (
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {!isLogin && (
                             <div className="space-y-1.5">
@@ -124,8 +139,16 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
                             </div>
                         </div>
 
+                        {!forgot && (
                         <div className="space-y-1.5">
-                            <label className="text-xs font-bold text-slate-500 uppercase">Contraseña</label>
+                            <div className="flex items-center justify-between">
+                                <label className="text-xs font-bold text-slate-500 uppercase">Contraseña</label>
+                                {isLogin && (
+                                    <button type="button" onClick={() => { setForgot(true); setError(''); }} className="text-xs font-semibold text-agave-700 hover:text-agave-800 hover:underline">
+                                        ¿Olvidaste tu contraseña?
+                                    </button>
+                                )}
+                            </div>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                     <Lock size={18} className="text-slate-500" />
@@ -142,6 +165,7 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
                                 />
                             </div>
                         </div>
+                        )}
 
                         <button
                             type="submit"
@@ -152,7 +176,7 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
                                 <Loader2 size={20} className="animate-spin" />
                             ) : (
                                 <>
-                                    {isLogin ? 'INICIAR SESIÓN' : 'CREAR CUENTA'}
+                                    {forgot ? 'ENVIAR ENLACE' : isLogin ? 'INICIAR SESIÓN' : 'CREAR CUENTA'}
                                     <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
                                 </>
                             )}
@@ -163,8 +187,14 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
                             </p>
                         )}
                     </form>
+                    )}
 
                     <div className="mt-8 text-center">
+                        {forgot ? (resetSent ? null :
+                            <button onClick={() => { setForgot(false); setResetSent(false); setError(''); }} className="text-sm font-bold text-indigo-400 hover:text-indigo-300 inline-flex items-center gap-1.5">
+                                <ArrowLeft size={14} /> Volver a iniciar sesión
+                            </button>
+                        ) : (
                         <p className="text-sm text-slate-400">
                             {isLogin ? '¿No tienes cuenta?' : '¿Ya tienes una cuenta?'}
                             <button
@@ -174,6 +204,7 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
                                 {isLogin ? 'Regístrate aquí' : 'Inicia Sesión'}
                             </button>
                         </p>
+                        )}
                     </div>
                 </div>
             </div>
