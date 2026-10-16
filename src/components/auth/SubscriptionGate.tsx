@@ -12,8 +12,8 @@ interface SubscriptionGateProps {
 }
 
 const FEATURES: Record<PlanKey, string[]> = {
-  basico: ['Punto de venta ilimitado', 'Calculadora Uber / DiDi / Rappi', 'Corte de caja e IVA', 'Inventario y recetario', 'Respaldo en la nube'],
-  pro: ['Todo lo del plan Básico', 'Escáner de menú con IA (foto)', 'Lectura de facturas con IA', 'Combos sugeridos con IA', 'Soporte prioritario'],
+  basico: ['1 sucursal', 'Punto de venta ilimitado', 'Calculadora Uber / DiDi / Rappi', 'Menú desde una foto con IA', 'Combos sugeridos con IA', 'Corte de caja, inventario y recetario'],
+  pro: ['Todo lo del plan Básico', 'Facturas de proveedor leídas con IA', 'Soporte prioritario por WhatsApp'],
 };
 
 export function SubscriptionGate({ status, email, verifyingPayment, hasStripeCustomer, onLogout }: SubscriptionGateProps) {

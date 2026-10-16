@@ -166,7 +166,7 @@ const FEATURES: { icon: ReactNode; title: string; text: string }[] = [
   { icon: <Receipt strokeWidth={1.6} />, title: 'IVA separado en cada venta', text: 'Ves qué parte es tuya y qué parte es del SAT, en 16% o en 8% de zona fronteriza.' },
   { icon: <Boxes strokeWidth={1.6} />, title: 'Inventario y compras', text: 'Registra lo que compras y lo que te queda. Toma foto a la factura del proveedor y se captura sola (Pro).' },
   { icon: <ChefHat strokeWidth={1.6} />, title: 'Recetas con costo real', text: 'Arma la receta de cada platillo y conoce su costo y su margen antes de ponerle precio.' },
-  { icon: <ScanLine strokeWidth={1.6} />, title: 'Tu menú desde una foto', text: 'Tómale foto a tu menú impreso y la IA lo convierte en productos con precio (Pro).' },
+  { icon: <ScanLine strokeWidth={1.6} />, title: 'Tu menú desde una foto', text: 'Tómale foto a tu menú impreso y la IA lo convierte en productos con precio.' },
   { icon: <WifiOff strokeWidth={1.6} />, title: 'Funciona sin internet', text: 'Si se cae la red sigues vendiendo. Todo se sube a la nube cuando vuelve la conexión.' },
 ];
 
@@ -331,7 +331,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
           <ol className="mt-12 grid gap-8 md:grid-cols-3">
             {[
               ['Crea tu cuenta', 'Tu correo y el nombre de tu negocio. Eliges tu plan y listo.'],
-              ['Sube tu menú', 'Captúralo, impórtalo desde Excel o tómale foto y la IA lo digitaliza (Pro).'],
+              ['Sube tu menú', 'Captúralo, impórtalo desde Excel o tómale foto y la IA lo digitaliza.'],
               ['Cobra y cuadra', 'Vende en mostrador y apps, imprime tickets y haz tu corte con el IVA ya separado.'],
             ].map(([t, d], i) => (
               <li key={t} className="border-t-2 border-carbon-950 pt-6">
@@ -354,8 +354,8 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
               <Plan
                 name="Básico"
                 price={350}
-                text="Para negocios que van empezando y quieren orden en su caja."
-                items={['Punto de venta ilimitado', 'Calculadora Uber, DiDi y Rappi', 'Corte de caja con IVA separado', 'Inventario y recetario', 'Respaldo en la nube y app instalable']}
+                text="Para un negocio con una sucursal que quiere orden y vender más."
+                items={['1 sucursal, ventas ilimitadas', 'Calculadora Uber, DiDi y Rappi', 'Tu menú desde una foto con IA', 'Combos sugeridos para mover tus platillos', 'Corte de caja con IVA, inventario y recetario', 'Respaldo en la nube y app instalable']}
                 cta="Elegir Básico"
                 onClick={onSubscribe}
               />
@@ -364,7 +364,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 name="Pro"
                 price={799}
                 text="Para restaurantes con más movimiento que quieren ahorrar horas de captura."
-                items={['Todo lo del plan Básico', 'Tu menú desde una foto con IA', 'Facturas de proveedor capturadas con IA', 'Combos sugeridos con tus más vendidos', 'Soporte prioritario']}
+                items={['Todo lo del plan Básico', 'Facturas de proveedor capturadas con IA', 'Soporte prioritario por WhatsApp']}
                 cta="Elegir Pro"
                 onClick={onSubscribe}
               />

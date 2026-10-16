@@ -4,7 +4,7 @@ export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const m = await requireMember(req, { pro: true });
+    const m = await requireMember(req);
     rateLimit(`scan-menu:${m.user.id}`, 15, 60 * 60 * 1000);
   } catch (e) {
     return sendError(res, e);
