@@ -257,7 +257,7 @@ export function POSDashboard() {
         return `${item.quantity}x ${row?.name}${mods ? ` (${mods})` : ''}${noteStr}`;
     }).join(', ');
     
-    const customerName = orderCustomerName.trim() || cart.find(i => i.customerNote)?.customerNote || 'Venta Mostrador';
+    const customerName = orderCustomerName.trim() || cart.find(i => i.customerNote)?.customerNote || (orderDestination === 'Tienda' ? 'Venta Mostrador' : `Pedido ${orderDestination === 'Didi' ? 'DiDi' : orderDestination}`);
     
     // Include discount details in transactions table for reporting
     const discountStr = discountAmount > 0 

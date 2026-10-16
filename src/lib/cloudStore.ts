@@ -22,7 +22,7 @@ const scoped = (key: string, uid = currentUid) => `dp:${uid ?? 'anon'}:${key}`;
 const syncedKey = (key: string) => `dp:${currentUid}:__synced:${key}`;
 const KNOWN_KEYS = () => `dp:${currentUid}:__keys`;
 
-type SyncedMap = Record<string, [recordId: string, hash: string]>;
+type SyncedMap = Record<string, [recordId: string, hash: string, order?: number]>;
 
 function hash(s: string): string {
   let h = 5381;
@@ -39,16 +39,49 @@ function readJSON<T>(k: string, fallback: T): T {
   }
 }
 
-/** Divide un valor en elementos sincronizables {item_id: data} */
-function explode(value: unknown): Record<string, unknown> {
-  if (Array.isArray(value) && value.length > 0 && value.every((x) => x && typeof x === 'object' && (typeof (x as { id?: unknown }).id === 'string' || typeof (x as { id?: unknown }).id === 'number'))) {
-    const out: Record<string, unknown> = {};
-    value.forEach((x, i) => {
-      out[String((x as { id: string | number }).id)] = { __i: i, v: x };
-    });
-    return out;
+/** ¿Es un arreglo de objetos con `id` (se sincroniza fila por fila)? */
+function isIdArray(value: unknown): value is { id: string | number }[] {
+  return Array.isArray(value) && value.length > 0 && value.every((x) => x && typeof x === 'object' && (typeof (x as { id?: unknown }).id === 'string' || typeof (x as { id?: unknown }).id === 'number'));
+}
+
+/**
+ * Divide un valor en elementos sincronizables {item_id: data}.
+ * El orden (__i) es ESTABLE: un elemento ya subido conserva su posición guardada y uno nuevo
+ * recibe una posición entre sus vecinos. Así, agregar una venta al inicio de 800 ventas
+ * sube 1 registro en lugar de reescribir los 800.
+ */
+function explode(value: unknown, synced: SyncedMap = {}): Record<string, unknown> {
+  if (!isIdArray(value)) return { [SINGLE]: { v: value } };
+  const ids = value.map((x) => String(x.id));
+  const known = ids.map((id) => {
+    const o = synced[id]?.[2];
+    return typeof o === 'number' && Number.isFinite(o) ? o : undefined;
+  });
+  // Si los elementos ya subidos cambiaron de orden entre sí (reordenar el menú), se renumera todo
+  let last = -Infinity;
+  let monotonic = true;
+  for (const o of known) {
+    if (o === undefined) continue;
+    if (o <= last) { monotonic = false; break; }
+    last = o;
   }
-  return { [SINGLE]: { v: value } };
+  const ord: number[] = new Array(ids.length);
+  if (!monotonic) {
+    ids.forEach((_, i) => (ord[i] = i));
+  } else {
+    for (let i = 0; i < ids.length; i++) {
+      if (known[i] !== undefined) { ord[i] = known[i]!; continue; }
+      const lo = i > 0 ? ord[i - 1] : undefined;
+      let hi: number | undefined;
+      for (let j = i + 1; j < ids.length; j++) if (known[j] !== undefined) { hi = known[j]; break; }
+      ord[i] = lo === undefined && hi === undefined ? i : lo === undefined ? hi! - 1 : hi === undefined ? lo + 1 : (lo + hi) / 2;
+    }
+  }
+  const out: Record<string, unknown> = {};
+  value.forEach((x, i) => {
+    out[ids[i]] = { __i: ord[i], v: x };
+  });
+  return out;
 }
 
 /** Reconstruye el valor a partir de las filas de la nube */
@@ -133,25 +166,26 @@ async function doFlush(key: string, uid: string): Promise<void> {
   } catch {
     value = raw; // string plano
   }
-  const items = value === null ? {} : explode(value);
   const synced = readJSON<SyncedMap>(syncedKey(key), {});
+  const items = value === null ? {} : explode(value, synced);
   const next: SyncedMap = { ...synced };
   let failed = false;
 
-  // upserts
-  for (const [itemId, data] of Object.entries(items)) {
+  // upserts (hasta 4 en paralelo)
+  const ordOf = (data: unknown) => (data as { __i?: number })?.__i;
+  const upsert = async (itemId: string, data: unknown) => {
     const body = JSON.stringify(data);
     const h = hash(body);
-    if (synced[itemId]?.[1] === h) continue;
+    if (synced[itemId]?.[1] === h) return;
     try {
       const recId = synced[itemId]?.[0];
       if (recId) {
         await pb.collection(COLLECTION).update(recId, { data }, { requestKey: null });
-        next[itemId] = [recId, h];
+        next[itemId] = [recId, h, ordOf(data)];
       } else {
         try {
           const rec = await pb.collection(COLLECTION).create({ owner: uid, kind: key, item_id: itemId, data }, { requestKey: null });
-          next[itemId] = [rec.id, h];
+          next[itemId] = [rec.id, h, ordOf(data)];
         } catch (e: unknown) {
           // ya existía (otro dispositivo) → actualizar
           const existing = await pb
@@ -160,7 +194,7 @@ async function doFlush(key: string, uid: string): Promise<void> {
             .catch(() => null);
           if (!existing) throw e;
           await pb.collection(COLLECTION).update(existing.id, { data }, { requestKey: null });
-          next[itemId] = [existing.id, h];
+          next[itemId] = [existing.id, h, ordOf(data)];
         }
       }
     } catch (e: unknown) {
@@ -170,7 +204,13 @@ async function doFlush(key: string, uid: string): Promise<void> {
       }
       failed = true;
     }
-  }
+  };
+  const queue = Object.entries(items);
+  await Promise.all(
+    Array.from({ length: Math.min(4, queue.length) }, async () => {
+      for (let job = queue.shift(); job; job = queue.shift()) await upsert(job[0], job[1]);
+    }),
+  );
 
   // deletes
   for (const [itemId, [recId]] of Object.entries(synced)) {
@@ -257,7 +297,7 @@ export async function hydrateUser(uid: string, legacyMenu?: unknown): Promise<vo
     const kind = r.kind as string;
     const itemId = r.item_id as string;
     (grouped[kind] ||= {})[itemId] = r.data;
-    (syncedByKey[kind] ||= {})[itemId] = [r.id, hash(JSON.stringify(r.data))];
+    (syncedByKey[kind] ||= {})[itemId] = [r.id, hash(JSON.stringify(r.data)), (r.data as { __i?: number })?.__i];
   }
 
   // Cambios locales pendientes de este dispositivo (sin subir) tienen prioridad
@@ -268,7 +308,7 @@ export async function hydrateUser(uid: string, legacyMenu?: unknown): Promise<vo
     if (local === null) continue;
     let parsed: unknown;
     try { parsed = JSON.parse(local); } catch { parsed = local; }
-    const items = parsed === null ? {} : explode(parsed);
+    const items = parsed === null ? {} : explode(parsed, syncedPrev);
     const differs =
       Object.keys(items).some((id) => syncedPrev[id]?.[1] !== hash(JSON.stringify(items[id]))) ||
       Object.keys(syncedPrev).some((id) => !(id in items));
