@@ -24,12 +24,17 @@ export default async function handler(req: any, res: any) {
 }
 
 async function run(req: any, res: any) {
-  const secret = process.env.CRON_SECRET;
+  const secret = (process.env.CRON_SECRET || '').trim();
   if (secret && req.headers?.authorization !== `Bearer ${secret}`) return res.status(401).json({ error: 'unauthorized' });
+
+  // Sin CRON_SECRET la ruta es pública: solo corre después de las 9 pm (hora Juárez), una vez al día,
+  // así nadie puede adelantar ni repetir el cierre del día.
+  const hour = Number(new Intl.DateTimeFormat('en-US', { timeZone: TZ, hour: 'numeric', hourCycle: 'h23' }).format(new Date()));
+  if (hour < 21) return res.status(200).json({ skipped: 'fuera de horario' });
 
   const today = localDate(new Date());
   const last = await kvGet('daily_summary_last');
-  if (last?.value === today && req.query?.force !== '1') return res.status(200).json({ skipped: 'ya enviado hoy', today });
+  if (last?.value === today) return res.status(200).json({ skipped: 'ya enviado hoy', today });
   await kvSet('daily_summary_last', today);
 
   const token = await adminToken();
