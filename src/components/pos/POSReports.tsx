@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { usePOS } from '../../hooks/usePOS';
 import { Calendar, Trash2, TrendingUp, Wallet, Percent, FileText, Store, Bike, Printer, Scissors } from 'lucide-react';
 import { CorteTicket } from './CorteTicket';
+import { AdvancedReports } from './AdvancedReports';
 
 import { twMerge } from 'tailwind-merge';
 import clsx from 'clsx';
@@ -11,7 +12,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
 
-export function POSReports() {
+export function POSReports({ onUpgrade }: { onUpgrade?: () => void } = {}) {
   const { transactions, summaries, removeTransaction, settings, updateSettings, calculateSummaryInfo } = usePOS();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
@@ -74,6 +75,8 @@ export function POSReports() {
           </div>
         ))}
       </div>
+
+      <AdvancedReports transactions={transactions} onUpgrade={onUpgrade} />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* --- CALENDAR / DATE PICKER --- */}

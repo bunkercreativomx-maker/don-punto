@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { useCalculator } from './hooks/useCalculator';
 import type { Platform, PaymentMethod } from './types/calculator';
-import { CreditCard, BarChart3, ShoppingBasket, Calculator, Layers, User, LineChart, Settings, Plus, Lock, Key, Sparkles, Receipt, LogOut, FileSpreadsheet, TrendingUp, Package, Target, BookOpen, Wallet, Search } from 'lucide-react';
+import { CreditCard, BarChart3, ShoppingBasket, Calculator, Layers, User, LineChart, Settings, Plus, Lock, Key, Sparkles, Receipt, LogOut, FileSpreadsheet, TrendingUp, Package, Target, BookOpen, Wallet, Search, Users, Store, UserCog, LockOpen, ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { ProfitGrid } from './components/ProfitGrid';
@@ -24,6 +24,12 @@ import { RecipesModule } from './components/recipes/RecipesModule';
 import { FinancialModule } from './components/financial/FinancialModule';
 import { storeGet, storeSet } from './lib/cloudStore';
 import { money } from './lib/format';
+import { PinPad } from './components/access/PinPad';
+import { useSession, unlockWithPin, lockSession, requiresCashierLogin, currentBranch, getBranches, isPro, TAB_LABEL, CAJA_CONFIGURABLE, getCajaTabs, setCajaTabs, type Tab } from './lib/session';
+import { setActiveBranch } from './lib/cloudStore';
+import { TeamModule } from './components/team/TeamModule';
+import { BranchesModule } from './components/branches/BranchesModule';
+import { ClientsModule } from './components/clients/ClientsModule';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -33,6 +39,26 @@ export interface AppProps {
   userEmail: string | null;
   onLogout: () => void;
   onBilling: () => void;
+}
+
+/** Qué puede abrir la caja sin PIN */
+function CajaAccessEditor() {
+  useSession();
+  const current = getCajaTabs();
+  const toggle = (t: Tab) => setCajaTabs(current.includes(t) ? current.filter((x) => x !== t) : [...current, t]);
+  return (
+    <div className="border-t border-carbon-950/10 pt-6">
+      <div className="text-sm font-bold text-carbon-900">Qué puede ver la caja sin PIN</div>
+      <p className="text-[11px] text-slate-500 mt-1">Punto de Venta siempre está abierto. Reportes, Financiero, Tienda Física, Plataformas, Radar y Ajustes siempre piden PIN.</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {CAJA_CONFIGURABLE.filter((t) => t !== 'clients' || isPro()).map((t) => (
+          <button key={t} type="button" onClick={() => toggle(t)} className={cn('rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors', current.includes(t) ? 'bg-agave-600 border-agave-600 text-white' : 'bg-white border-carbon-950/15 text-carbon-700 hover:border-agave-400')}>
+            {current.includes(t) ? '✓ ' : ''}{TAB_LABEL[t]}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function App({ userEmail, onLogout, onBilling }: AppProps) {
@@ -68,9 +94,9 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
   useEffect(() => { setProfitsPage(1); }, [profitsSearch]);
   useEffect(() => { setPricingPage(1); }, [pricingSearch]);
 
-  const [activeTab, setActiveTab] = useState<'profits' | 'pricing' | 'pos' | 'menu' | 'reports' | 'tickets' | 'settings' | 'inventory' | 'engineering' | 'recipes' | 'financial'>(() => {
+  const [activeTab, setActiveTab] = useState<Tab>(() => {
     const saved = (storeGet('donPuntoActiveTab') || '').replace(/"/g, '');
-    const valid = ['profits', 'pricing', 'pos', 'menu', 'reports', 'tickets', 'inventory', 'engineering', 'recipes', 'financial'];
+    const valid = ['profits', 'pricing', 'pos', 'menu', 'reports', 'tickets', 'inventory', 'engineering', 'recipes', 'financial', 'clients', 'branches', 'team'];
     return (valid.includes(saved) ? saved : 'pos') as any;
   });
 
@@ -78,7 +104,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab');
-    const allowed = ['profits', 'pricing', 'pos', 'menu', 'reports', 'tickets', 'inventory', 'engineering', 'recipes', 'financial'];
+    const allowed = ['profits', 'pricing', 'pos', 'menu', 'reports', 'tickets', 'inventory', 'engineering', 'recipes', 'financial', 'clients', 'branches', 'team'];
     if (tab && allowed.includes(tab)) setActiveTab(tab as typeof activeTab);
     if (params.has('tab') || params.has('source')) window.history.replaceState({}, '', '/');
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -360,27 +386,41 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
 
   const { settings: posSettings, updateSettings: updatePosSettings } = usePOS();
 
-  // Settings PIN State
-  const [isSettingsPinModalOpen, setIsSettingsPinModalOpen] = useState(false);
-  const [settingsPinInput, setSettingsPinInput] = useState('');
-  const [settingsPinError, setSettingsPinError] = useState(false);
+  // ---- Acceso: quién usa este equipo y qué puede ver
+  const { operator, canAccess } = useSession();
+  const [pinFor, setPinFor] = useState<Tab | 'switch' | null>(null);
+  const [branchMenu, setBranchMenu] = useState(false);
+  const branch = currentBranch();
+  const branches = getBranches();
+  const needCashier = requiresCashierLogin() && !operator;
 
-  const handleSettingsClick = () => {
-      setSettingsPinInput('');
-      setSettingsPinError(false);
-      setIsSettingsPinModalOpen(true);
+  const goTo = (tab: Tab) => {
+    if (canAccess(tab)) setActiveTab(tab);
+    else setPinFor(tab);
   };
+  const handleSettingsClick = () => goTo('settings');
 
-  const handleSettingsPinSubmit = () => {
-      const validPin = posSettings.adminPin || '1234';
-      if (settingsPinInput === validPin) {
-          setIsSettingsPinModalOpen(false);
-          setActiveTab('settings');
-      } else {
-          setSettingsPinError(true);
-          setSettingsPinInput('');
-      }
-  };
+  // Si alguien bloquea o cambia de cajero, salir de pantallas que ya no puede ver
+  useEffect(() => {
+    if (!canAccess(activeTab)) setActiveTab('pos');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [operator]);
+
+  const NAV: { tab: Tab; label: string; Icon: typeof BarChart3; pro?: boolean; sep?: boolean }[] = [
+    { tab: 'pos', label: 'Punto de Venta', Icon: ShoppingBasket },
+    { tab: 'tickets', label: 'Tickets', Icon: Receipt },
+    { tab: 'reports', label: 'Reportes', Icon: LineChart },
+    { tab: 'clients', label: 'Clientes', Icon: Users, pro: true },
+    { tab: 'profits', label: 'Tienda Física', Icon: BarChart3, sep: true },
+    { tab: 'pricing', label: 'Plataformas', Icon: Calculator },
+    { tab: 'menu', label: 'Catálogo', Icon: Layers },
+    { tab: 'inventory', label: 'Inventario', Icon: Package, sep: true },
+    { tab: 'engineering', label: 'Radar de Menú', Icon: Target },
+    { tab: 'recipes', label: 'Recetario', Icon: BookOpen },
+    { tab: 'financial', label: 'Financiero', Icon: Wallet },
+    { tab: 'branches', label: 'Sucursales', Icon: Store, pro: true, sep: true },
+    { tab: 'team', label: 'Equipo', Icon: UserCog, pro: true },
+  ];
 
   return (
     <>
@@ -402,39 +442,24 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
           />
       )}
 
-      {/* --- SETTINGS PIN MODAL --- */}
-      {isSettingsPinModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-carbon-950/35 backdrop-blur-md no-print">
-              <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl w-full max-w-sm shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-                  <div className="p-6 bg-slate-800/30 border-b border-carbon-950/10 text-center">
-                      <div className="w-12 h-12 bg-pink-500/20 text-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <Lock size={24} />
-                      </div>
-                      <h3 className="text-xl font-bold text-carbon-950">Configuración del Sistema</h3>
-                      <p className="text-slate-400 text-xs mt-2">Ingresa el PIN de administrador para acceder a los ajustes.</p>
-                  </div>
-                  <div className="p-6">
-                      <input 
-                          type="password"
-                          autoFocus
-                          value={settingsPinInput}
-                          onChange={(e) => setSettingsPinInput(e.target.value)}
-                          onKeyDown={(e) => e.key === 'Enter' && handleSettingsPinSubmit()}
-                          placeholder="••••"
-                          className={cn(
-                              "w-full bg-slate-950 border-2 rounded-2xl text-center text-4xl tracking-[0.5em] font-black text-carbon-950 py-4 outline-none transition-all",
-                              settingsPinError ? "border-rose-500 text-rose-500" : "border-carbon-950/10 focus:border-indigo-500"
-                          )}
-                      />
-                      {settingsPinError && <div className="text-rose-500 text-xs font-bold text-center mt-3 animate-pulse">PIN INCORRECTO</div>}
-                      
-                      <div className="grid grid-cols-2 gap-3 mt-6">
-                          <button onClick={() => setIsSettingsPinModalOpen(false)} className="py-3 rounded-xl font-bold text-slate-500 hover:text-carbon-950 transition-all bg-slate-800/50">CANCELAR</button>
-                          <button onClick={handleSettingsPinSubmit} className="py-3 rounded-xl font-black text-white bg-pink-500 hover:bg-pink-400 transition-all shadow-lg shadow-pink-500/20 active:scale-95">ACCEDER</button>
-                      </div>
-                  </div>
-              </div>
-          </div>
+      {/* --- PIN: desbloquear pantallas / cambiar de cajero --- */}
+      {(pinFor || needCashier) && (
+          <PinPad
+              title={needCashier || pinFor === 'switch' ? '¿Quién cobra?' : `Desbloquear ${TAB_LABEL[pinFor as Tab]}`}
+              subtitle={needCashier || pinFor === 'switch' ? 'Escribe tu PIN para empezar a cobrar.' : 'Esta sección está protegida. Escribe el PIN del dueño o de un gerente.'}
+              onClose={needCashier ? undefined : () => setPinFor(null)}
+              onSubmit={(pin) => {
+                  const op = unlockWithPin(pin, posSettings.adminPin);
+                  if (!op) return false;
+                  const target = pinFor;
+                  setPinFor(null);
+                  if (target && target !== 'switch') {
+                      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+                      setTimeout(() => setActiveTab((prev) => (target as Tab) || prev), 0);
+                  }
+                  return true;
+              }}
+          />
       )}
 
       {/* --- PREMIUM SIDEBAR --- */}
@@ -458,70 +483,59 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
           <div className="h-px bg-carbon-950/5 w-full" />
         </div>
 
-        <div className="flex flex-col gap-1 flex-grow w-full px-2 lg:px-3">
-          <button onClick={() => setActiveTab('profits')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'profits' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
-            <BarChart3 size={20} className="shrink-0" />
-            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Tienda Física</span>
-            {activeTab === 'profits' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-agave-500 rounded-r-full" />}
-          </button>
-
-          <button onClick={() => setActiveTab('pricing')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'pricing' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
-            <Calculator size={20} className="shrink-0" />
-            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Plataformas</span>
-            {activeTab === 'pricing' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-agave-500 rounded-r-full" />}
-          </button>
-
-          <button onClick={() => setActiveTab('pos')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'pos' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
-            <ShoppingBasket size={20} className="shrink-0" />
-            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Punto de Venta</span>
-            {activeTab === 'pos' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-agave-500 rounded-r-full" />}
-          </button>
-
-          <button onClick={() => setActiveTab('tickets')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'tickets' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
-            <Receipt size={20} className="shrink-0" />
-            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Tickets</span>
-            {activeTab === 'tickets' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-agave-500 rounded-r-full" />}
-          </button>
-
-          <button onClick={() => setActiveTab('reports')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'reports' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
-            <LineChart size={20} className="shrink-0" />
-            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Reportes</span>
-            {activeTab === 'reports' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-agave-500 rounded-r-full" />}
-          </button>
-
-          <button onClick={() => setActiveTab('menu')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'menu' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
-            <Layers size={20} className="shrink-0" />
-            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Catálogo</span>
-            {activeTab === 'menu' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-agave-500 rounded-r-full" />}
-          </button>
-
-          <div className="w-full my-1">
-            <div className="h-px bg-carbon-950/5 w-full" />
+        {/* Sucursal y quién está usando el equipo */}
+        <div className="w-full px-2 lg:px-3 space-y-1.5">
+          {isPro() && branches.length > 1 && (
+            <div className="relative">
+              <button onClick={() => (canAccess('branches') ? setBranchMenu((v) => !v) : setPinFor('branches'))} className="w-full flex items-center gap-2 rounded-xl border border-carbon-950/10 bg-carbon-50 px-2 lg:px-3 py-2 text-left hover:bg-carbon-100" title="Sucursal de este equipo">
+                <Store size={16} className="text-agave-700 shrink-0" />
+                <span className="hidden lg:block text-xs font-semibold text-carbon-800 truncate flex-1">{branch.name}</span>
+                <ChevronDown size={14} className="hidden lg:block text-carbon-500" />
+              </button>
+              {branchMenu && (
+                <div className="absolute left-0 right-0 lg:right-auto lg:w-56 top-full mt-1 z-50 rounded-xl border border-carbon-950/10 bg-white shadow-[0_12px_32px_-12px_rgba(13,16,14,0.3)] p-1">
+                  <div className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-carbon-500">Este equipo cobra en</div>
+                  {branches.map((b) => (
+                    <button key={b.id} onClick={() => { setBranchMenu(false); if (b.id !== branch.id) setActiveBranch(b.id); }} className={cn('w-full text-left rounded-lg px-3 py-2 text-sm', b.id === branch.id ? 'bg-agave-50 text-agave-800 font-semibold' : 'text-carbon-700 hover:bg-carbon-50')}>{b.name}</button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <div className="flex items-center gap-2 rounded-xl px-2 lg:px-3 py-1.5">
+            {operator ? <LockOpen size={16} className="text-agave-600 shrink-0" /> : <Lock size={16} className="text-carbon-400 shrink-0" />}
+            <div className="hidden lg:block flex-1 min-w-0">
+              <div className="text-[11px] font-semibold text-carbon-800 truncate">{operator ? operator.name : 'Modo caja'}</div>
+              <div className="text-[10px] text-carbon-500 truncate">{operator ? (operator.role === 'dueno' ? 'Todo abierto' : operator.role === 'gerente' ? 'Gerente' : 'Cajero') : 'Secciones protegidas'}</div>
+            </div>
+            {operator ? (
+              <button onClick={() => { lockSession(); setActiveTab('pos'); }} className="hidden lg:block text-[11px] font-bold text-carbon-600 hover:text-carbon-900 rounded-lg px-2 py-1 hover:bg-carbon-100" title="Bloquear">Bloquear</button>
+            ) : (
+              <button onClick={() => setPinFor('reports')} className="hidden lg:block text-[11px] font-bold text-agave-700 hover:text-agave-800 rounded-lg px-2 py-1 hover:bg-agave-50">Entrar</button>
+            )}
           </div>
+        </div>
 
-          <button onClick={() => setActiveTab('inventory')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'inventory' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
-            <Package size={20} className="shrink-0" />
-            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Inventario</span>
-            {activeTab === 'inventory' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-agave-500 rounded-r-full" />}
-          </button>
+        <div className="w-full px-2 lg:px-3">
+          <div className="h-px bg-carbon-950/5 w-full" />
+        </div>
 
-          <button onClick={() => setActiveTab('engineering')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'engineering' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
-            <Target size={20} className="shrink-0" />
-            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Radar de Menú</span>
-            {activeTab === 'engineering' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-agave-500 rounded-r-full" />}
-          </button>
-
-          <button onClick={() => setActiveTab('recipes')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'recipes' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
-            <BookOpen size={20} className="shrink-0" />
-            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Recetario</span>
-            {activeTab === 'recipes' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-agave-500 rounded-r-full" />}
-          </button>
-
-          <button onClick={() => setActiveTab('financial')} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === 'financial' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
-            <Wallet size={20} className="shrink-0" />
-            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Financiero</span>
-            {activeTab === 'financial' && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-agave-500 rounded-r-full" />}
-          </button>
+        <div className="flex flex-col gap-1 flex-grow w-full px-2 lg:px-3">
+          {NAV.map(({ tab, label, Icon, pro, sep }) => {
+            const locked = !canAccess(tab);
+            return (
+              <div key={tab} className="contents">
+                {sep && <div className="w-full my-1"><div className="h-px bg-carbon-950/5 w-full" /></div>}
+                <button onClick={() => goTo(tab)} title={label} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === tab ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
+                  <Icon size={20} className="shrink-0" />
+                  <span className="hidden lg:block text-xs font-bold whitespace-nowrap flex-1 text-left">{label}</span>
+                  {pro && !isPro() && <span className="hidden lg:block text-[9px] font-black uppercase tracking-wider rounded-full bg-maiz-100 text-maiz-800 px-1.5 py-0.5">Pro</span>}
+                  {locked && <Lock size={12} className="absolute right-1.5 top-1.5 lg:static text-carbon-400" />}
+                  {activeTab === tab && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-agave-500 rounded-r-full" />}
+                </button>
+              </div>
+            );
+          })}
         </div>
 
         <div className="w-full px-2 lg:px-3">
@@ -531,7 +545,8 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
         <div className="flex flex-col gap-1 shrink-0 w-full px-2 lg:px-3">
           <button onClick={handleSettingsClick} className={cn("p-3 lg:px-3 rounded-xl transition-all flex items-center gap-3", activeTab === 'settings' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-600 hover:text-slate-400 hover:bg-carbon-950/5 border border-transparent")}>
             <Settings size={20} className="shrink-0" />
-            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Ajustes</span>
+            <span className="hidden lg:block text-xs font-bold whitespace-nowrap flex-1 text-left">Ajustes</span>
+            {!canAccess('settings') && <Lock size={12} className="hidden lg:block text-carbon-400" />}
           </button>
           <InstallAppButton compact label="Instalar app" className="p-3 lg:px-3 rounded-xl transition-all text-maiz-400 hover:bg-maiz-500/10 gap-3 border border-transparent" />
           <button
@@ -577,6 +592,9 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                   {activeTab === 'engineering' && 'Radar de Menú'}
                   {activeTab === 'recipes' && 'Recetario Estándar'}
                   {activeTab === 'financial' && 'Estado Financiero Semanal'}
+                  {activeTab === 'clients' && 'Clientes frecuentes'}
+                  {activeTab === 'branches' && 'Sucursales'}
+                  {activeTab === 'team' && 'Equipo y permisos'}
                 </h1>
                 <p className="text-slate-500 mt-2 font-medium tracking-wide">
                   {activeTab === 'profits' && ''}
@@ -590,9 +608,18 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                   {activeTab === 'engineering' && 'Top ventas del mes conectado al POS · CRACK, DIAMANTE, CORREDOR y REZAGADO · Combos con IA.'}
                   {activeTab === 'recipes' && 'Gestiona recetas estándar con análisis de costo e ingredientes.'}
                   {activeTab === 'financial' && 'Registra ventas diarias por canal y controla compras y egresos semanales.'}
+                  {activeTab === 'clients' && 'Tus clientes, lo que compran y sus recompensas por visita.'}
+                  {activeTab === 'branches' && 'Todas tus sucursales en un solo lugar: quién vende más y cuál necesita atención.'}
+                  {activeTab === 'team' && 'Cada empleado con su PIN: las ventas, descuentos y cancelaciones quedan a su nombre.'}
                 </p>
               </div>
               
+              {activeTab === 'pos' && operator && requiresCashierLogin() && (
+                <div className="flex items-center gap-2 rounded-full border border-carbon-950/10 bg-white pl-3 pr-1 py-1">
+                  <span className="text-xs text-carbon-600">Cobrando: <b className="text-carbon-900">{operator.name}</b></span>
+                  <button onClick={() => lockSession()} className="rounded-full bg-carbon-100 hover:bg-carbon-200 px-3 py-1 text-xs font-semibold text-carbon-800">Cambiar</button>
+                </div>
+              )}
               {(activeTab === 'profits' || activeTab === 'pricing' || activeTab === 'menu') && (
                 <div className="flex items-center gap-3">
                     <button
@@ -703,12 +730,15 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                 </div>
               ); })()}
               {activeTab === 'pos' && <POSDashboard />}
-              {activeTab === 'reports' && <POSReports />}
+              {activeTab === 'reports' && <POSReports onUpgrade={onBilling} />}
               {activeTab === 'tickets' && <POSTicketsHistory />}
               {activeTab === 'inventory' && <InventoryModule />}
               {activeTab === 'engineering' && <MenuEngineeringModule />}
               {activeTab === 'recipes' && <RecipesModule />}
               {activeTab === 'financial' && <FinancialModule />}
+              {activeTab === 'clients' && <ClientsModule onUpgrade={onBilling} />}
+              {activeTab === 'branches' && <BranchesModule onUpgrade={onBilling} />}
+              {activeTab === 'team' && <TeamModule onUpgrade={onBilling} adminPin={posSettings.adminPin} />}
               {activeTab === 'menu' && (
                 <MenuManagement 
                     categories={categories}
@@ -801,7 +831,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                       <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl p-8 space-y-6">
                           <div>
                               <h3 className="text-base font-black text-rose-500 tracking-tight mb-1 flex items-center gap-2"><Lock size={18}/> Seguridad Antifraude</h3>
-                              <p className="text-[11px] text-slate-500">Este PIN se solicitará para borrar tickets, eliminar productos y entrar a esta configuración.</p>
+                              <p className="text-[11px] text-slate-500">Con este PIN entras a todo: reportes, dinero, ajustes. También se pide para borrar tickets y productos. Se bloquea solo tras 15 minutos sin uso.</p>
                           </div>
                           <div className="flex items-center gap-3 bg-slate-950 border border-carbon-950/10 rounded-2xl px-4 py-3">
                               <Key size={16} className="text-rose-400 shrink-0" />
@@ -820,6 +850,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                                   )}
                               </div>
                           </div>
+                          <CajaAccessEditor />
                       </div>
 
                       {/* Calculator Settings */}

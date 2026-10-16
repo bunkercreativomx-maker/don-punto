@@ -44,7 +44,7 @@ async function run(req: any, res: any) {
   let notified = 0;
 
   for (const uid of owners) {
-    const filter = `owner = "${uid}" && kind = "delivery_calculator_pos_txs" && updated >= "${since}"`;
+    const filter = `owner = "${uid}" && (kind = "delivery_calculator_pos_txs" || kind ~ "delivery_calculator_pos_txs@") && updated >= "${since}"`;
     const r = await pbFetch(`/api/collections/user_items/records?perPage=500&filter=${encodeURIComponent(filter)}`, { token });
     const txs = (r.data?.items || []).map((it: any) => it.data?.v).filter((t: any) => t?.date && localDate(new Date(t.date)) === today);
     if (!txs.length) continue;

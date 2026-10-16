@@ -19,6 +19,46 @@ const LOCAL_ONLY = new Set(['donPuntoActiveTab']);
 let currentUid: string | null = null;
 
 const scoped = (key: string, uid = currentUid) => `dp:${uid ?? 'anon'}:${key}`;
+
+// ---------------------------------------------------------------- sucursales
+/**
+ * Datos de operación que son PROPIOS de cada sucursal. La sucursal principal ("main") usa las
+ * claves de siempre; las demás guardan `<clave>@<idSucursal>`. Menú, recetas, clientes y equipo
+ * se comparten entre sucursales.
+ */
+export const BRANCH_KEYS = new Set([
+  'delivery_calculator_pos_txs',
+  'delivery_calculator_pos_tickets',
+  'donPuntoInsumos2',
+  'donPuntoInventario',
+  'donPuntoComprasHoy',
+  'donPuntoHistorial',
+  'donPuntoCierresDiarios',
+  'donPuntoFinancialExpenses',
+  'donPuntoCancelaciones',
+]);
+export const MAIN_BRANCH = 'main';
+let activeBranch = MAIN_BRANCH;
+const branchPref = (uid = currentUid) => `dp:${uid}:__branch`;
+export const branchKey = (key: string, branch = activeBranch) =>
+  BRANCH_KEYS.has(key) && branch !== MAIN_BRANCH ? `${key}@${branch}` : key;
+
+export function getActiveBranch(): string {
+  return activeBranch;
+}
+/** Cambia la sucursal de ESTE dispositivo (cada caja se queda en su sucursal). Recarga la app. */
+export function setActiveBranch(id: string, reload = true): void {
+  activeBranch = id || MAIN_BRANCH;
+  if (currentUid) localStorage.setItem(branchPref(), activeBranch);
+  if (reload) window.location.reload();
+}
+/** Lee una clave de una sucursal específica (para reportes consolidados) */
+export function storeGetBranch(key: string, branch: string): string | null {
+  return localStorage.getItem(scoped(branchKey(key, branch)));
+}
+function loadBranchPref() {
+  activeBranch = (currentUid && localStorage.getItem(branchPref())) || MAIN_BRANCH;
+}
 const syncedKey = (key: string) => `dp:${currentUid}:__synced:${key}`;
 const KNOWN_KEYS = () => `dp:${currentUid}:__keys`;
 
@@ -98,10 +138,11 @@ function implode(items: Record<string, unknown>): unknown {
 // ---------------------------------------------------------------- API pública
 
 export function storeGet(key: string): string | null {
-  return localStorage.getItem(scoped(key));
+  return localStorage.getItem(scoped(branchKey(key)));
 }
 
-export function storeSet(key: string, value: string): void {
+export function storeSet(baseKey: string, value: string): void {
+  const key = branchKey(baseKey);
   localStorage.setItem(scoped(key), value);
   if (!currentUid || LOCAL_ONLY.has(key)) return;
   const keys = new Set(readJSON<string[]>(KNOWN_KEYS(), []));
@@ -112,7 +153,8 @@ export function storeSet(key: string, value: string): void {
   schedule(key);
 }
 
-export function storeRemove(key: string): void {
+export function storeRemove(baseKey: string): void {
+  const key = branchKey(baseKey);
   localStorage.removeItem(scoped(key));
   if (currentUid && !LOCAL_ONLY.has(key)) schedule(key);
 }
@@ -284,6 +326,7 @@ const LEGACY_KEYS = [
 export async function hydrateUser(uid: string, legacyMenu?: unknown): Promise<void> {
   currentUid = uid;
   dirty.clear();
+  loadBranchPref();
 
   const rows = await pb.collection(COLLECTION).getFullList({
     filter: pb.filter('owner = {:o}', { o: uid }),
@@ -358,19 +401,21 @@ export function clearUser(): void {
   if (currentUid && dirty.size === 0) {
     const prefix = `dp:${currentUid}:`;
     Object.keys(localStorage)
-      .filter((k) => k.startsWith(prefix))
+      .filter((k) => k.startsWith(prefix) && k !== `${prefix}__branch`)
       .forEach((k) => localStorage.removeItem(k));
   }
   timers.forEach((t) => clearTimeout(t));
   timers.clear();
   dirty.clear();
   currentUid = null;
+  activeBranch = MAIN_BRANCH;
   emit('ok');
 }
 
 /** Sin internet al abrir: trabajar con lo guardado en este dispositivo y sincronizar después */
 export function attachUserOffline(uid: string): void {
   currentUid = uid;
+  loadBranchPref();
   emit('offline');
 }
 

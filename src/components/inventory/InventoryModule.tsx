@@ -7,6 +7,7 @@ import {
 import clsx from 'clsx';
 import * as XLSX from 'xlsx';
 import { storeGet, storeSet } from '../../lib/cloudStore';
+import { isPro } from '../../lib/session';
 import { pb } from '../../lib/pocketbase';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -325,6 +326,13 @@ export function InventoryModule() {
 
   const [view, setView] = useState<View>('inventario');
   const [showFactura, setShowFactura] = useState(false);
+  const openFactura = () => {
+    if (!isPro()) {
+      alert('Leer facturas de proveedor con IA es del plan Pro ($799/mes). Cámbiate desde "Mi plan" en el menú.');
+      return;
+    }
+    setShowFactura(true);
+  };
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<Omit<Insumo, 'id'>>(BLANK_INSUMO);
@@ -619,7 +627,7 @@ export function InventoryModule() {
             </button>
           )}
           <button
-            onClick={() => setShowFactura(true)}
+            onClick={openFactura}
             className="flex items-center gap-2 bg-teal-500 hover:bg-teal-400 text-white px-4 py-2.5 rounded-xl font-black text-sm transition-all shadow-lg shadow-teal-500/20 active:scale-95"
           >
             <Camera size={16} /> SUBIR FACTURA
@@ -700,7 +708,7 @@ export function InventoryModule() {
               <div className="text-slate-400 font-bold mb-2">Sin insumos registrados</div>
               <div className="text-slate-600 text-sm mb-6">Sube una factura para agregar insumos automáticamente, o agrégalos manualmente.</div>
               <div className="flex gap-3 justify-center">
-                <button onClick={() => setShowFactura(true)} className="flex items-center gap-2 bg-teal-500 hover:bg-teal-400 text-white px-5 py-3 rounded-xl font-black text-sm transition-all shadow-lg shadow-teal-500/20">
+                <button onClick={openFactura} className="flex items-center gap-2 bg-teal-500 hover:bg-teal-400 text-white px-5 py-3 rounded-xl font-black text-sm transition-all shadow-lg shadow-teal-500/20">
                   <Camera size={16} /> Subir Factura
                 </button>
                 <button onClick={openAdd} className="flex items-center gap-2 bg-slate-800 border border-carbon-950/10 text-carbon-950 px-5 py-3 rounded-xl font-black text-sm transition-all">

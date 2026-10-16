@@ -1,4 +1,4 @@
-import { getMember, readJsonBody, sendError, HttpError, adminToken, pbFetch } from './_lib/server.js';
+import { getMember, readJsonBody, sendError, HttpError, adminToken, pbFetch, rateLimit } from './_lib/server.js';
 import { sendToUser } from './_lib/push.js';
 
 // Alta/baja de dispositivos para notificaciones y envío de prueba
@@ -42,6 +42,17 @@ export default async function handler(req: any, res: any) {
       const rec = ex.data?.items?.[0];
       if (rec) await pbFetch(`/api/collections/push_subscriptions/records/${rec.id}`, { method: 'DELETE', token });
       return res.status(200).json({ ok: true });
+    }
+
+    if (body.action === 'stock') {
+      // Alerta de inventario (plan Pro): se manda a los dispositivos del dueño
+      if (m.plan === 'basico' || !m.active) throw new HttpError(403, 'Función del plan Pro', 'plan_pro');
+      rateLimit(`stock:${m.user.id}`, 30, 60 * 60 * 1000);
+      const items = (Array.isArray(body.items) ? body.items : []).slice(0, 6)
+        .map((i: any) => `${String(i?.nombre || '').slice(0, 40)}: ${Number(i?.saldo) || 0} ${String(i?.unidad || '').slice(0, 10)}`);
+      if (!items.length) throw new HttpError(400, 'Sin insumos');
+      const sent = await sendToUser(m.user.id, { title: 'Se está acabando', body: items.join(' · '), url: '/?tab=inventory', tag: 'stock' }).catch(() => 0);
+      return res.status(200).json({ ok: true, sent });
     }
 
     if (body.action === 'test') {

@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { POSTransaction, POSSettings, POSSummary, POSPaymentMethod, OrderDestination, OpenTicket, CartItem } from '../types/pos';
 import { storeGet, storeSet } from '../lib/cloudStore';
+import { getOperator } from '../lib/session';
+import type { Cancellation } from '../types/pos';
 
 const STORAGE_KEY = 'delivery_calculator_pos_txs';
 const SETTINGS_KEY = 'delivery_calculator_pos_settings';
@@ -50,8 +52,10 @@ export function usePOS() {
     customerName?: string, 
     dateStr?: string,
     items?: CartItem[],
-    discountAmount?: number
+    discountAmount?: number,
+    extra?: { clientId?: string; rewardApplied?: boolean }
   ) => {
+    const op = getOperator();
     const newTx: POSTransaction = {
       id: crypto.randomUUID(),
       date: dateStr || new Date().toISOString(),
@@ -61,12 +65,25 @@ export function usePOS() {
       notes,
       customerName,
       items,
-      discountAmount
+      discountAmount,
+      employeeId: op?.id,
+      employeeName: op?.name,
+      ...(extra || {}),
     };
     setTransactions((prev) => [newTx, ...prev]);
+    return newTx;
   };
 
   const removeTransaction = (id: string) => {
+    const tx = transactions.find((t) => t.id === id);
+    if (tx) {
+      // Bitácora de cancelaciones (reporte por cajero)
+      const op = getOperator();
+      let log: Cancellation[] = [];
+      try { log = JSON.parse(storeGet('donPuntoCancelaciones') || '[]'); } catch { /* vacío */ }
+      log.unshift({ id: crypto.randomUUID(), date: new Date().toISOString(), txId: tx.id, amount: tx.amount, detail: tx.notes, byId: op?.id, byName: op?.name });
+      storeSet('donPuntoCancelaciones', JSON.stringify(log.slice(0, 2000)));
+    }
     setTransactions((prev) => prev.filter((tx) => tx.id !== id));
   };
 

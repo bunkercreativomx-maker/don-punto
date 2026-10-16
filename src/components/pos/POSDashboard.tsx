@@ -2,7 +2,11 @@ import { useState, useMemo, useEffect } from 'react';
 import { usePOS } from '../../hooks/usePOS';
 import { useCalculator } from '../../hooks/useCalculator'; 
 import type { CartItem, POSPaymentMethod, OrderDestination, OpenTicket } from '../../types/pos';
-import { Plus, Trash2, ShoppingCart, Minus, CreditCard, Save, History, Bike, Lock, Search, X, CheckCircle } from 'lucide-react';
+import { Plus, Trash2, ShoppingCart, Minus, CreditCard, Save, History, Bike, Lock, Search, X, CheckCircle, Gift, UserPlus, AlertTriangle } from 'lucide-react';
+import { isPro } from '../../lib/session';
+import { getClients, addClient, recordVisit, rewardReady, rewardDiscount, getLoyalty, type Client } from '../../lib/clients';
+import { applySaleToInventory, type StockAlert } from '../../lib/inventoryAuto';
+import { apiPost } from '../../lib/api';
 import { POSTicket } from './POSTicket';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -71,6 +75,21 @@ export function POSDashboard() {
   const [isChangeModalOpen, setIsChangeModalOpen] = useState(false);
   const [receivedAmount, setReceivedAmount] = useState<string>('');
   const [orderCustomerName, setOrderCustomerName] = useState(''); // Customer name for the whole order
+  // Clientes frecuentes (Pro)
+  const pro = isPro();
+  const [clients, setClients] = useState<Client[]>(() => (isPro() ? getClients() : []));
+  const [clientId, setClientId] = useState<string | null>(null);
+  const [rewardOn, setRewardOn] = useState(false);
+  const [showSuggest, setShowSuggest] = useState(false);
+  const [stockAlerts, setStockAlerts] = useState<StockAlert[]>([]);
+  const loyalty = useMemo(() => getLoyalty(), []);
+  const selectedClient = clients.find((c) => c.id === clientId) || null;
+  const suggestions = useMemo(() => {
+    const t = orderCustomerName.trim().toLowerCase();
+    if (!pro || t.length < 2 || clientId) return [];
+    const digits = t.replace(/\D/g, '');
+    return clients.filter((c) => c.name.toLowerCase().includes(t) || (digits.length >= 3 && (c.phone || '').includes(digits))).slice(0, 5);
+  }, [orderCustomerName, clients, clientId, pro]);
 
   // Manual Discount State
   const [discountInput, setDiscountInput] = useState<number>(0);
@@ -225,12 +244,13 @@ export function POSDashboard() {
   }, [cart, paymentMethod]);
 
   const discountAmount = useMemo(() => {
+    if (rewardOn && selectedClient) return rewardDiscount(cartTotal, loyalty);
     if (discountType === 'percent') {
         return cartTotal * (discountInput / 100);
     } else {
         return discountInput;
     }
-  }, [cartTotal, discountInput, discountType]);
+  }, [cartTotal, discountInput, discountType, rewardOn, selectedClient, loyalty]);
 
   const finalTotal = useMemo(() => {
     return Math.max(0, cartTotal - discountAmount);
@@ -263,7 +283,18 @@ export function POSDashboard() {
     const discountStr = discountAmount > 0 
         ? ` (Desc: ${discountType === 'percent' ? `${discountInput}%` : `$${discountInput}`})` 
         : '';
-    addTransaction(finalTotal, paymentMethod, orderDestination, detail + discountStr, customerName, undefined, [...cart], discountAmount);
+    const rewardStr = rewardOn && selectedClient ? ' (Recompensa cliente frecuente)' : '';
+    addTransaction(finalTotal, paymentMethod, orderDestination, detail + (rewardStr || discountStr), customerName, undefined, [...cart], discountAmount,
+      selectedClient ? { clientId: selectedClient.id, rewardApplied: rewardOn } : undefined);
+    if (pro && selectedClient) { recordVisit(selectedClient.id, finalTotal, rewardOn); setClients(getClients()); }
+    // Inventario automático (Pro): descontar insumos de las recetas
+    if (pro) {
+      const { alerts } = applySaleToInventory(cart, rows);
+      if (alerts.length) {
+        setStockAlerts(alerts);
+        apiPost('/api/push', { action: 'stock', items: alerts.map((a) => ({ nombre: a.nombre, saldo: a.saldo, unidad: a.unidad, level: a.level })) }).catch(() => {});
+      }
+    }
     
     // Set for printing
     const isCash = paymentMethod === 'Efectivo' || paymentMethod === 'Didi Efectivo';
@@ -280,6 +311,8 @@ export function POSDashboard() {
     setCart([]);
     setOrderCustomerName('');
     setDiscountInput(0);
+    setClientId(null);
+    setRewardOn(false);
 
     // Trigger print dialog if any ticket is enabled
     if (settings.printCustomerTicket || settings.printKitchenTicket) {
@@ -311,6 +344,20 @@ export function POSDashboard() {
   return (
     <>
     <div className="space-y-4 no-print">
+        {stockAlerts.length > 0 && (
+            <div className="fixed bottom-5 right-5 z-[90] w-80 rounded-2xl border border-maiz-300 bg-white p-4 shadow-[0_18px_40px_-18px_rgba(13,16,14,0.45)]">
+                <div className="flex items-start gap-3">
+                    <AlertTriangle size={18} className="text-maiz-600 mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                        <div className="text-sm font-bold text-carbon-900">Se está acabando</div>
+                        <ul className="mt-1 space-y-0.5 text-xs text-carbon-700">
+                            {stockAlerts.slice(0, 5).map((a) => <li key={a.id}><b className={a.level === 'critical' ? 'text-rose-600' : 'text-maiz-800'}>{a.nombre}</b>: quedan {a.saldo} {a.unidad}</li>)}
+                        </ul>
+                    </div>
+                    <button onClick={() => setStockAlerts([])} className="text-carbon-400 hover:text-carbon-700"><X size={16} /></button>
+                </div>
+            </div>
+        )}
         {/* Category Filter Bar */}
         <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
             <button
@@ -526,16 +573,50 @@ export function POSDashboard() {
                     </div>
                     <div className="pt-4 border-t border-carbon-950/10 mt-4 space-y-3">
                         {/* Customer Name Field - always visible */}
+                        <div className="relative">
                         <div className="flex items-center gap-2 bg-slate-950/50 border border-carbon-950/10 rounded-xl px-3 py-2">
                             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Cliente:</span>
                             <input
                                 type="text"
                                 value={orderCustomerName}
-                                onChange={(e) => setOrderCustomerName(e.target.value)}
-                                placeholder="Nombre del cliente (opcional)"
+                                onChange={(e) => { setOrderCustomerName(e.target.value); setClientId(null); setRewardOn(false); setShowSuggest(true); }}
+                                onFocus={() => setShowSuggest(true)}
+                                onBlur={() => setTimeout(() => setShowSuggest(false), 150)}
+                                placeholder={pro ? 'Nombre o teléfono del cliente' : 'Nombre del cliente (opcional)'}
                                 className="flex-grow bg-transparent text-carbon-950 text-xs font-medium outline-none placeholder:text-slate-500"
                             />
+                            {pro && !clientId && orderCustomerName.trim().length >= 2 && suggestions.length === 0 && (
+                                <button type="button" title="Guardar como cliente" onClick={() => {
+                                    const phone = prompt(`Teléfono de ${orderCustomerName.trim()} (opcional):`) ?? '';
+                                    const c = addClient(orderCustomerName.trim(), phone);
+                                    setClients(getClients()); setClientId(c.id);
+                                }} className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-agave-50 px-2 py-1 text-[10px] font-bold text-agave-700 hover:bg-agave-100"><UserPlus size={12} /> Guardar</button>
+                            )}
                         </div>
+                        {showSuggest && suggestions.length > 0 && (
+                            <div className="absolute left-0 right-0 bottom-full mb-1 z-30 rounded-xl border border-carbon-950/10 bg-white shadow-[0_12px_32px_-12px_rgba(13,16,14,0.3)] p-1">
+                                {suggestions.map((c) => (
+                                    <button key={c.id} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { setClientId(c.id); setOrderCustomerName(c.name); setShowSuggest(false); }} className="w-full flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-left hover:bg-agave-50">
+                                        <span className="text-sm font-semibold text-carbon-900 truncate">{c.name}</span>
+                                        <span className="text-[11px] text-carbon-500 shrink-0">{c.visits} visitas{rewardReady(c, loyalty) ? ' · 🎁' : ''}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                        </div>
+                        {selectedClient && (
+                            <div className="flex items-center justify-between gap-2 rounded-xl border border-maiz-200 bg-maiz-50 px-3 py-2">
+                                <div className="min-w-0">
+                                    <div className="text-xs font-bold text-carbon-900 truncate">{selectedClient.name}{selectedClient.notes ? ` · ${selectedClient.notes}` : ''}</div>
+                                    <div className="text-[11px] text-carbon-600">{selectedClient.visits} visitas · {loyalty.enabled ? `${Math.min(selectedClient.stamps, loyalty.every - 1)}/${loyalty.every - 1} para su recompensa` : `$${money(selectedClient.total)} gastado`}</div>
+                                </div>
+                                {rewardReady(selectedClient, loyalty) && (
+                                    <button type="button" onClick={() => setRewardOn((v) => !v)} className={cn('shrink-0 inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold', rewardOn ? 'bg-agave-600 text-white' : 'bg-white text-maiz-800 border border-maiz-300 animate-pulse')}>
+                                        <Gift size={13} /> {rewardOn ? 'Recompensa aplicada' : 'Aplicar recompensa'}
+                                    </button>
+                                )}
+                            </div>
+                        )}
                         {/* Discount Field - always visible */}
                         <div className="flex items-center gap-2 bg-slate-950/50 border border-carbon-950/10 rounded-xl px-3 py-1.5">
                             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Descuento:</span>

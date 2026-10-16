@@ -24,6 +24,13 @@ export interface POSTransaction {
   customerName?: string;
   items?: CartItem[];
   discountAmount?: number;
+  /** Quién cobró (plan Pro con equipo) */
+  employeeId?: string;
+  employeeName?: string;
+  /** Cliente registrado (plan Pro) */
+  clientId?: string;
+  /** Recompensa de lealtad aplicada */
+  rewardApplied?: boolean;
 }
 
 export interface OpenTicket {
@@ -55,3 +62,5 @@ export interface POSSettings {
   businessAddress?: string;
   adminPin: string;
 }
+
+export interface Cancellation { id: string; date: string; txId: string; amount: number; detail?: string; byId?: string; byName?: string }

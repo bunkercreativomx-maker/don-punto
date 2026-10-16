@@ -2,6 +2,12 @@ import { useState, useMemo } from 'react';
 import { Plus, Trash2, Edit3, Save, X, BookOpen, ChevronLeft, ChefHat } from 'lucide-react';
 import clsx from 'clsx';
 import { storeGet, storeSet } from '../../lib/cloudStore';
+import { useCalculator } from '../../hooks/useCalculator';
+import { isPro } from '../../lib/session';
+
+function readInsumos(): { id: string; nombre: string; unidad: string; costoUnitario: number }[] {
+  try { return JSON.parse(storeGet('donPuntoInsumos2') || '[]'); } catch { return []; }
+}
 
 interface Ingredient {
   id: string;
@@ -9,6 +15,8 @@ interface Ingredient {
   cantidad: number;
   unidad: string;
   costoUnitario: number;
+  /** Insumo del inventario que se descuenta al vender (Pro) */
+  insumoId?: string;
 }
 
 interface Recipe {
@@ -21,6 +29,8 @@ interface Recipe {
   equipo: string;
   conservacion: string;
   ingredientes: Ingredient[];
+  /** Platillo del menú que usa esta receta (Pro: descuenta inventario al vender) */
+  productoId?: string;
 }
 
 const BLANK_RECIPE: Omit<Recipe, 'id'> = {
@@ -57,6 +67,9 @@ export function RecipesModule() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState<Omit<Recipe, 'id'>>(BLANK_RECIPE);
+  const { rows: menuRows } = useCalculator();
+  const insumos = useMemo(() => readInsumos(), []);
+  const pro = isPro();
   const [ingForm, setIngForm] = useState<Omit<Ingredient, 'id'>>(BLANK_ING);
   const [showIngForm, setShowIngForm] = useState(false);
   const [editIngId, setEditIngId] = useState<string | null>(null);
@@ -77,7 +90,7 @@ export function RecipesModule() {
   }
 
   function openEdit(r: Recipe) {
-    setForm({ nombre: r.nombre, familia: r.familia, porciones: r.porciones, pvp: r.pvp, tiempoMin: r.tiempoMin, equipo: r.equipo, conservacion: r.conservacion, ingredientes: [...r.ingredientes] });
+    setForm({ nombre: r.nombre, familia: r.familia, porciones: r.porciones, pvp: r.pvp, tiempoMin: r.tiempoMin, equipo: r.equipo, conservacion: r.conservacion, ingredientes: [...r.ingredientes], productoId: r.productoId });
     setEditMode(true);
     setSelectedId(r.id);
   }
@@ -306,6 +319,13 @@ export function RecipesModule() {
                 <label className="block text-xs text-slate-500 font-bold mb-1">CONSERVACIÓN</label>
                 <input className="w-full bg-slate-800 border border-carbon-950/10 rounded-xl px-3 py-2 text-carbon-950 text-sm focus:outline-none focus:border-orange-500/50" value={form.conservacion} onChange={e => setForm(f => ({ ...f, conservacion: e.target.value }))} placeholder="Ej. Refrigerar hasta 3 días en recipiente hermético" />
               </div>
+              <div className="col-span-full">
+                <label className="block text-xs text-slate-500 font-bold mb-1">PLATILLO DEL MENÚ {pro ? '(al venderlo se descuentan estos insumos del inventario)' : '· Pro: descuento automático de inventario'}</label>
+                <select disabled={!pro} className="w-full bg-slate-800 border border-carbon-950/10 rounded-xl px-3 py-2 text-carbon-950 text-sm focus:outline-none focus:border-orange-500/50 disabled:opacity-50" value={form.productoId || ''} onChange={e => setForm(f => ({ ...f, productoId: e.target.value || undefined }))}>
+                  <option value="">— Sin enlazar —</option>
+                  {menuRows.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </select>
+              </div>
             </div>
 
             {/* Ingredients */}
@@ -320,6 +340,18 @@ export function RecipesModule() {
               {showIngForm && (
                 <div className="bg-slate-800/50 rounded-xl p-3 mb-3 space-y-3">
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                    {pro && insumos.length > 0 && (
+                      <div className="col-span-2 lg:col-span-4">
+                        <label className="block text-xs text-slate-500 font-bold mb-1">INSUMO DEL INVENTARIO (se descuenta al vender)</label>
+                        <select className="w-full bg-slate-800 border border-carbon-950/10 rounded-lg px-3 py-1.5 text-carbon-950 text-sm focus:outline-none focus:border-orange-500/50" value={ingForm.insumoId || ''} onChange={e => {
+                          const ins = insumos.find(x => x.id === e.target.value);
+                          setIngForm(f => ({ ...f, insumoId: ins?.id, nombre: ins ? ins.nombre : f.nombre, costoUnitario: f.costoUnitario || 0 }));
+                        }}>
+                          <option value="">— Elegir insumo (o escribe el nombre igual al del inventario) —</option>
+                          {insumos.map(x => <option key={x.id} value={x.id}>{x.nombre} ({x.unidad})</option>)}
+                        </select>
+                      </div>
+                    )}
                     <div className="col-span-2">
                       <label className="block text-xs text-slate-500 font-bold mb-1">INGREDIENTE</label>
                       <input className="w-full bg-slate-800 border border-carbon-950/10 rounded-lg px-3 py-1.5 text-carbon-950 text-sm focus:outline-none focus:border-orange-500/50" value={ingForm.nombre} onChange={e => setIngForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Ej. Tomate verde" />

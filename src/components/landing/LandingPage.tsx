@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import {
+import { LockKeyhole, Store, UserCog, PackageCheck, HeartHandshake, BarChart3, FileScan,
   Check, ChevronDown, Receipt, Calculator, Wallet, Boxes, ChefHat, ScanLine, WifiOff, BellRing,
   Smartphone, MessageCircle, Mail, ArrowRight, ShieldCheck,
 } from 'lucide-react';
@@ -164,8 +164,8 @@ const FAQS = [
 const FEATURES: { icon: ReactNode; title: string; text: string }[] = [
   { icon: <Wallet strokeWidth={1.6} />, title: 'Corte de caja que sí cuadra', text: 'Efectivo, tarjeta y apps por separado. Sabes cuánto efectivo debe haber en el cajón antes de contarlo.' },
   { icon: <Receipt strokeWidth={1.6} />, title: 'IVA separado en cada venta', text: 'Ves qué parte es tuya y qué parte es del SAT, en 16% o en 8% de zona fronteriza.' },
-  { icon: <Boxes strokeWidth={1.6} />, title: 'Inventario y compras', text: 'Registra lo que compras y lo que te queda. Toma foto a la factura del proveedor y se captura sola (Pro).' },
-  { icon: <ChefHat strokeWidth={1.6} />, title: 'Recetas con costo real', text: 'Arma la receta de cada platillo y conoce su costo y su margen antes de ponerle precio.' },
+  { icon: <ChefHat strokeWidth={1.6} />, title: 'Inventario y recetas con costo real', text: 'Arma la receta de cada platillo, conoce su costo y su margen, y lleva lo que compras y lo que te queda.' },
+  { icon: <LockKeyhole strokeWidth={1.6} />, title: 'Tus números bajo llave', text: 'La caja solo ve el punto de venta. Reportes, ganancias y ajustes piden el PIN del dueño.' },
   { icon: <ScanLine strokeWidth={1.6} />, title: 'Tu menú desde una foto', text: 'Tómale foto a tu menú impreso y la IA lo convierte en productos con precio.' },
   { icon: <WifiOff strokeWidth={1.6} />, title: 'Funciona sin internet', text: 'Si se cae la red sigues vendiendo. Todo se sube a la nube cuando vuelve la conexión.' },
 ];
@@ -325,6 +325,30 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
           </div>
         </Section>
 
+        {/* Plan Pro */}
+        <Section className="pb-24 sm:pb-32">
+          <div className="rounded-[2rem] bg-gradient-to-br from-maiz-50 via-white to-agave-50 ring-1 ring-carbon-200/70 p-8 sm:p-14">
+            <span className="inline-flex rounded-full bg-maiz-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-maiz-800">Plan Pro</span>
+            <h2 className="mt-5 max-w-2xl font-display text-4xl sm:text-5xl font-bold leading-[1.05] tracking-[-0.03em]">Para cuando ya tienes equipo, más de un local y quieres crecer.</h2>
+            <div className="mt-12 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+              {[
+                { icon: <Store strokeWidth={1.6} />, t: 'Varias sucursales', d: 'Cada local cobra con su caja, su corte y su inventario. Tú ves todas juntas: cuál vende más y cuál va para abajo.' },
+                { icon: <UserCog strokeWidth={1.6} />, t: 'Cada empleado con su PIN', d: 'Sabes quién cobró, quién hizo descuentos y quién canceló tickets. Cajeros y gerentes con permisos distintos.' },
+                { icon: <PackageCheck strokeWidth={1.6} />, t: 'Inventario que se descuenta solo', d: 'Al vender un platillo se restan los insumos de su receta. Te llega un aviso al celular cuando algo se está acabando.' },
+                { icon: <HeartHandshake strokeWidth={1.6} />, t: 'Clientes que regresan', d: 'Guarda a tus clientes con su WhatsApp, mira lo que compran y prémialos: "tu orden 10 va por la casa".' },
+                { icon: <BarChart3 strokeWidth={1.6} />, t: 'Reportes avanzados', d: 'Esta semana contra la pasada, horas pico, mejores días y platillos estrella. Descarga a Excel o PDF.' },
+                { icon: <FileScan strokeWidth={1.6} />, t: 'Facturas leídas con IA', d: 'Tómale foto a la factura del proveedor y las compras se capturan solas en tu inventario.' },
+              ].map((f) => (
+                <div key={f.t}>
+                  <div className="grid h-11 w-11 place-items-center rounded-xl bg-white text-agave-700 ring-1 ring-carbon-200 [&>svg]:h-5 [&>svg]:w-5">{f.icon}</div>
+                  <h3 className="mt-5 text-lg font-semibold">{f.t}</h3>
+                  <p className="mt-2 text-carbon-600 leading-relaxed">{f.d}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Section>
+
         {/* Cómo empiezas */}
         <Section className="pb-24 sm:pb-32">
           <h2 className="font-display text-4xl sm:text-5xl font-bold tracking-[-0.03em]">Empiezas hoy mismo</h2>
@@ -355,7 +379,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 name="Básico"
                 price={350}
                 text="Para un negocio con una sucursal que quiere orden y vender más."
-                items={['1 sucursal, ventas ilimitadas', 'Calculadora Uber, DiDi y Rappi', 'Tu menú desde una foto con IA', 'Combos sugeridos para mover tus platillos', 'Corte de caja con IVA, inventario y recetario', 'Respaldo en la nube y app instalable']}
+                items={['1 sucursal, ventas ilimitadas', 'Calculadora Uber, DiDi y Rappi', 'Tu menú desde una foto con IA', 'Combos sugeridos para mover tus platillos', 'Corte de caja con IVA, inventario y recetario', 'Reportes y ganancias protegidos con PIN', 'Respaldo en la nube y app instalable']}
                 cta="Elegir Básico"
                 onClick={onSubscribe}
               />
@@ -363,8 +387,8 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 featured
                 name="Pro"
                 price={799}
-                text="Para restaurantes con más movimiento que quieren ahorrar horas de captura."
-                items={['Todo lo del plan Básico', 'Facturas de proveedor capturadas con IA', 'Soporte prioritario por WhatsApp']}
+                text="Para negocios con equipo, varias sucursales y ganas de crecer."
+                items={['Todo lo del plan Básico', 'Varias sucursales con reporte de todas juntas', 'Empleados con su propio PIN y reporte por cajero', 'Inventario que se descuenta solo y avisos al celular', 'Clientes frecuentes y recompensas por visita', 'Reportes avanzados con Excel y PDF', 'Facturas de proveedor leídas con IA', 'Soporte prioritario por WhatsApp']}
                 cta="Elegir Pro"
                 onClick={onSubscribe}
               />

@@ -7,6 +7,7 @@ import { hydrateUser, attachUserOffline, clearUser, flushAll, onSyncStatus, type
 import { apiPost } from './lib/api';
 import { supportLink } from './config';
 import { Mark } from './components/brand/Logo';
+import { setPlan, type Plan } from './lib/session';
 
 const App = lazy(() => import('./App'));
 const LandingPage = lazy(() => import('./components/landing/LandingPage').then((m) => ({ default: m.LandingPage })));
@@ -21,14 +22,16 @@ function Splash({ text = 'Cargando Don Punto…' }: { text?: string }) {
 }
 
 type Phase = 'checking' | 'landing' | 'auth' | 'loading' | 'ready';
-interface SubInfo { status: string; hasStripeCustomer: boolean }
+interface SubInfo { status: string; hasStripeCustomer: boolean; plan?: Plan }
 
 const subCacheKey = (uid: string) => `dp:${uid}:__sub`;
 
 async function fetchSubscription(uid: string): Promise<SubInfo> {
   try {
-    const s = await pb.collection('subscriptions').getFirstListItem(pb.filter('owner = {:o}', { o: uid }), { requestKey: null });
-    const info = { status: s.status === 'trialing' ? 'active' : (s.status as string) || 'inactive', hasStripeCustomer: !!s.stripe_customer_id };
+    const s = await pb.collection('subscriptions').getFirstListItem(pb.filter('owner = {:o}', { o: uid }), { expand: 'plan', requestKey: null });
+    const planName = String((s.expand as any)?.plan?.name || '').toLowerCase();
+    const plan: Plan = planName.startsWith('b') ? 'basico' : planName.startsWith('p') ? 'pro' : 'cortesia';
+    const info = { status: s.status === 'trialing' ? 'active' : (s.status as string) || 'inactive', hasStripeCustomer: !!s.stripe_customer_id, plan };
     localStorage.setItem(subCacheKey(uid), JSON.stringify(info));
     return info;
   } catch (e: any) {
@@ -163,6 +166,7 @@ function RootApp() {
       await Promise.race([flushAll(), new Promise((r) => setTimeout(r, 4000))]);
     } catch { /* se queda pendiente en este equipo */ }
     clearUser();
+    sessionStorage.removeItem('dp:operator');
     pb.authStore.clear();
     setUid(null);
     setEmail(null);
@@ -217,6 +221,7 @@ function RootApp() {
     );
   }
 
+  setPlan(sub.plan || 'cortesia');
   return (
     <>
       <Suspense fallback={<Splash text="Cargando tus datos…" />}>
