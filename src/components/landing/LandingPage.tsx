@@ -181,7 +181,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
       {/* Encabezado */}
       <header className="sticky top-0 z-40 border-b border-carbon-200/60 bg-[#FAFAF7]/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-8">
-          <a href="#inicio" aria-label="Don Punto, inicio" className="shrink-0"><Logo tone="light" size={30} /></a>
+          <a href="#inicio" aria-label="Don Punto, inicio" className="shrink-0 [--wm-h:11.5px] min-[380px]:[--wm-h:13px] min-[420px]:[--wm-h:16px] sm:[--wm-h:18.6px]"><Logo tone="light" size={30} /></a>
           <nav className="hidden md:flex items-center gap-8 text-sm text-carbon-600">
             <a href="#como-funciona" className="hover:text-carbon-950">Cómo funciona</a>
             <a href="#precios" className="hover:text-carbon-950">Precios</a>
@@ -433,7 +433,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
           <div className="relative overflow-hidden rounded-[2rem] bg-agave-600 px-8 py-16 sm:px-16 sm:py-20 text-white">
             <div aria-hidden="true" className="absolute -right-24 -bottom-24 h-80 w-80 rounded-full bg-maiz-400/90" />
             <div className="relative max-w-2xl">
-              <Mark size={56} className="ring-2 ring-white/20" />
+              <Mark size={56} className="ring-2 ring-white/40" />
               <h2 className="mt-8 font-display text-4xl sm:text-6xl font-bold leading-[1.02] tracking-[-0.035em]">Deja de adivinar cuánto ganas.</h2>
               <p className="mt-5 text-lg text-agave-100">Crea tu cuenta en un minuto y cobra tu primera venta hoy.</p>
               <button onClick={onSubscribe} className="mt-9 rounded-full bg-white px-8 py-4 text-base font-semibold text-agave-800 hover:bg-agave-50 transition-colors">

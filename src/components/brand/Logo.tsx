@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 
-/** Ícono "D." en mosaico agave (app icon / favicon) */
+/** Ícono D + ticket en mosaico marino (app icon / favicon) */
 export function Mark({ size = 36, className }: { size?: number; className?: string }) {
   return (
     <img
@@ -16,13 +16,13 @@ export function Mark({ size = 36, className }: { size?: number; className?: stri
   );
 }
 
-/** Logotipo "Don Punto." en curvas. tone="light" para fondos claros, "dark" para fondos oscuros */
+/** Logotipo "DonPunto.com" en curvas. tone="light" para fondos claros, "dark" para fondos oscuros */
 export function Wordmark({ tone = 'light', height = 28, className }: { tone?: 'light' | 'dark'; height?: number; className?: string }) {
   return (
     <img
       src={tone === 'light' ? '/brand/wordmark.svg' : '/brand/wordmark-white.svg'}
       height={height}
-      style={{ height }}
+      style={{ height: `var(--wm-h, ${height}px)` }}
       alt="Don Punto"
       draggable={false}
       className={clsx('w-auto select-none', className)}
