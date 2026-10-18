@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { usePOS } from '../../hooks/usePOS';
 import { useCalculator } from '../../hooks/useCalculator';
-import { Sparkles, Loader2, Trophy, AlertCircle } from 'lucide-react';
+import { Sparkles, Loader2, Trophy, AlertCircle, Megaphone } from 'lucide-react';
+import { PromoBoostModal, type PromoInput } from './PromoBoostModal';
 import clsx from 'clsx';
 import { storeGet, storeSet } from '../../lib/cloudStore';
 import { pb } from '../../lib/pocketbase';
@@ -101,7 +102,7 @@ const SECTIONS = [
     key: 'rezagados' as const,
     label: 'REZAGADO',
     range: '< 5 ventas',
-    desc: 'Necesitan atención',
+    desc: 'Toca «Impulsar» y la IA te arma una promo',
     color: 'text-rose-400',
     bg: 'bg-rose-500/10',
     border: 'border-rose-500/30',
@@ -133,7 +134,33 @@ function incrementComboUsage(monthKey: string) {
 
 export function MenuEngineeringModule() {
   const { crack, diamante, corredor, rezagados, top10 } = useMonthlyRanking();
+  const { transactions, settings } = usePOS();
+  const { rows } = useCalculator();
+  const [boost, setBoost] = useState<PromoInput | null>(null);
   const [combos, setCombos] = useState<ComboSuggestion[]>([]);
+
+  // Día más flojo (últimos 60 días) para sugerir cuándo lanzar la promo
+  const slowDay = useMemo(() => {
+    const since = Date.now() - 60 * 86400000;
+    const days = [0, 0, 0, 0, 0, 0, 0];
+    let n = 0;
+    transactions.forEach(tx => { const d = new Date(tx.date); if (d.getTime() >= since) { days[d.getDay()] += tx.amount || 0; n++; } });
+    if (n < 10) return '';
+    return ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'][days.indexOf(Math.min(...days))];
+  }, [transactions]);
+
+  function openBoost(product: RankedProduct) {
+    const row = rows.find(r => r.id === product.id);
+    if (!row) return;
+    const stars = crack
+      .map(c => rows.find(r => r.id === c.id))
+      .filter((r): r is NonNullable<typeof r> => !!r && r.id !== row.id && (r.salePrice || 0) > 0)
+      .map(r => ({ name: r.name, price: r.salePrice, cost: r.costPrice || 0 }));
+    setBoost({
+      name: row.name, description: row.description, salePrice: row.salePrice || 0, costPrice: row.costPrice || 0,
+      quantity: product.quantity, slowDay, businessName: settings.businessName, businessPhone: settings.businessPhone, stars,
+    });
+  }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -181,6 +208,7 @@ export function MenuEngineeringModule() {
 
   return (
     <div className="space-y-6">
+      {boost && <PromoBoostModal product={boost} onClose={() => setBoost(null)} />}
       {/* Header */}
       <div className="flex items-center justify-between">
         <span className="text-xs font-black text-slate-500 uppercase tracking-widest">
@@ -253,6 +281,15 @@ export function MenuEngineeringModule() {
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-bold text-carbon-950 truncate">{product.name}</div>
                           </div>
+                          {section.key === 'rezagados' && (
+                            <button
+                              onClick={() => openBoost(product)}
+                              className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-black text-white bg-rose-500 hover:bg-rose-400 px-3 py-1.5 rounded-lg active:scale-95"
+                              title="Crear promoción con IA para vender más este platillo"
+                            >
+                              <Megaphone size={13} /> Impulsar
+                            </button>
+                          )}
                           <div className="text-right shrink-0">
                             <div className={clsx('text-sm font-black tabular-nums', section.color)}>
                               {product.quantity}
