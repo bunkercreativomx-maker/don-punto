@@ -22,9 +22,10 @@ interface POSTicketProps {
   businessPhone?: string;
   businessAddress?: string;
   discountAmount?: number;
+  waiterName?: string;
 }
 
-export function POSTicket({ items, total, paymentMethod, destination, customerName, date, isKitchen = false, paperSize = '58mm', receivedAmount, businessName, businessPhone, businessAddress, discountAmount }: POSTicketProps) {
+export function POSTicket({ items, total, paymentMethod, destination, customerName, date, isKitchen = false, paperSize = '58mm', receivedAmount, businessName, businessPhone, businessAddress, discountAmount, waiterName }: POSTicketProps) {
   const { rows } = useCalculator();
   const printDate = date ? new Date(date) : new Date();
   const subtotal = total + (discountAmount || 0);
@@ -61,6 +62,12 @@ export function POSTicket({ items, total, paymentMethod, destination, customerNa
             <span>Origen:</span>
             <span>{destination.toUpperCase()}</span>
         </div>
+        {waiterName && (
+          <div className="flex-row-print">
+              <span>Mesero:</span>
+              <span>{waiterName.toUpperCase()}</span>
+          </div>
+        )}
       </div>
 
       <div className="mb-4">

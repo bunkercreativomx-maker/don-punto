@@ -3,7 +3,7 @@ import { usePOS } from '../../hooks/usePOS';
 import { useCalculator } from '../../hooks/useCalculator'; 
 import type { CartItem, POSPaymentMethod, OrderDestination, OpenTicket } from '../../types/pos';
 import { Plus, Trash2, ShoppingCart, Minus, CreditCard, Save, History, Bike, Lock, Search, X, CheckCircle, Gift, UserPlus, AlertTriangle } from 'lucide-react';
-import { isPro, authorizeWithPin } from '../../lib/session';
+import { isPro, authorizeWithPin, useSession, lockSession } from '../../lib/session';
 import { getClients, addClient, recordVisit, rewardReady, rewardDiscount, getLoyalty, type Client } from '../../lib/clients';
 import { applySaleToInventory, type StockAlert } from '../../lib/inventoryAuto';
 import { apiPost } from '../../lib/api';
@@ -102,6 +102,10 @@ export function POSDashboard() {
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState(false);
   const [pinAction, setPinAction] = useState<(() => void) | null>(null);
+  // Mesero: solo toma órdenes. Y si se reanuda una cuenta, la venta sigue a nombre de quien la tomó.
+  const { operator } = useSession();
+  const waiterMode = operator?.role === 'mesero';
+  const [resumedWaiter, setResumedWaiter] = useState<{ id: string; name: string } | null>(null);
 
   const requirePin = (action: () => void) => {
     setPinAction(() => action);
@@ -130,7 +134,9 @@ export function POSDashboard() {
     customerName: string;
     receivedAmount?: number;
     discountAmount?: number;
-  } | null>(null);
+    kitchenOnly?: boolean;
+    waiterName?: string;
+    } | null>(null);
 
   // Search query state
   const [searchQuery, setSearchQuery] = useState('');
@@ -259,6 +265,7 @@ export function POSDashboard() {
   }, [cartTotal, discountAmount]);
 
   const handleCheckout = () => {
+    if (waiterMode) return; // el mesero no cobra
     if (cart.length === 0) return;
     
     // If it's cash, show calculator first
@@ -287,7 +294,8 @@ export function POSDashboard() {
         : '';
     const rewardStr = rewardOn && selectedClient ? ' (Recompensa cliente frecuente)' : '';
     addTransaction(finalTotal, paymentMethod, orderDestination, detail + (rewardStr || discountStr), customerName, undefined, [...cart], discountAmount,
-      selectedClient ? { clientId: selectedClient.id, rewardApplied: rewardOn } : undefined);
+      { ...(selectedClient ? { clientId: selectedClient.id, rewardApplied: rewardOn } : {}), ...(resumedWaiter ? { waiterId: resumedWaiter.id, waiterName: resumedWaiter.name } : {}) });
+    setResumedWaiter(null);
     if (pro && selectedClient) { recordVisit(selectedClient.id, finalTotal, rewardOn); setClients(getClients()); }
     // Inventario automático (Pro): descontar insumos de las recetas
     if (pro) {
@@ -323,16 +331,29 @@ export function POSDashboard() {
   const handleSaveTicket = () => {
       if (cart.length === 0) return;
       const customerName = orderCustomerName.trim() || cart.find(i => i.customerNote)?.customerNote || 'Sin Nombre';
-      saveTicket(customerName, orderDestination, cart, finalTotal);
+      saveTicket(customerName, orderDestination, cart, finalTotal, resumedWaiter || undefined);
+      const items = [...cart];
       setCart([]);
       setOrderCustomerName('');
       setDiscountInput(0);
+      setResumedWaiter(null);
+      if (waiterMode) {
+          // Comanda a cocina y se cierra la sesión del mesero para que el siguiente ponga su PIN
+          if (settings.printKitchenTicket) {
+              setLastOrder({ items, total: finalTotal, paymentMethod: 'Efectivo', destination: orderDestination, customerName, kitchenOnly: true, waiterName: operator?.name });
+              runPrint('ticket', () => lockSession());
+          } else {
+              showToast(`Orden de ${customerName} enviada`);
+              setTimeout(() => lockSession(), 1200);
+          }
+      }
   };
 
   const handleResumeTicket = (ticket: OpenTicket) => {
       setCart(ticket.items);
       setOrderDestination(ticket.destination);
       setOrderCustomerName(ticket.customerName === 'Sin Nombre' ? '' : ticket.customerName);
+      setResumedWaiter(ticket.waiterId && ticket.waiterName ? { id: ticket.waiterId, name: ticket.waiterName } : null);
       deleteOpenTicket(ticket.id);
       setIsTicketsModalOpen(false);
   };
@@ -613,8 +634,8 @@ export function POSDashboard() {
                                 )}
                             </div>
                         )}
-                        {/* Discount Field - always visible */}
-                        <div className="flex items-center gap-2 bg-slate-950/50 border border-carbon-950/10 rounded-xl px-3 py-1.5">
+                        {/* Descuento: el mesero no puede */}
+                        {!waiterMode && <div className="flex items-center gap-2 bg-slate-950/50 border border-carbon-950/10 rounded-xl px-3 py-1.5">
                             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Descuento:</span>
                             <div className="flex items-center gap-2 flex-grow justify-end">
                                 <input
@@ -651,7 +672,7 @@ export function POSDashboard() {
                                     </button>
                                 </div>
                             </div>
-                        </div>
+                        </div>}
                         {discountAmount > 0 && (
                             <div className="flex justify-between items-center text-xs font-bold text-slate-500 px-1">
                                 <span>Subtotal</span>
@@ -665,9 +686,18 @@ export function POSDashboard() {
                             </div>
                         )}
                         <div className="flex justify-between items-end mb-2 pt-1 px-1">
-                            <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Total Cobrar</span>
+                            <span className="text-xs font-black text-slate-500 uppercase tracking-widest">{waiterMode ? 'Total' : 'Total Cobrar'}</span>
                             <span className="text-3xl font-black text-carbon-950 tracking-tighter">${money(finalTotal)}</span>
                         </div>
+                        {waiterMode ? (
+                            <button
+                                disabled={cart.length === 0}
+                                onClick={handleSaveTicket}
+                                className="w-full bg-indigo-500 hover:bg-indigo-400 disabled:bg-slate-800 disabled:text-slate-500 text-white font-black py-4 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2"
+                            >
+                                <Save size={20}/> ENVIAR ORDEN
+                            </button>
+                        ) : (
                         <div className="grid grid-cols-2 gap-3">
                             <button 
                                 disabled={cart.length === 0}
@@ -684,6 +714,7 @@ export function POSDashboard() {
                                 <CreditCard size={20}/> FINALIZAR
                             </button>
                         </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -908,7 +939,7 @@ export function POSDashboard() {
                                         <span className="text-sm font-bold text-carbon-950">{ticket.customerName}</span>
                                     </div>
                                     <div className="text-[10px] text-slate-600 font-medium">
-                                        Creado: {new Date(ticket.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {ticket.items.length} artículos
+                                        Creado: {new Date(ticket.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {ticket.items.length} artículos{ticket.waiterName ? ` • ${ticket.waiterName}` : ''}
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4">
@@ -942,7 +973,7 @@ export function POSDashboard() {
     {lastOrder && (
         <PrintArea kind="ticket" paper={settings.paperSize}>
             {/* Customer Ticket */}
-            {settings.printCustomerTicket && (
+            {settings.printCustomerTicket && !lastOrder.kitchenOnly && (
                 <POSTicket 
                     items={lastOrder.items}
                     total={lastOrder.total}
@@ -959,7 +990,7 @@ export function POSDashboard() {
             )}
             
             {/* Separator for thermal paper if both are printed */}
-            {settings.printCustomerTicket && settings.printKitchenTicket && (
+            {settings.printCustomerTicket && settings.printKitchenTicket && !lastOrder.kitchenOnly && (
                 settings.paperSize === 'Standard'
                     ? <div className="print-page-break" />
                     : <div className="h-10 border-b border-black border-dashed mb-10" />
@@ -974,6 +1005,7 @@ export function POSDashboard() {
                     destination={lastOrder.destination}
                     customerName={lastOrder.customerName}
                     isKitchen={true}
+                    waiterName={lastOrder.waiterName}
                     paperSize={settings.paperSize}
                     businessName={settings.businessName}
                 />

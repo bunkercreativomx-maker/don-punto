@@ -4,7 +4,8 @@
  * Modelo de acceso:
  *  - Sin nadie identificado = "caja": solo ve las pantallas que el dueño deje abiertas (por defecto, solo Punto de Venta).
  *  - PIN del dueño (Ajustes → Seguridad) = acceso total por 15 minutos sin actividad.
- *  - Plan Pro: cada empleado tiene su PIN y un rol (cajero o gerente). Las ventas quedan a su nombre.
+ *  - Plan Pro: cada empleado tiene su PIN y un rol (mesero, cajero o gerente). Las ventas quedan a su nombre.
+ *  - Mesero: solo toma órdenes (cuentas abiertas + comanda a cocina). No cobra, no descuenta, no borra.
  */
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { storeGet, storeSet, getActiveBranch, MAIN_BRANCH } from './cloudStore';
@@ -35,7 +36,7 @@ const DEFAULT_CAJA: Tab[] = ['clients'];
 const OWNER_ONLY: Tab[] = ['settings', 'financial', 'team', 'branches'];
 
 // ---------------------------------------------------------------- equipo
-export type Role = 'cajero' | 'gerente';
+export type Role = 'mesero' | 'cajero' | 'gerente';
 export interface Employee { id: string; name: string; pin: string; role: Role; branchId?: string; active: boolean }
 const TEAM_KEY = 'donPuntoEquipo';
 export function getTeam(): Employee[] {
@@ -123,6 +124,7 @@ export function lockSession() { setOperator(null); }
 
 export function canAccess(tab: Tab, op: Operator | null = operator): boolean {
   if (tab === 'pos') return true;
+  if (op?.role === 'mesero') return false;
   if ((tab === 'clients' || tab === 'branches' || tab === 'team') && !isPro() && op?.role !== 'dueno') return false;
   if (!op || op.role === 'cajero') return getCajaTabs().includes(tab);
   if (op.role === 'gerente') return !OWNER_ONLY.includes(tab);
@@ -133,6 +135,9 @@ export function canAccess(tab: Tab, op: Operator | null = operator): boolean {
 export function requiresCashierLogin(): boolean {
   return isPro() && getTeam().some((e) => e.active);
 }
+
+export const isWaiter = (op: Operator | null = operator) => op?.role === 'mesero';
+export const ROLE_LABEL: Record<Operator['role'], string> = { dueno: 'Todo abierto', gerente: 'Gerente', cajero: 'Cajero', mesero: 'Mesero' };
 
 /** Hook: re-renderiza cuando cambia la sesión, el equipo o las sucursales */
 export function useSession() {

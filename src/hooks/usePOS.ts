@@ -53,7 +53,7 @@ export function usePOS() {
     dateStr?: string,
     items?: CartItem[],
     discountAmount?: number,
-    extra?: { clientId?: string; rewardApplied?: boolean }
+    extra?: { clientId?: string; rewardApplied?: boolean; waiterId?: string; waiterName?: string }
   ) => {
     const op = getOperator();
     const newTx: POSTransaction = {
@@ -87,8 +87,13 @@ export function usePOS() {
     setTransactions((prev) => prev.filter((tx) => tx.id !== id));
   };
 
-  const saveTicket = (customerName: string, destination: OrderDestination, items: CartItem[], total: number) => {
+  const saveTicket = (customerName: string, destination: OrderDestination, items: CartItem[], total: number, waiter?: { id: string; name: string }) => {
+    // La orden queda a nombre de quien la tomó (o de quien la abrió originalmente)
+    const op = getOperator();
+    const w = waiter || (op ? { id: op.id, name: op.name } : undefined);
     const newTicket: OpenTicket = {
+        waiterId: w?.id,
+        waiterName: w?.name,
         id: crypto.randomUUID(),
         customerName: customerName || 'Cliente Genérico',
         createdAt: new Date().toISOString(),

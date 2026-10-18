@@ -25,7 +25,7 @@ import { FinancialModule } from './components/financial/FinancialModule';
 import { storeGet, storeSet } from './lib/cloudStore';
 import { money } from './lib/format';
 import { PinPad } from './components/access/PinPad';
-import { useSession, findOperatorByPin, signIn, canAccess as canAccessAs, lockSession, requiresCashierLogin, currentBranch, getBranches, isPro, TAB_LABEL, CAJA_CONFIGURABLE, getCajaTabs, setCajaTabs, type Tab } from './lib/session';
+import { useSession, findOperatorByPin, ROLE_LABEL, signIn, canAccess as canAccessAs, lockSession, requiresCashierLogin, currentBranch, getBranches, isPro, TAB_LABEL, CAJA_CONFIGURABLE, getCajaTabs, setCajaTabs, type Tab } from './lib/session';
 import { setActiveBranch } from './lib/cloudStore';
 import { TeamModule } from './components/team/TeamModule';
 import { BranchesModule } from './components/branches/BranchesModule';
@@ -447,8 +447,8 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
       {/* --- PIN: desbloquear pantallas / cambiar de cajero --- */}
       {(pinFor || needCashier) && (
           <PinPad
-              title={needCashier || pinFor === 'switch' ? '¿Quién cobra?' : `Desbloquear ${TAB_LABEL[pinFor as Tab]}`}
-              subtitle={needCashier || pinFor === 'switch' ? 'Escribe tu PIN para empezar a cobrar.' : 'Esta sección está protegida. Escribe el PIN del dueño o de un gerente.'}
+              title={needCashier || pinFor === 'switch' ? '¿Quién eres?' : `Desbloquear ${TAB_LABEL[pinFor as Tab]}`}
+              subtitle={needCashier || pinFor === 'switch' ? 'Escribe tu PIN para empezar.' : 'Esta sección está protegida. Escribe el PIN del dueño o de un gerente.'}
               onClose={needCashier ? undefined : () => setPinFor(null)}
               onSubmit={(pin) => {
                   const op = findOperatorByPin(pin, posSettings.adminPin);
@@ -510,15 +510,18 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
             </div>
           )}
           <div className="flex items-center gap-2 rounded-xl px-2 lg:px-3 py-1.5">
-            {operator ? <LockOpen size={16} className="text-agave-600 shrink-0" /> : <Lock size={16} className="text-carbon-400 shrink-0" />}
+            {/* En pantalla chica el candado es el botón: bloquear / entrar con PIN */}
+            <button type="button" onClick={() => (operator ? (lockSession(), setActiveTab('pos')) : setPinFor('switch'))} title={operator ? 'Bloquear / cambiar de persona' : 'Entrar con PIN'} className="shrink-0">
+              {operator ? <LockOpen size={16} className="text-agave-600" /> : <Lock size={16} className="text-carbon-400" />}
+            </button>
             <div className="hidden lg:block flex-1 min-w-0">
               <div className="text-[11px] font-semibold text-carbon-800 truncate">{operator ? operator.name : 'Modo caja'}</div>
-              <div className="text-[10px] text-carbon-500 truncate">{operator ? (operator.role === 'dueno' ? 'Todo abierto' : operator.role === 'gerente' ? 'Gerente' : 'Cajero') : 'Secciones protegidas'}</div>
+              <div className="text-[10px] text-carbon-500 truncate">{operator ? ROLE_LABEL[operator.role] : 'Secciones protegidas'}</div>
             </div>
             {operator ? (
               <button onClick={() => { lockSession(); setActiveTab('pos'); }} className="hidden lg:block text-[11px] font-bold text-carbon-600 hover:text-carbon-900 rounded-lg px-2 py-1 hover:bg-carbon-100" title="Bloquear">Bloquear</button>
             ) : (
-              <button onClick={() => setPinFor('reports')} className="hidden lg:block text-[11px] font-bold text-agave-700 hover:text-agave-800 rounded-lg px-2 py-1 hover:bg-agave-50">Entrar</button>
+              <button onClick={() => setPinFor('switch')} className="hidden lg:block text-[11px] font-bold text-agave-700 hover:text-agave-800 rounded-lg px-2 py-1 hover:bg-agave-50">Entrar</button>
             )}
           </div>
         </div>

@@ -27,6 +27,9 @@ export interface POSTransaction {
   /** Quién cobró (plan Pro con equipo) */
   employeeId?: string;
   employeeName?: string;
+  /** Mesero que tomó la orden (si vino de una cuenta abierta) */
+  waiterId?: string;
+  waiterName?: string;
   /** Cliente registrado (plan Pro) */
   clientId?: string;
   /** Recompensa de lealtad aplicada */
@@ -40,6 +43,9 @@ export interface OpenTicket {
     items: CartItem[];
     destination: OrderDestination;
     total: number;
+    /** Quién tomó la orden */
+    waiterId?: string;
+    waiterName?: string;
 }
 
 export interface POSSummary {

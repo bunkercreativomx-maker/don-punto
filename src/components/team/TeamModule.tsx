@@ -8,6 +8,7 @@ import { ProUpsell } from '../pro/ProUpsell';
 import type { Cancellation } from '../../types/pos';
 
 const ROLE_INFO: Record<Role, string> = {
+  mesero: 'Toma órdenes y las manda a cocina. No cobra, no hace descuentos ni borra.',
   cajero: 'Cobra y ve solo lo que dejes abierto a la caja.',
   gerente: 'Todo menos Ajustes, Financiero, Equipo y Sucursales.',
 };
@@ -28,20 +29,22 @@ export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adm
     if (range === 'mes') start.setDate(1);
     let cancels: Cancellation[] = [];
     try { cancels = JSON.parse(storeGet('donPuntoCancelaciones') || '[]'); } catch { /* vacío */ }
-    const map = new Map<string, { name: string; ventas: number; tickets: number; descuentos: number; cancelaciones: number; cancelado: number }>();
+    const map = new Map<string, { name: string; ventas: number; tickets: number; descuentos: number; cancelaciones: number; cancelado: number; ordenes: number; atendido: number }>();
     const get = (id: string, name: string) => {
-      if (!map.has(id)) map.set(id, { name, ventas: 0, tickets: 0, descuentos: 0, cancelaciones: 0, cancelado: 0 });
+      if (!map.has(id)) map.set(id, { name, ventas: 0, tickets: 0, descuentos: 0, cancelaciones: 0, cancelado: 0, ordenes: 0, atendido: 0 });
       return map.get(id)!;
     };
     transactions.filter((t) => new Date(t.date) >= start).forEach((t) => {
       const r = get(t.employeeId || 'sin', t.employeeName || 'Sin identificar');
       r.ventas += t.amount; r.tickets += 1; r.descuentos += t.discountAmount || 0;
+      // Mesero que tomó la orden (para propinas / comisiones)
+      if (t.waiterId) { const w = get(t.waiterId, t.waiterName || 'Mesero'); w.ordenes += 1; w.atendido += t.amount; }
     });
     cancels.filter((c) => new Date(c.date) >= start).forEach((c) => {
       const r = get(c.byId || 'sin', c.byName || 'Sin identificar');
       r.cancelaciones += 1; r.cancelado += c.amount;
     });
-    return [...map.values()].sort((a, b) => b.ventas - a.ventas);
+    return [...map.values()].sort((a, b) => b.ventas + b.atendido - (a.ventas + a.atendido));
   }, [transactions, range]);
 
   if (!isPro()) {
@@ -79,6 +82,7 @@ export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adm
             <input className={input} placeholder="Nombre (ej. Juan)" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             <input className={input} placeholder="PIN de 4 a 6 números" inputMode="numeric" maxLength={6} value={form.pin} onChange={(e) => setForm({ ...form, pin: e.target.value.replace(/\D/g, '') })} />
             <select className={input} value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as Role })}>
+              <option value="mesero">Mesero</option>
               <option value="cajero">Cajero</option>
               <option value="gerente">Gerente</option>
             </select>
@@ -106,6 +110,7 @@ export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adm
                     <div className="text-xs text-carbon-500">PIN •••• · {branches.find((b) => b.id === e.branchId)?.name || 'Todas las sucursales'}</div>
                   </div>
                   <select value={e.role} onChange={(ev) => update(e.id, { role: ev.target.value as Role })} className="rounded-lg border border-carbon-950/15 bg-white px-2 py-1.5 text-xs font-semibold text-carbon-800">
+                    <option value="mesero">Mesero</option>
                     <option value="cajero">Cajero</option>
                     <option value="gerente">Gerente</option>
                   </select>
@@ -121,7 +126,7 @@ export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adm
 
       <div className="xl:col-span-2 rounded-3xl border border-carbon-950/10 bg-white p-6 h-fit">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="font-display text-lg font-bold text-carbon-950 flex items-center gap-2"><ShieldCheck size={18} className="text-agave-600" /> Por cajero</h3>
+          <h3 className="font-display text-lg font-bold text-carbon-950 flex items-center gap-2"><ShieldCheck size={18} className="text-agave-600" /> Por persona</h3>
           <div className="flex rounded-full bg-carbon-100 p-0.5 text-xs font-semibold">
             {(['hoy', 'semana', 'mes'] as const).map((r) => (
               <button key={r} onClick={() => setRange(r)} className={`rounded-full px-3 py-1 capitalize ${range === r ? 'bg-white text-carbon-900 shadow-sm' : 'text-carbon-600'}`}>{r}</button>
@@ -136,6 +141,7 @@ export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adm
                   <div className="font-semibold text-carbon-900">{r.name}</div>
                   <div className="font-display text-lg font-bold text-carbon-950 tabular-nums">${money(r.ventas)}</div>
                 </div>
+                {r.ordenes > 0 && <div className="mt-1 text-xs text-agave-700 font-semibold">Como mesero: {r.ordenes} {r.ordenes === 1 ? 'orden' : 'órdenes'} · ${money(r.atendido)}</div>}
                 <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
                   <div><div className="text-carbon-500">Tickets</div><div className="font-semibold text-carbon-800 tabular-nums">{r.tickets}</div></div>
                   <div><div className="text-carbon-500">Descuentos</div><div className={`font-semibold tabular-nums ${r.descuentos > 0 ? 'text-maiz-800' : 'text-carbon-800'}`}>${money(r.descuentos)}</div></div>
