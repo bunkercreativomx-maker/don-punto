@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Lock, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { pb } from '../../lib/pocketbase';
-import { Mark, Wordmark } from '../brand/Logo';
+import { Logo } from '../brand/Logo';
 
 /** Pantalla del enlace que llega por correo: /restablecer?token=... */
 export function ResetPasswordPage() {
@@ -35,8 +35,7 @@ export function ResetPasswordPage() {
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-slate-900 border border-carbon-950/10 rounded-3xl p-8 shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)]">
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-5"><Mark size={56} /></div>
-          <div className="flex justify-center"><Wordmark tone="light" height={30} /></div>
+          <div className="flex justify-center"><Logo size={72} tagline /></div>
           <p className="text-slate-400 mt-2 text-sm font-medium">{done ? 'Listo.' : 'Crea tu contraseña nueva.'}</p>
         </div>
         {done ? (

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Mail, Lock, Building2, ChevronRight, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
 import { pb } from '../../lib/pocketbase';
-import { Mark, Wordmark } from '../brand/Logo';
+import { Logo } from '../brand/Logo';
 
 
 function friendlyError(err: any, isLogin: boolean): string {
@@ -78,9 +78,8 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
                 )}
                 <div className="bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-3xl p-8 shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)]">
                     <div className="text-center mb-8">
-                        <div className="flex justify-center mb-5"><Mark size={56} /></div>
                         <h1 className="sr-only">Don Punto</h1>
-                        <div className="flex justify-center"><Wordmark tone="light" height={30} /></div>
+                        <div className="flex justify-center"><Logo size={72} tagline /></div>
                         <p className="text-slate-400 mt-2 text-sm font-medium">
                             {forgot ? 'Escribe tu correo y te mandamos un enlace para crear una contraseña nueva.' : isLogin ? 'Ingresa a tu cuenta para gestionar tu restaurante.' : 'Crea tu cuenta y comienza a vender en minutos.'}
                         </p>

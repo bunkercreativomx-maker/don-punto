@@ -15,7 +15,7 @@ export default defineConfig({
       registerType: 'prompt',
       injectRegister: false,
       injectManifest: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,webp,ico,woff2}'],
         globIgnores: ['**/og-image.png', '**/mockups/**', '**/screens/**', '**/brand/logo-1600.png', '**/brand/mark-1024.png'],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
       },

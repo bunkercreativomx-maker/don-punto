@@ -15,7 +15,7 @@ import { MenuScannerModal } from './components/pos/MenuScannerModal';
 import { MenuImportModal, type ImportPlatforms } from './components/pos/MenuImportModal';
 import { usePOS } from './hooks/usePOS';
 import { Building2, Phone, MapPin, PrinterIcon } from 'lucide-react';
-import { Mark, Wordmark } from './components/brand/Logo';
+import { Logo, Mark } from './components/brand/Logo';
 import { NotificationsCard } from './components/pwa/NotificationsCard';
 import { InstallAppButton } from './components/pwa/InstallApp';
 import { InventoryModule } from './components/inventory/InventoryModule';
@@ -472,8 +472,8 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
       {/* --- PREMIUM SIDEBAR --- */}
       <nav className="w-16 lg:w-56 bg-white border-r border-carbon-950/10 flex flex-col items-center lg:items-stretch py-4 gap-3 relative z-30 backdrop-blur-xl shrink-0 no-print overflow-y-auto no-scrollbar">
         <div className="flex items-center justify-center lg:justify-start gap-2.5 px-2 lg:px-4 pt-1 pb-2">
-          <Mark size={34} />
-          <Wordmark tone="light" height={20} className="hidden lg:block" />
+          <Mark size={34} className="lg:hidden" />
+          <Logo size={38} className="hidden lg:block" />
         </div>
 
         {/* User Avatar */}
