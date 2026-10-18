@@ -30,10 +30,7 @@ export function POSTicket({ items, total, paymentMethod, destination, customerNa
   const subtotal = total + (discountAmount || 0);
 
   return (
-    <div className={cn(
-        "font-mono text-black p-4 bg-white leading-snug",
-        paperSize === '58mm' ? "paper-58mm" : "paper-standard"
-    )}>
+    <div className={cn("ticket-body font-mono text-black bg-white leading-snug", paperSize === 'Standard' ? "p-4" : "p-0")}>
       <div className="text-center mb-4 border-b border-black pb-2">
         <h2 className="text-base font-bold uppercase tracking-tighter">
           {isKitchen ? '--- COMANDA COCINA ---' : (businessName?.toUpperCase() || 'MI NEGOCIO')}

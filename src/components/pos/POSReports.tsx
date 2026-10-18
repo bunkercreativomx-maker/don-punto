@@ -7,6 +7,8 @@ import { AdvancedReports } from './AdvancedReports';
 import { twMerge } from 'tailwind-merge';
 import clsx from 'clsx';
 import { money } from '../../lib/format';
+import { PrintArea } from '../print/PrintArea';
+import { runPrint } from '../../lib/print';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -28,12 +30,7 @@ export function POSReports({ onUpgrade }: { onUpgrade?: () => void } = {}) {
 
   const handlePrintCorte = () => {
     setIsPrintingCorte(true);
-    document.body.classList.add('printing-corte');
-    setTimeout(() => {
-        window.print();
-        document.body.classList.remove('printing-corte');
-        setIsPrintingCorte(false);
-    }, 500); // 500ms to be safe for React render
+    runPrint('corte', () => setIsPrintingCorte(false));
   };
 
   return (
@@ -212,9 +209,9 @@ export function POSReports({ onUpgrade }: { onUpgrade?: () => void } = {}) {
       
       {/* --- HIDDEN CORTE TICKET FOR PRINTING --- */}
       {isPrintingCorte && (
-          <div className={cn("print-only-corte", settings.paperSize === 'Standard' ? 'paper-standard' : 'paper-58mm')}>
+          <PrintArea kind="corte" paper={settings.paperSize}>
               <CorteTicket summary={dailyIVA} date={selectedDate} paperSize={settings.paperSize} />
-          </div>
+          </PrintArea>
       )}
     </div>
   );

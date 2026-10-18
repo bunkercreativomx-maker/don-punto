@@ -4,12 +4,13 @@ import { Lock, Delete } from 'lucide-react';
 /** Teclado de PIN (sirve en pantalla táctil y con teclado físico) */
 export function PinPad({
   title, subtitle, onSubmit, onClose, error,
-}: { title: string; subtitle?: string; onSubmit: (pin: string) => boolean; onClose?: () => void; error?: string }) {
+}: { title: string; subtitle?: string; onSubmit: (pin: string) => boolean | string; onClose?: () => void; error?: string }) {
   const [pin, setPin] = useState('');
-  const [bad, setBad] = useState(false);
+  const [bad, setBad] = useState<string | false>(false);
   const submit = (p = pin) => {
     if (!p) return;
-    if (!onSubmit(p)) { setBad(true); setPin(''); }
+    const res = onSubmit(p);
+    if (res !== true) { setBad(typeof res === 'string' ? res : error || 'PIN incorrecto'); setPin(''); }
   };
   const press = (d: string) => {
     setBad(false);
@@ -33,7 +34,7 @@ export function PinPad({
           <div className={`h-12 flex items-center justify-center gap-2 rounded-2xl border-2 ${bad ? 'border-rose-400 bg-rose-50' : 'border-carbon-950/10 bg-carbon-50'}`} aria-live="polite">
             {pin.length === 0 ? <span className="text-carbon-400 text-sm">Escribe tu PIN</span> : Array.from({ length: pin.length }).map((_, i) => <span key={i} className="w-2.5 h-2.5 rounded-full bg-carbon-900" />)}
           </div>
-          <div className="h-5 mt-1 text-center text-xs font-bold text-rose-600">{bad ? (error || 'PIN incorrecto') : ''}</div>
+          <div className="h-5 mt-1 text-center text-xs font-bold text-rose-600">{bad || ''}</div>
           <div className="grid grid-cols-3 gap-2 mt-1">
             {['1','2','3','4','5','6','7','8','9'].map((d) => (
               <button key={d} type="button" onClick={() => press(d)} className="h-14 rounded-2xl bg-carbon-50 hover:bg-carbon-100 active:scale-95 text-xl font-bold text-carbon-900 transition">{d}</button>

@@ -25,7 +25,7 @@ import { FinancialModule } from './components/financial/FinancialModule';
 import { storeGet, storeSet } from './lib/cloudStore';
 import { money } from './lib/format';
 import { PinPad } from './components/access/PinPad';
-import { useSession, unlockWithPin, lockSession, requiresCashierLogin, currentBranch, getBranches, isPro, TAB_LABEL, CAJA_CONFIGURABLE, getCajaTabs, setCajaTabs, type Tab } from './lib/session';
+import { useSession, findOperatorByPin, signIn, canAccess as canAccessAs, lockSession, requiresCashierLogin, currentBranch, getBranches, isPro, TAB_LABEL, CAJA_CONFIGURABLE, getCajaTabs, setCajaTabs, type Tab } from './lib/session';
 import { setActiveBranch } from './lib/cloudStore';
 import { TeamModule } from './components/team/TeamModule';
 import { BranchesModule } from './components/branches/BranchesModule';
@@ -404,7 +404,9 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
   useEffect(() => {
     if (!canAccess(activeTab)) setActiveTab('pos');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [operator]);
+  }, [operator, activeTab]);
+  // Nunca pintar una pantalla sin permiso, ni por un instante
+  const shownTab: Tab = canAccess(activeTab) ? activeTab : 'pos';
 
   const NAV: { tab: Tab; label: string; Icon: typeof BarChart3; pro?: boolean; sep?: boolean }[] = [
     { tab: 'pos', label: 'Punto de Venta', Icon: ShoppingBasket },
@@ -449,11 +451,16 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
               subtitle={needCashier || pinFor === 'switch' ? 'Escribe tu PIN para empezar a cobrar.' : 'Esta sección está protegida. Escribe el PIN del dueño o de un gerente.'}
               onClose={needCashier ? undefined : () => setPinFor(null)}
               onSubmit={(pin) => {
-                  const op = unlockWithPin(pin, posSettings.adminPin);
+                  const op = findOperatorByPin(pin, posSettings.adminPin);
                   if (!op) return false;
                   const target = pinFor;
+                  // Un PIN válido no basta: tiene que tener permiso para esa pantalla
+                  if (target && target !== 'switch' && !needCashier && !canAccessAs(target as Tab, op)) {
+                      return `${op.name}: sin permiso para ${TAB_LABEL[target as Tab]}`;
+                  }
+                  signIn(op);
                   setPinFor(null);
-                  if (target && target !== 'switch') {
+                  if (target && target !== 'switch' && canAccessAs(target as Tab, op)) {
                       // eslint-disable-next-line @typescript-eslint/no-use-before-define
                       setTimeout(() => setActiveTab((prev) => (target as Tab) || prev), 0);
                   }
@@ -581,46 +588,46 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
             <header className="mb-6 flex flex-col sm:flex-row items-baseline sm:items-center justify-between gap-4 no-print">
               <div>
                 <h1 className="font-display text-3xl font-bold text-carbon-950 tracking-[-0.02em]">
-                  {activeTab === 'profits' && 'Análisis de Ganancias de Tienda Física'}
-                  {activeTab === 'pricing' && 'Estrategia de Precios'}
-                  {activeTab === 'pos' && 'Punto de venta'}
-                  {activeTab === 'reports' && 'Reportes Financieros'}
-                  {activeTab === 'tickets' && 'Historial de Tickets'}
-                  {activeTab === 'menu' && 'Catálogo de Productos'}
-                  {activeTab === 'settings' && 'Ajustes del Sistema'}
-                  {activeTab === 'inventory' && 'Inventario de Insumos'}
-                  {activeTab === 'engineering' && 'Radar de Menú'}
-                  {activeTab === 'recipes' && 'Recetario Estándar'}
-                  {activeTab === 'financial' && 'Estado Financiero Semanal'}
-                  {activeTab === 'clients' && 'Clientes frecuentes'}
-                  {activeTab === 'branches' && 'Sucursales'}
-                  {activeTab === 'team' && 'Equipo y permisos'}
+                  {shownTab === 'profits' && 'Análisis de Ganancias de Tienda Física'}
+                  {shownTab === 'pricing' && 'Estrategia de Precios'}
+                  {shownTab === 'pos' && 'Punto de venta'}
+                  {shownTab === 'reports' && 'Reportes Financieros'}
+                  {shownTab === 'tickets' && 'Historial de Tickets'}
+                  {shownTab === 'menu' && 'Catálogo de Productos'}
+                  {shownTab === 'settings' && 'Ajustes del Sistema'}
+                  {shownTab === 'inventory' && 'Inventario de Insumos'}
+                  {shownTab === 'engineering' && 'Radar de Menú'}
+                  {shownTab === 'recipes' && 'Recetario Estándar'}
+                  {shownTab === 'financial' && 'Estado Financiero Semanal'}
+                  {shownTab === 'clients' && 'Clientes frecuentes'}
+                  {shownTab === 'branches' && 'Sucursales'}
+                  {shownTab === 'team' && 'Equipo y permisos'}
                 </h1>
                 <p className="text-slate-500 mt-2 font-medium tracking-wide">
-                  {activeTab === 'profits' && ''}
-                  {activeTab === 'pricing' && 'Calcula precios sugeridos para no perder ni un peso en plataformas.'}
-                  {activeTab === 'pos' && 'Registra tus ventas y personaliza pedidos en tiempo real.'}
-                  {activeTab === 'reports' && 'Analiza tu IVA y revisa los desgloses generales de ganancias.'}
-                  {activeTab === 'tickets' && 'Busca folios pasados, reimprime recibos de cliente o comandas de cocina.'}
-                  {activeTab === 'menu' && 'Administra tus categorías, modificadores y catálogo.'}
-                  {activeTab === 'settings' && 'Personaliza tu plataforma, régimen y métodos de pago.'}
-                  {activeTab === 'inventory' && 'Controla stock de insumos, detecta alertas y genera pedidos automáticos.'}
-                  {activeTab === 'engineering' && 'Top ventas del mes conectado al POS · CRACK, DIAMANTE, CORREDOR y REZAGADO · Combos con IA.'}
-                  {activeTab === 'recipes' && 'Gestiona recetas estándar con análisis de costo e ingredientes.'}
-                  {activeTab === 'financial' && 'Registra ventas diarias por canal y controla compras y egresos semanales.'}
-                  {activeTab === 'clients' && 'Tus clientes, lo que compran y sus recompensas por visita.'}
-                  {activeTab === 'branches' && 'Todas tus sucursales en un solo lugar: quién vende más y cuál necesita atención.'}
-                  {activeTab === 'team' && 'Cada empleado con su PIN: las ventas, descuentos y cancelaciones quedan a su nombre.'}
+                  {shownTab === 'profits' && ''}
+                  {shownTab === 'pricing' && 'Calcula precios sugeridos para no perder ni un peso en plataformas.'}
+                  {shownTab === 'pos' && 'Registra tus ventas y personaliza pedidos en tiempo real.'}
+                  {shownTab === 'reports' && 'Analiza tu IVA y revisa los desgloses generales de ganancias.'}
+                  {shownTab === 'tickets' && 'Busca folios pasados, reimprime recibos de cliente o comandas de cocina.'}
+                  {shownTab === 'menu' && 'Administra tus categorías, modificadores y catálogo.'}
+                  {shownTab === 'settings' && 'Personaliza tu plataforma, régimen y métodos de pago.'}
+                  {shownTab === 'inventory' && 'Controla stock de insumos, detecta alertas y genera pedidos automáticos.'}
+                  {shownTab === 'engineering' && 'Top ventas del mes conectado al POS · CRACK, DIAMANTE, CORREDOR y REZAGADO · Combos con IA.'}
+                  {shownTab === 'recipes' && 'Gestiona recetas estándar con análisis de costo e ingredientes.'}
+                  {shownTab === 'financial' && 'Registra ventas diarias por canal y controla compras y egresos semanales.'}
+                  {shownTab === 'clients' && 'Tus clientes, lo que compran y sus recompensas por visita.'}
+                  {shownTab === 'branches' && 'Todas tus sucursales en un solo lugar: quién vende más y cuál necesita atención.'}
+                  {shownTab === 'team' && 'Cada empleado con su PIN: las ventas, descuentos y cancelaciones quedan a su nombre.'}
                 </p>
               </div>
               
-              {activeTab === 'pos' && operator && requiresCashierLogin() && (
+              {shownTab === 'pos' && operator && requiresCashierLogin() && (
                 <div className="flex items-center gap-2 rounded-full border border-carbon-950/10 bg-white pl-3 pr-1 py-1">
                   <span className="text-xs text-carbon-600">Cobrando: <b className="text-carbon-900">{operator.name}</b></span>
                   <button onClick={() => lockSession()} className="rounded-full bg-carbon-100 hover:bg-carbon-200 px-3 py-1 text-xs font-semibold text-carbon-800">Cambiar</button>
                 </div>
               )}
-              {(activeTab === 'profits' || activeTab === 'pricing' || activeTab === 'menu') && (
+              {(shownTab === 'profits' || shownTab === 'pricing' || shownTab === 'menu') && (
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => setIsImportModalOpen(true)}
@@ -635,7 +642,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                     >
                         <Sparkles size={18} /> ESCANEAR MENÚ
                     </button>
-                    {(activeTab === 'profits' || activeTab === 'pricing') && (
+                    {(shownTab === 'profits' || shownTab === 'pricing') && (
                         <button
                           onClick={addRow}
                           className="bg-indigo-500 hover:bg-indigo-400 text-white px-6 py-3 rounded-2xl font-black text-sm transition-all shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20 active:scale-95 flex items-center gap-2"
@@ -648,7 +655,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
             </header>
 
             <main className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-              {activeTab === 'profits' && (() => {
+              {shownTab === 'profits' && (() => {
                 const filteredProfits = rows.filter(r => r.name.toLowerCase().includes(profitsSearch.toLowerCase()));
                 const totalProfitsPages = Math.max(1, Math.ceil(filteredProfits.length / PAGE_SIZE));
                 const safeProfitsPage = Math.min(profitsPage, totalProfitsPages);
@@ -695,7 +702,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                     </div>
                 </div>
               ); })()}
-              {activeTab === 'pricing' && (() => {
+              {shownTab === 'pricing' && (() => {
                 const filteredPricing = rows.filter(r => r.name.toLowerCase().includes(pricingSearch.toLowerCase()));
                 const totalPricingPages = Math.max(1, Math.ceil(filteredPricing.length / PAGE_SIZE));
                 const safePricingPage = Math.min(pricingPage, totalPricingPages);
@@ -729,17 +736,17 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                     )}
                 </div>
               ); })()}
-              {activeTab === 'pos' && <POSDashboard />}
-              {activeTab === 'reports' && <POSReports onUpgrade={onBilling} />}
-              {activeTab === 'tickets' && <POSTicketsHistory />}
-              {activeTab === 'inventory' && <InventoryModule />}
-              {activeTab === 'engineering' && <MenuEngineeringModule />}
-              {activeTab === 'recipes' && <RecipesModule />}
-              {activeTab === 'financial' && <FinancialModule />}
-              {activeTab === 'clients' && <ClientsModule onUpgrade={onBilling} />}
-              {activeTab === 'branches' && <BranchesModule onUpgrade={onBilling} />}
-              {activeTab === 'team' && <TeamModule onUpgrade={onBilling} adminPin={posSettings.adminPin} />}
-              {activeTab === 'menu' && (
+              {shownTab === 'pos' && <POSDashboard />}
+              {shownTab === 'reports' && <POSReports onUpgrade={onBilling} />}
+              {shownTab === 'tickets' && <POSTicketsHistory />}
+              {shownTab === 'inventory' && <InventoryModule />}
+              {shownTab === 'engineering' && <MenuEngineeringModule />}
+              {shownTab === 'recipes' && <RecipesModule />}
+              {shownTab === 'financial' && <FinancialModule />}
+              {shownTab === 'clients' && <ClientsModule onUpgrade={onBilling} />}
+              {shownTab === 'branches' && <BranchesModule onUpgrade={onBilling} />}
+              {shownTab === 'team' && <TeamModule onUpgrade={onBilling} adminPin={posSettings.adminPin} />}
+              {shownTab === 'menu' && (
                 <MenuManagement 
                     categories={categories}
                     modifierGroups={modifierGroups}
@@ -753,7 +760,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                     updateProduct={updateRow}
                 />
               )}
-              {activeTab === 'settings' && (
+              {shownTab === 'settings' && (
                   <div className="max-w-2xl space-y-6">
 
                       <NotificationsCard />
@@ -810,13 +817,19 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                               <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                                   <PrinterIcon size={14} /> Configuración de Impresión
                               </h4>
-                              <div className="grid grid-cols-2 gap-3">
+                              <div className="grid grid-cols-3 gap-3">
                                   <button
                                       onClick={() => updatePosSettings({ paperSize: '58mm' })}
                                       className={cn("py-3 rounded-2xl text-xs font-black transition-all border",
                                           (posSettings.paperSize || '58mm') === '58mm' ? "bg-indigo-500 border-indigo-400 text-white" : "bg-slate-950 border-carbon-950/10 text-slate-500 hover:text-carbon-950"
                                       )}
                                   >🖨️ Térmica 58mm</button>
+                                  <button
+                                      onClick={() => updatePosSettings({ paperSize: '80mm' })}
+                                      className={cn("py-3 rounded-2xl text-xs font-black transition-all border",
+                                          posSettings.paperSize === '80mm' ? "bg-indigo-500 border-indigo-400 text-white" : "bg-slate-950 border-carbon-950/10 text-slate-500 hover:text-carbon-950"
+                                      )}
+                                  >🖨️ Térmica 80mm</button>
                                   <button
                                       onClick={() => updatePosSettings({ paperSize: 'Standard' })}
                                       className={cn("py-3 rounded-2xl text-xs font-black transition-all border",

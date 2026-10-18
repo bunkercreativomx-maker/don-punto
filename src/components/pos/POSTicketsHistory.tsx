@@ -19,6 +19,8 @@ import {
 import { twMerge } from 'tailwind-merge';
 import clsx from 'clsx';
 import { money } from '../../lib/format';
+import { PrintArea } from '../print/PrintArea';
+import { runPrint } from '../../lib/print';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -81,14 +83,7 @@ export function POSTicketsHistory() {
     setTicketToPrint(ticket);
     setPrintType(type);
     
-    // Add print class to body
-    document.body.classList.add('printing-ticket');
-    
-    setTimeout(() => {
-      window.print();
-      document.body.classList.remove('printing-ticket');
-      setTicketToPrint(null);
-    }, 400);
+    runPrint('ticket', () => setTicketToPrint(null));
   };
 
   return (
@@ -385,7 +380,7 @@ export function POSTicketsHistory() {
 
       {/* HIDDEN IN DOM: ONLY VISIBLE DURING window.print() */}
       {ticketToPrint && (
-        <div className={cn("print-only-ticket", settings.paperSize === 'Standard' ? 'paper-standard' : 'paper-58mm')}>
+        <PrintArea kind="ticket" paper={settings.paperSize}>
           <POSTicket 
             items={ticketToPrint.items || []}
             total={ticketToPrint.amount}
@@ -400,7 +395,7 @@ export function POSTicketsHistory() {
             discountAmount={ticketToPrint.discountAmount}
             date={ticketToPrint.date}
           />
-        </div>
+        </PrintArea>
       )}
     </div>
   );

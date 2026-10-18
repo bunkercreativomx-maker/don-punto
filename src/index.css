@@ -193,90 +193,77 @@
   }
 }
 
-@media print {
-  @page {
-    size: auto;
-    margin: 5mm;
-  }
+/* ---- Impresión de tickets (ver src/lib/print.ts) ---- */
+.print-root { display: none; }
 
-  /* Force white background on the document itself */
+@media print {
+  /* Sin márgenes: el navegador no agrega fecha/URL arriba y abajo, y no se corta el ticket */
+  @page { size: auto; margin: 0; }
+
   html, body {
     background: white !important;
-    background-color: white !important;
     color: black !important;
     margin: 0 !important;
     padding: 0 !important;
-    width: 100% !important;
-    min-width: unset !important;
-  }
-
-  /* Step 1: Hide all visible UI elements */
-  body * {
-    visibility: hidden !important;
-  }
-
-  /* Step 2: Make the correct print container VISIBLE and DISPLAYED */
-  .printing-ticket .print-only-ticket {
-    display: block !important;
-    visibility: visible !important;
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
     width: auto !important;
-    background: white !important;
-    z-index: 99999 !important;
+    height: auto !important;
+    min-width: 0 !important;
+    overflow: visible !important;
   }
 
-  .printing-corte .print-only-corte {
+  /* Mientras imprimimos, solo existe el ticket: lo demás no ocupa lugar (adiós hojas en blanco) */
+  body.printing-ticket > *:not(.print-root-ticket),
+  body.printing-corte > *:not(.print-root-corte),
+  body.printing-ticket > .print-root-corte,
+  body.printing-corte > .print-root-ticket { display: none !important; }
+
+  body.printing-ticket > .print-root-ticket,
+  body.printing-corte > .print-root-corte {
     display: block !important;
-    visibility: visible !important;
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: auto !important;
+    position: static !important;
     background: white !important;
-    z-index: 99999 !important;
   }
 
-  /* Step 3: Make all children of those containers visible too */
-  .printing-ticket .print-only-ticket *,
-  .printing-corte .print-only-corte * {
-    visibility: visible !important;
+  .print-root * {
     color: black !important;
     background: transparent !important;
     box-shadow: none !important;
     text-shadow: none !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
     transition: none !important;
     animation: none !important;
   }
+  .print-root .border-black { border-color: black !important; }
 
-  .no-print {
-    display: none !important;
-  }
-
-  /* Thermal roll formatting */
+  /* Térmica 58 mm: el área imprimible real es ~48 mm */
   .paper-58mm {
-    width: 56mm !important;
-    max-width: 56mm !important;
-    padding: 1mm !important;
+    width: 48mm !important;
+    padding: 1mm 0 6mm 2mm !important;
     font-size: 8pt !important;
-    line-height: 1.2 !important;
+    line-height: 1.25 !important;
     font-family: 'Courier New', monospace !important;
-    background: white !important;
   }
-
-  /* Standard paper formatting */
+  /* Térmica 80 mm: área imprimible ~72 mm */
+  .paper-80mm {
+    width: 72mm !important;
+    padding: 1mm 0 6mm 3mm !important;
+    font-size: 10pt !important;
+    line-height: 1.3 !important;
+    font-family: 'Courier New', monospace !important;
+  }
   .paper-standard {
-    width: 170mm !important;
-    padding: 10mm !important;
+    width: auto !important;
+    max-width: 170mm !important;
+    padding: 12mm !important;
     font-size: 11pt !important;
     line-height: 1.4 !important;
-    background: white !important;
   }
+  .paper-58mm .ticket-body, .paper-80mm .ticket-body { padding: 0 !important; }
+  .paper-58mm h2, .paper-80mm h2 { font-size: 1.15em !important; }
+  .paper-58mm [class*="text-["], .paper-80mm [class*="text-["] { font-size: 0.9em !important; }
+  .print-page-break { break-after: page; page-break-after: always; height: 0; }
 
-  /* Flex row layout for key:value pairs */
   .flex-row-print {
     display: flex !important;
     flex-direction: row !important;
@@ -285,16 +272,11 @@
     width: 100% !important;
     gap: 4px !important;
   }
-
   .flex-row-print > span:last-child {
     text-align: right !important;
     font-weight: bold !important;
     word-break: break-word !important;
   }
-}
-
-.print-only-ticket, .print-only-corte {
-  display: none;
 }
 
 

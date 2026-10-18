@@ -96,24 +96,28 @@ export function touchSession() {
   if (operator) sessionStorage.setItem(SESSION_KEY, JSON.stringify({ op: operator, at: Date.now() }));
 }
 
-/** Intenta identificar a alguien por PIN. Devuelve el operador o null si el PIN no existe. */
-export function unlockWithPin(pin: string, ownerPin: string): Operator | null {
+/** ¿De quién es este PIN? (no cambia la sesión) */
+export function findOperatorByPin(pin: string, ownerPin: string): Operator | null {
   const p = pin.trim();
   if (!p) return null;
-  if (p === (ownerPin || '1234')) {
-    const op: Operator = { kind: 'owner', id: 'owner', name: 'Dueño', role: 'dueno' };
-    setOperator(op);
-    return op;
-  }
+  if (p === (ownerPin || '1234')) return { kind: 'owner', id: 'owner', name: 'Dueño', role: 'dueno' };
   if (isPro()) {
     const e = getTeam().find((x) => x.active && x.pin === p && (!x.branchId || x.branchId === getActiveBranch()));
-    if (e) {
-      const op: Operator = { kind: 'employee', id: e.id, name: e.name, role: e.role };
-      setOperator(op);
-      return op;
-    }
+    if (e) return { kind: 'employee', id: e.id, name: e.name, role: e.role };
   }
   return null;
+}
+/** Identifica a alguien por PIN y lo deja como operador de este equipo. */
+export function unlockWithPin(pin: string, ownerPin: string): Operator | null {
+  const op = findOperatorByPin(pin, ownerPin);
+  if (op) setOperator(op);
+  return op;
+}
+export function signIn(op: Operator) { setOperator(op); }
+/** Autorizar una acción delicada (quitar productos, borrar cuentas): solo dueño o gerente. */
+export function authorizeWithPin(pin: string, ownerPin: string): Operator | null {
+  const op = findOperatorByPin(pin, ownerPin);
+  return op && (op.role === 'dueno' || op.role === 'gerente') ? op : null;
 }
 export function lockSession() { setOperator(null); }
 

@@ -20,10 +20,7 @@ export function CorteTicket({ summary, date, paperSize = '58mm' }: CorteTicketPr
   const methods: POSPaymentMethod[] = ['Efectivo', 'Tarjeta', 'Uber', 'Didi', 'Rappi', 'Didi Efectivo'];
 
   return (
-    <div className={cn(
-        "font-mono text-black p-4 bg-white leading-snug",
-        paperSize === '58mm' ? "paper-58mm" : "paper-standard"
-    )}>
+    <div className={cn("ticket-body font-mono text-black bg-white leading-snug", paperSize === 'Standard' ? "p-4" : "p-0")}>
       <div className="text-center mb-6 border-b border-black pb-2">
         <h2 className="text-base font-bold uppercase tracking-tighter">
           --- CORTE DE CAJA ---

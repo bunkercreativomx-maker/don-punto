@@ -3,11 +3,13 @@ import { usePOS } from '../../hooks/usePOS';
 import { useCalculator } from '../../hooks/useCalculator'; 
 import type { CartItem, POSPaymentMethod, OrderDestination, OpenTicket } from '../../types/pos';
 import { Plus, Trash2, ShoppingCart, Minus, CreditCard, Save, History, Bike, Lock, Search, X, CheckCircle, Gift, UserPlus, AlertTriangle } from 'lucide-react';
-import { isPro } from '../../lib/session';
+import { isPro, authorizeWithPin } from '../../lib/session';
 import { getClients, addClient, recordVisit, rewardReady, rewardDiscount, getLoyalty, type Client } from '../../lib/clients';
 import { applySaleToInventory, type StockAlert } from '../../lib/inventoryAuto';
 import { apiPost } from '../../lib/api';
 import { POSTicket } from './POSTicket';
+import { PrintArea } from '../print/PrintArea';
+import { runPrint } from '../../lib/print';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import type { ProductRowData } from '../../types/calculator';
@@ -109,8 +111,8 @@ export function POSDashboard() {
   };
 
   const handlePinSubmit = () => {
-    const validPin = settings.adminPin || '1234';
-    if (pinInput === validPin) {
+    // Dueño o gerente pueden autorizar; un cajero no
+    if (authorizeWithPin(pinInput, settings.adminPin)) {
         pinAction?.();
         setIsPinModalOpen(false);
     } else {
@@ -315,13 +317,7 @@ export function POSDashboard() {
     setRewardOn(false);
 
     // Trigger print dialog if any ticket is enabled
-    if (settings.printCustomerTicket || settings.printKitchenTicket) {
-        document.body.classList.add('printing-ticket');
-        setTimeout(() => {
-            window.print();
-            document.body.classList.remove('printing-ticket');
-        }, 300); // More time for React to render the new state
-    }
+    if (settings.printCustomerTicket || settings.printKitchenTicket) runPrint('ticket');
   };
 
   const handleSaveTicket = () => {
@@ -859,7 +855,7 @@ export function POSDashboard() {
                         <Lock size={24} />
                     </div>
                     <h3 className="text-xl font-bold text-carbon-950">Autorización Requerida</h3>
-                    <p className="text-slate-400 text-xs mt-2">Ingresa el PIN de administrador para continuar.</p>
+                    <p className="text-slate-400 text-xs mt-2">Escribe el PIN del dueño o de un gerente para continuar.</p>
                 </div>
                 <div className="p-6">
                     <input 
@@ -944,7 +940,7 @@ export function POSDashboard() {
 
     {/* --- HIDDEN TICKETS FOR PRINTING --- */}
     {lastOrder && (
-        <div className={cn("print-only-ticket", settings.paperSize === 'Standard' ? 'paper-standard' : 'paper-58mm')}>
+        <PrintArea kind="ticket" paper={settings.paperSize}>
             {/* Customer Ticket */}
             {settings.printCustomerTicket && (
                 <POSTicket 
@@ -955,6 +951,7 @@ export function POSDashboard() {
                     customerName={lastOrder.customerName}
                     paperSize={settings.paperSize}
                     receivedAmount={lastOrder.receivedAmount}
+                    discountAmount={lastOrder.discountAmount}
                     businessName={settings.businessName}
                     businessPhone={settings.businessPhone}
                     businessAddress={settings.businessAddress}
@@ -962,8 +959,10 @@ export function POSDashboard() {
             )}
             
             {/* Separator for thermal paper if both are printed */}
-            {settings.printCustomerTicket && settings.printKitchenTicket && settings.paperSize === '58mm' && (
-                <div className="h-10 border-b border-black border-dashed mb-10" />
+            {settings.printCustomerTicket && settings.printKitchenTicket && (
+                settings.paperSize === 'Standard'
+                    ? <div className="print-page-break" />
+                    : <div className="h-10 border-b border-black border-dashed mb-10" />
             )}
 
             {/* Kitchen Ticket (No prices) */}
@@ -979,7 +978,7 @@ export function POSDashboard() {
                     businessName={settings.businessName}
                 />
             )}
-        </div>
+        </PrintArea>
     )}
 
     {/* Toast notification */}

@@ -50,7 +50,7 @@ export interface POSSummary {
   cashIVA: number;  // IVA specifically for Cash (Efectivo) sales
 }
 
-export type PaperSize = '58mm' | 'Standard';
+export type PaperSize = '58mm' | '80mm' | 'Standard';
 
 export interface POSSettings {
   ivaPercentage: number;
