@@ -35,13 +35,13 @@ export default defineConfig({
         theme_color: '#F3F4F0',
         categories: ['business', 'finance', 'food'],
         icons: [
-          { src: '/pwa-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-          { src: '/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-          { src: '/pwa-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: '/pwa-192.png?v=3d', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/pwa-512.png?v=3d', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/pwa-maskable-512.png?v=3d', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
         shortcuts: [
-          { name: 'Cobrar', short_name: 'Cobrar', url: '/?tab=pos', icons: [{ src: '/pwa-192.png', sizes: '192x192' }] },
-          { name: 'Reporte del día', short_name: 'Reporte', url: '/?tab=reports', icons: [{ src: '/pwa-192.png', sizes: '192x192' }] },
+          { name: 'Cobrar', short_name: 'Cobrar', url: '/?tab=pos', icons: [{ src: '/pwa-192.png?v=3d', sizes: '192x192' }] },
+          { name: 'Reporte del día', short_name: 'Reporte', url: '/?tab=reports', icons: [{ src: '/pwa-192.png?v=3d', sizes: '192x192' }] },
         ],
       },
       devOptions: { enabled: false },
