@@ -381,7 +381,8 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 price={350}
                 text="Para un negocio con una sucursal que quiere orden y vender más."
                 items={['1 sucursal, ventas ilimitadas', 'Calculadora Uber, DiDi y Rappi', 'Tu menú desde una foto con IA', 'Combos sugeridos para mover tus platillos', 'Corte de caja con IVA, inventario y recetario', 'Reportes y ganancias protegidos con PIN', 'Respaldo en la nube y app instalable']}
-                cta="Elegir Básico"
+                cta="Prueba 15 días gratis"
+                note="Luego $350 al mes. Cancela cuando quieras."
                 onClick={onSubscribe}
               />
               <Plan
@@ -394,7 +395,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 onClick={onSubscribe}
               />
             </div>
-            <p className="mt-8 flex items-center justify-center lg:justify-start max-w-4xl gap-2 text-sm text-carbon-500"><ShieldCheck size={16} className="text-agave-500" /> Pago seguro con tarjeta procesado por Stripe.</p>
+            <p className="mt-8 flex items-center justify-center lg:justify-start max-w-4xl gap-2 text-sm text-carbon-500"><ShieldCheck size={16} className="text-agave-500" /> Pago seguro con tarjeta procesado por Stripe. <a href="/privacidad" className="underline underline-offset-4 hover:text-carbon-800">Aviso de Privacidad</a> · <a href="/terminos" className="underline underline-offset-4 hover:text-carbon-800">Términos</a></p>
           </div>
         </section>
 
@@ -494,7 +495,7 @@ function Notification({ time, title, body, muted }: { time: string; title: strin
   );
 }
 
-function Plan({ name, price, text, items, cta, onClick, featured }: { name: string; price: number; text: string; items: string[]; cta: string; onClick: () => void; featured?: boolean }) {
+function Plan({ name, price, text, items, cta, note, onClick, featured }: { name: string; price: number; text: string; items: string[]; cta: string; note?: string; onClick: () => void; featured?: boolean }) {
   return (
     <div className={featured ? 'rounded-[1.6rem] bg-agave-950 p-1.5 shadow-[0_40px_80px_-40px_rgba(4,33,26,0.7)]' : 'rounded-[1.6rem] bg-carbon-100 p-1.5'}>
       <div className={`h-full rounded-[1.25rem] p-8 sm:p-10 flex flex-col ${featured ? 'bg-agave-900 text-white ring-1 ring-white/10' : 'bg-white ring-1 ring-carbon-200/70'}`}>
@@ -521,6 +522,7 @@ function Plan({ name, price, text, items, cta, onClick, featured }: { name: stri
         >
           {cta}
         </button>
+        {note && <p className={`mt-3 text-center text-sm ${featured ? 'text-agave-100/70' : 'text-carbon-500'}`}>{note}</p>}
       </div>
     </div>
   );
