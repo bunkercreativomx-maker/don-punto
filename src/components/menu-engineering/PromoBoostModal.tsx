@@ -117,7 +117,7 @@ export function PromoBoostModal({ product, onClose }: { product: PromoInput; onC
           <div>
             <div className="text-xs font-black uppercase tracking-widest text-rose-400">Impulsar platillo</div>
             <div className="text-lg font-black text-carbon-950 leading-tight mt-0.5">{product.name}</div>
-            <div className="text-xs text-slate-500 mt-1">{product.quantity} ventas este mes · ${product.salePrice}</div>
+            <div className="text-xs text-slate-500 mt-1">{product.quantity} {product.quantity === 1 ? 'venta' : 'ventas'} este mes · ${product.salePrice}</div>
           </div>
           <button onClick={onClose} className="p-2 rounded-xl hover:bg-slate-800 text-slate-400" aria-label="Cerrar"><X size={18} /></button>
         </div>
