@@ -46,7 +46,8 @@ h1 em{font-style:normal;color:var(--amber)}
 .count span{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.08em}
 .device{background:#0b0f0d;border:1px solid var(--line);border-radius:26px;padding:10px;box-shadow:0 40px 100px -30px #000;transform:rotate(1.5deg)}
 .device img{display:block;width:100%;border-radius:18px}
-.device+.device{margin:-60px 0 0 -40px;width:70%;transform:rotate(-3deg)}
+.device+.device{margin:-90px 0 0 -40px;width:62%;transform:rotate(-3deg);position:relative}
+.shots{max-width:520px;justify-self:end}
 section{padding:70px 0}
 .sec-k{font-weight:800;color:var(--amber);font-size:14px;letter-spacing:.08em;text-transform:uppercase}
 h2{font-size:clamp(32px,4.4vw,50px);font-weight:800;margin:10px 0 30px;max-width:780px}
@@ -101,8 +102,11 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;
 @media(max-width:860px){
   .hero .grid,.form-sec .grid{grid-template-columns:1fr}
   .pains,.learn{grid-template-columns:1fr}
-  .shots{order:-1;max-width:520px}
-  .sticky{display:block}
+  .shots{max-width:440px;justify-self:start;margin-top:8px}
+  .device+.device{display:none}
+  .device{transform:none}
+  .sticky{display:block;transition:opacity .2s,transform .2s}
+  .sticky.off{opacity:0;transform:translateY(20px);pointer-events:none}
   section{padding:54px 0}
 }
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -241,7 +245,7 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:16px;justify-content:space-between;
 </main>
 
 <footer><div class="wrap"><span>© Don Punto · Punto de venta para negocios de comida en México</span><a href="/">donpunto.com</a></div></footer>
-<div class="sticky"><a class="btn" href="#registro">Apartar mi lugar gratis</a></div>
+<div class="sticky off" id="sticky"><a class="btn" href="#registro">Apartar mi lugar gratis</a></div>
 
 <script>
 // ===== Configuración del webinar (cambia solo esto) =====
@@ -297,6 +301,9 @@ f.addEventListener('submit', async (e) => {
     document.getElementById('registro').scrollIntoView({ behavior: 'smooth' });
   } catch { show('No se pudo guardar. Revisa tu conexión e intenta de nuevo.'); go.disabled = false; go.textContent = 'Apartar mi lugar gratis'; }
 });
+const seen = new Set();
+const io = new IntersectionObserver(es => { es.forEach(e => e.isIntersecting ? seen.add(e.target) : seen.delete(e.target)); document.getElementById('sticky').classList.toggle('off', seen.size > 0); });
+[document.querySelector('.hero .btn'), document.getElementById('registro'), document.querySelector('footer')].forEach(el => io.observe(el));
 function show(m) { err.textContent = m; err.style.display = 'block'; }
 </script>
 </body>
