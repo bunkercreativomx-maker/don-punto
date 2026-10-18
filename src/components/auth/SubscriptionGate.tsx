@@ -85,7 +85,7 @@ export function SubscriptionGate({ status, email, verifyingPayment, hasStripeCus
           <p className="text-slate-400 text-base md:text-lg max-w-xl mx-auto">
             {pastDue
               ? 'No pudimos cobrar tu membresía. Actualiza tu tarjeta para seguir usando Don Punto. Tus datos están a salvo.'
-              : 'Elige un plan para desbloquear el punto de venta. Sin contratos: cancelas cuando quieras desde tu cuenta.'}
+              : 'Empieza con 15 días gratis. No se cobra nada hasta el día 16 y cancelas cuando quieras desde tu cuenta.'}
           </p>
           {email && <p className="text-slate-500 text-xs mt-3">Cuenta: {email}</p>}
         </div>
@@ -143,7 +143,7 @@ export function SubscriptionGate({ status, email, verifyingPayment, hasStripeCus
                       'w-full py-4 rounded-2xl font-black text-carbon-950 transition-all flex items-center justify-center gap-2 disabled:opacity-60'
                     }
                   >
-                    {loadingPlan === key ? <Loader2 className="animate-spin" size={20} /> : <><CreditCard size={20} /> ELEGIR {PLANS[key].name.toUpperCase()}</>}
+                    {loadingPlan === key ? <Loader2 className="animate-spin" size={20} /> : <><CreditCard size={20} /> {hasStripeCustomer ? `ELEGIR ${PLANS[key].name.toUpperCase()}` : "PROBAR 15 DÍAS GRATIS"}</>}
                   </button>
                 </div>
               );

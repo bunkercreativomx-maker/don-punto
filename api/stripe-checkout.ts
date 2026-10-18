@@ -5,6 +5,8 @@ const PLANS: Record<string, { name: string; amount: number; pbName: string }> = 
   pro: { name: 'Don Punto Pro', amount: 79900, pbName: 'Pro' },
 };
 
+const TRIAL_DAYS = 15;
+
 // Crea la sesión de pago de Stripe (suscripción mensual en MXN)
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -36,6 +38,13 @@ export default async function handler(req: any, res: any) {
           },
         };
 
+    // Prueba gratis de 15 días solo la primera vez (quien nunca ha tenido cliente en Stripe).
+    // Se pide tarjeta desde el inicio y Stripe cobra solo al terminar la prueba.
+    const firstTime = !m.subscription?.stripe_customer_id && !m.subscription?.stripe_subscription_id;
+    const trial = firstTime
+      ? { trial_period_days: TRIAL_DAYS, trial_settings: { end_behavior: { missing_payment_method: 'cancel' } } }
+      : {};
+
     const session = await stripe('POST', '/checkout/sessions', {
       mode: 'subscription',
       locale: 'es',
@@ -44,7 +53,8 @@ export default async function handler(req: any, res: any) {
       line_items: { 0: lineItem },
       allow_promotion_codes: 'true',
       metadata: { uid: m.user.id, plan },
-      subscription_data: { metadata: { uid: m.user.id, plan } },
+      payment_method_collection: 'always',
+      subscription_data: { metadata: { uid: m.user.id, plan }, ...trial },
       success_url: `${APP_URL}/?pago=ok`,
       cancel_url: `${APP_URL}/?pago=cancelado`,
     });

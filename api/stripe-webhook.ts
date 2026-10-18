@@ -83,7 +83,11 @@ async function upsertSubscription(uid: string, sub: any) {
       past_due: ['No pudimos cobrar tu membresía', 'Actualiza tu tarjeta en "Mi plan" para no perder el acceso.'],
       canceled: ['Tu membresía terminó', 'Tus datos siguen guardados. Puedes reactivar cuando quieras.'],
     };
-    const m = msg[String(fields.status)];
+    let m = msg[String(fields.status)];
+    if (sub.status === 'trialing') {
+      const end = sub.trial_end ? new Date(sub.trial_end * 1000).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', timeZone: 'America/Denver' }) : '';
+      m = ['Tu prueba gratis de 15 días empezó', `No se te cobra nada hasta el ${end}. Cancela desde "Mi plan" cuando quieras.`];
+    }
     if (m) await sendToUser(owner, { title: m[0], body: m[1], url: '/', tag: 'membresia' }).catch(() => 0);
   }
 }
@@ -113,6 +117,23 @@ export default async function handler(req: any, res: any) {
       case 'customer.subscription.deleted':
         await upsertSubscription(obj.metadata?.uid, obj);
         break;
+      case 'customer.subscription.trial_will_end': {
+        // Stripe lo manda 3 días antes de que termine la prueba
+        const token = await adminToken();
+        const q = await pbFetch(`/api/collections/subscriptions/records?perPage=1&filter=${encodeURIComponent(`stripe_subscription_id = "${obj.id}"`)}`, { token });
+        const owner = q.data?.items?.[0]?.owner || obj.metadata?.uid;
+        const amount = (obj.items?.data?.[0]?.price?.unit_amount ?? 0) / 100;
+        const end = obj.trial_end ? new Date(obj.trial_end * 1000).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', timeZone: 'America/Denver' }) : 'pronto';
+        if (owner && !obj.cancel_at_period_end) {
+          await sendToUser(owner, {
+            title: 'Tu prueba gratis termina en 3 días',
+            body: `El ${end} se cobrará tu plan${amount ? ` ($${amount} MXN)` : ''}. Si no quieres seguir, cancela desde "Mi plan".`,
+            url: '/',
+            tag: 'membresia',
+          }).catch(() => 0);
+        }
+        break;
+      }
       default:
         break;
     }

@@ -153,6 +153,7 @@ function Shot({ src, alt, className = '' }: { src: string; alt: string; classNam
 }
 
 const FAQS = [
+  { q: '¿Cómo funciona la prueba gratis?', a: 'Tienes 15 días gratis con todo tu plan. Registras tu tarjeta al empezar, pero no se cobra nada hasta el día 16. Te avisamos al celular 3 días antes; si cancelas antes, no pagas nada.' },
   { q: '¿Tengo que firmar contrato?', a: 'No. Pagas mes a mes y cancelas cuando quieras desde "Mi plan" dentro de tu cuenta. No hay penalizaciones.' },
   { q: '¿Necesito comprar equipo?', a: 'No. Funciona en la computadora, tablet o celular que ya tienes. Puedes instalarla como app y abrirla desde tu pantalla de inicio.' },
   { q: '¿Qué pasa si se va el internet?', a: 'Sigues cobrando en el mismo equipo. Cuando regresa la conexión, tus ventas se respaldan solas en la nube.' },
@@ -224,7 +225,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 </a>
               </div>
               <ul className="mt-8 flex flex-col sm:flex-row sm:flex-wrap gap-x-6 gap-y-2 text-sm text-carbon-600">
-                {['Sin contratos', 'Desde $350 al mes', 'Se instala como app'].map((t) => (
+                {['15 días gratis', 'Luego desde $350 al mes', 'Sin contratos'].map((t) => (
                   <li key={t} className="flex items-center gap-2"><Check size={16} className="text-agave-500" /> {t}</li>
                 ))}
               </ul>
@@ -372,7 +373,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
           <div className="mx-auto max-w-6xl px-5 sm:px-8 py-24 sm:py-32">
             <div className="max-w-2xl">
               <h2 className="font-display text-4xl sm:text-5xl font-bold tracking-[-0.03em]">Precio claro, sin contratos</h2>
-              <p className="mt-5 text-lg text-carbon-600">Pagas mes a mes en pesos. Cancelas desde tu cuenta cuando quieras.</p>
+              <p className="mt-5 text-lg text-carbon-600">Pruébalo 15 días gratis. Después pagas mes a mes en pesos y cancelas desde tu cuenta cuando quieras.</p>
             </div>
             <div className="mt-14 grid gap-6 lg:grid-cols-2 max-w-4xl">
               <Plan
