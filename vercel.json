@@ -2,7 +2,7 @@
   "cleanUrls": true,
   "crons": [{ "path": "/api/cron-daily", "schedule": "0 4 * * *" }],
   "rewrites": [
-    { "source": "/((?!api/|privacidad|terminos|assets/|brand/|favicon|og-image|apple-touch|pwa-|manifest|sw\\.js|workbox-|robots|sitemap).*)", "destination": "/" }
+    { "source": "/((?!api/|privacidad|terminos|webinar|assets/|brand/|favicon|og-image|apple-touch|pwa-|manifest|sw\\.js|workbox-|robots|sitemap).*)", "destination": "/" }
   ],
   "headers": [
     {
