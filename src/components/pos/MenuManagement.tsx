@@ -124,7 +124,7 @@ export function MenuManagement({
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Categorías Section */}
-            <div className="bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-2xl p-6 shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)]">
+            <div className="bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-2xl p-6 shadow-[0_1px_2px_rgba(12,16,22,0.04),0_12px_32px_-18px_rgba(12,16,22,0.18)]">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
                         <Layers size={20} />
@@ -185,7 +185,7 @@ export function MenuManagement({
             </div>
 
             {/* Modificadores Section */}
-            <div className="bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-2xl p-6 shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)]">
+            <div className="bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-2xl p-6 shadow-[0_1px_2px_rgba(12,16,22,0.04),0_12px_32px_-18px_rgba(12,16,22,0.18)]">
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-pink-500/20 text-pink-400 border border-pink-500/30">
@@ -311,7 +311,7 @@ export function MenuManagement({
             {/* Modal for Modifier Group Add/Edit */}
             {isModGroupModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-carbon-950/35 backdrop-blur-sm">
-                    <div className="bg-slate-900 border border-carbon-950/10 rounded-2xl w-full max-w-lg shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] flex flex-col max-h-[90vh]">
+                    <div className="bg-slate-900 border border-carbon-950/10 rounded-2xl w-full max-w-lg shadow-[0_1px_2px_rgba(12,16,22,0.04),0_12px_32px_-18px_rgba(12,16,22,0.18)] flex flex-col max-h-[90vh]">
                         <div className="p-6 border-b border-carbon-950/10 flex justify-between items-center bg-slate-800/20 rounded-t-2xl">
                             <h3 className="text-xl font-bold text-carbon-950 tracking-tight">Configurar Grupo de Modificadores</h3>
                             <button onClick={() => setIsModGroupModalOpen(false)} className="text-slate-400 hover:text-carbon-950 transition-colors"><X/></button>

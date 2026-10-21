@@ -31,8 +31,8 @@ export default defineConfig({
         display: 'standalone',
         display_override: ['standalone', 'minimal-ui'],
         orientation: 'any',
-        background_color: '#F3F4F0',
-        theme_color: '#F3F4F0',
+        background_color: '#F2F4F7',
+        theme_color: '#F2F4F7',
         categories: ['business', 'finance', 'food'],
         icons: [
           { src: '/pwa-192.png?v=3d', sizes: '192x192', type: 'image/png', purpose: 'any' },

@@ -113,7 +113,7 @@ export function SubscriptionGate({ status, email, verifyingPayment, hasStripeCus
                   key={key}
                   className={
                     pro
-                      ? 'bg-indigo-900/40 backdrop-blur-xl border border-indigo-500/50 rounded-3xl p-8 flex flex-col relative shadow-[0_0_50px_-12px_rgba(22,137,95,0.5)]'
+                      ? 'bg-indigo-900/40 backdrop-blur-xl border border-indigo-500/50 rounded-3xl p-8 flex flex-col relative shadow-[0_0_50px_-12px_rgba(17,81,143,0.5)]'
                       : 'bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-3xl p-8 flex flex-col relative'
                   }
                 >
@@ -139,7 +139,7 @@ export function SubscriptionGate({ status, email, verifyingPayment, hasStripeCus
                     disabled={!!loadingPlan}
                     onClick={() => checkout(key)}
                     className={
-                      (pro ? 'bg-indigo-500 hover:bg-indigo-400 shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20 ' : 'bg-slate-800 hover:bg-slate-700 ') +
+                      (pro ? 'bg-indigo-500 hover:bg-indigo-400 shadow-[0_8px_20px_-12px_rgba(12,16,22,0.25)] shadow-indigo-500/20 ' : 'bg-slate-800 hover:bg-slate-700 ') +
                       'w-full py-4 rounded-2xl font-black text-carbon-950 transition-all flex items-center justify-center gap-2 disabled:opacity-60'
                     }
                   >

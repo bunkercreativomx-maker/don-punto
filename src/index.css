@@ -19,80 +19,80 @@
   --color-uber: #06C167;
   --color-didi: #FF7800;
   --color-rappi: #FF424D;
-  --color-dark-bg: #191D19;
-  --color-dark-panel: #272C27;
+  --color-dark-bg: #181D25;
+  --color-dark-panel: #262D37;
 
   /* Agave */
-  --color-agave-50: #EAF7F1;
-  --color-agave-100: #CDEEDF;
-  --color-agave-200: #9EDCC2;
-  --color-agave-300: #66C39F;
-  --color-agave-400: #34A87F;
-  --color-agave-500: #16895F;
-  --color-agave-600: #0E6F4D;
-  --color-agave-700: #0C5A40;
-  --color-agave-800: #0B4735;
-  --color-agave-900: #093A2C;
-  --color-agave-950: #04211A;
+  --color-agave-50: #EBF3FC;
+  --color-agave-100: #D2E3F7;
+  --color-agave-200: #A6C6EC;
+  --color-agave-300: #6A9AD0;
+  --color-agave-400: #2F6FB2;
+  --color-agave-500: #11518F;
+  --color-agave-600: #0C4275;
+  --color-agave-700: #09365F;
+  --color-agave-800: #072A4B;
+  --color-agave-900: #052039;
+  --color-agave-950: #021325;
 
   /* Maíz */
-  --color-maiz-50: #FFF8E6;
-  --color-maiz-100: #FFEDBF;
-  --color-maiz-200: #FFDC85;
-  --color-maiz-300: #FCC84D;
-  --color-maiz-400: #F5B323;
-  --color-maiz-500: #E39B0B;
-  --color-maiz-600: #C07A06;
-  --color-maiz-700: #985A09;
-  --color-maiz-800: #7B480F;
-  --color-maiz-900: #663C10;
-  --color-maiz-950: #3B1F04;
+  --color-maiz-50: #F5FDE6;
+  --color-maiz-100: #E7FAC4;
+  --color-maiz-200: #D0F590;
+  --color-maiz-300: #B2EC52;
+  --color-maiz-400: #94E01F;
+  --color-maiz-500: #76C70A;
+  --color-maiz-600: #5BA005;
+  --color-maiz-700: #457A09;
+  --color-maiz-800: #38610D;
+  --color-maiz-900: #2F5110;
+  --color-maiz-950: #172D03;
 
   /* Carbón (neutros) */
-  --color-carbon-50: #F6F7F5;
-  --color-carbon-100: #ECEEEA;
-  --color-carbon-200: #D7DBD4;
-  --color-carbon-300: #B5BCB2;
-  --color-carbon-400: #8A9387;
-  --color-carbon-500: #697266;
-  --color-carbon-600: #535B51;
-  --color-carbon-700: #3E453D;
-  --color-carbon-800: #272C27;
-  --color-carbon-900: #191D19;
-  --color-carbon-950: #0D100E;
+  --color-carbon-50: #F6F8FA;
+  --color-carbon-100: #ECEFF3;
+  --color-carbon-200: #D6DCE3;
+  --color-carbon-300: #B3BDC8;
+  --color-carbon-400: #8794A3;
+  --color-carbon-500: #667383;
+  --color-carbon-600: #505C6B;
+  --color-carbon-700: #3C4653;
+  --color-carbon-800: #262D37;
+  --color-carbon-900: #181D25;
+  --color-carbon-950: #0C1016;
 
   /* ---- Remapeo de la interfaz de la app a TEMA CLARO (mismo lenguaje que la página de ventas) ---- */
   /* slate → escala invertida: 950 = fondo de página, 900 = tarjetas, 100/50 = texto */
-  --color-slate-50: #0D100E;
-  --color-slate-100: #191D19;
-  --color-slate-200: #272C27;
-  --color-slate-300: #3E453D;
-  --color-slate-400: #464E44;
-  --color-slate-500: #586055;
-  --color-slate-600: #6B7468;
-  --color-slate-700: #C9CEC5;
-  --color-slate-800: #EBEDE8;
+  --color-slate-50: #0C1016;
+  --color-slate-100: #181D25;
+  --color-slate-200: #262D37;
+  --color-slate-300: #3C4653;
+  --color-slate-400: #444E5B;
+  --color-slate-500: #56606E;
+  --color-slate-600: #69737F;
+  --color-slate-700: #C7CED7;
+  --color-slate-800: #EAEEF2;
   --color-slate-900: #FFFFFF;
-  --color-slate-950: #F3F4F0;
+  --color-slate-950: #F2F4F7;
 
   /* indigo (acción principal) → agave; tonos claros oscurecidos para leerse sobre blanco */
-  --color-indigo-50: #EAF7F1;
-  --color-indigo-100: #CDEEDF;
-  --color-indigo-200: #9EDCC2;
-  --color-indigo-300: #0B4735;
-  --color-indigo-400: #0E6F4D;
-  --color-indigo-500: #16895F;
-  --color-indigo-600: #0E6F4D;
-  --color-indigo-700: #0C5A40;
-  --color-indigo-800: #0B4735;
-  --color-indigo-900: #EAF7F1;
-  --color-indigo-950: #F3FAF6;
+  --color-indigo-50: #EBF3FC;
+  --color-indigo-100: #D2E3F7;
+  --color-indigo-200: #A6C6EC;
+  --color-indigo-300: #072A4B;
+  --color-indigo-400: #0C4275;
+  --color-indigo-500: #11518F;
+  --color-indigo-600: #0C4275;
+  --color-indigo-700: #09365F;
+  --color-indigo-800: #072A4B;
+  --color-indigo-900: #EBF3FC;
+  --color-indigo-950: #F3F7FC;
 
   /* pink (acentos) → maíz */
-  --color-pink-300: #7B480F;
+  --color-pink-300: #38610D;
   --color-pink-400: #9A5A06;
-  --color-pink-500: #E39B0B;
-  --color-pink-600: #C07A06;
+  --color-pink-500: #76C70A;
+  --color-pink-600: #5BA005;
 
   /* cyan (degradados) → lima */
   --color-cyan-300: #3F5A0B;
@@ -102,10 +102,10 @@
   --color-cyan-900: #EEF5DC;
 
   /* violet → agave */
-  --color-violet-300: #0B4735;
-  --color-violet-400: #0C5A40;
-  --color-violet-500: #16895F;
-  --color-violet-600: #0E6F4D;
+  --color-violet-300: #072A4B;
+  --color-violet-400: #09365F;
+  --color-violet-500: #11518F;
+  --color-violet-600: #0C4275;
 
   /* acentos semánticos: versiones oscuras para texto sobre fondo claro */
   --color-emerald-300: #065F46;
@@ -130,7 +130,7 @@
 
 @layer base {
   body {
-    background-color: #F3F4F0;
+    background-color: #F2F4F7;
     color: var(--color-carbon-900);
     font-family: var(--font-sans);
     font-feature-settings: "ss01", "cv11";
@@ -175,15 +175,15 @@
     background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(52, 168, 127, 0.3);
+    background: rgba(47,111,178, 0.3);
     border-radius: 9999px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(52, 168, 127, 0.55);
+    background: rgba(47,111,178, 0.55);
   }
   .custom-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: rgba(52,168,127,0.3) transparent;
+    scrollbar-color: rgba(47,111,178,0.3) transparent;
   }
 }
 

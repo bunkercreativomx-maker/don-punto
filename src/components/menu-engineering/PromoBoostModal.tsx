@@ -112,7 +112,7 @@ export function PromoBoostModal({ product, onClose }: { product: PromoInput; onC
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-carbon-950/35 backdrop-blur-xl no-print" onClick={onClose}>
-      <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl w-full max-w-lg max-h-[92vh] overflow-y-auto shadow-[0_0_100px_-20px_rgba(22,137,95,0.3)]" onClick={e => e.stopPropagation()}>
+      <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl w-full max-w-lg max-h-[92vh] overflow-y-auto shadow-[0_0_100px_-20px_rgba(17,81,143,0.3)]" onClick={e => e.stopPropagation()}>
         <div className="p-5 border-b border-carbon-950/10 flex justify-between items-start gap-3">
           <div>
             <div className="text-xs font-black uppercase tracking-widest text-rose-400">Impulsar platillo</div>

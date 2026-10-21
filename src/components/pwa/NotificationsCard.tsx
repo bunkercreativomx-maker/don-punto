@@ -70,7 +70,7 @@ export function NotificationsCard() {
             </span>
             <input
               type="checkbox"
-              className="w-5 h-5 accent-[#16895F]"
+              className="w-5 h-5 accent-[#11518F]"
               checked={daily}
               onChange={(e) => {
                 const v = e.target.checked;

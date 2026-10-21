@@ -76,7 +76,7 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
                         <ArrowLeft size={16} /> Volver
                     </button>
                 )}
-                <div className="bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-3xl p-8 shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)]">
+                <div className="bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-3xl p-8 shadow-[0_1px_2px_rgba(12,16,22,0.04),0_12px_32px_-18px_rgba(12,16,22,0.18)]">
                     <div className="text-center mb-8">
                         <h1 className="sr-only">Don Punto</h1>
                         <div className="flex justify-center"><Logo size={72} tagline /></div>
@@ -169,7 +169,7 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full mt-6 bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 disabled:hover:bg-indigo-500 text-white font-black py-4 rounded-xl shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
+                            className="w-full mt-6 bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 disabled:hover:bg-indigo-500 text-white font-black py-4 rounded-xl shadow-[0_8px_20px_-12px_rgba(12,16,22,0.25)] shadow-indigo-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group"
                         >
                             {loading ? (
                                 <Loader2 size={20} className="animate-spin" />

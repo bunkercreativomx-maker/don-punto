@@ -90,7 +90,7 @@ export function POSTicketsHistory() {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-10rem)] animate-in fade-in slide-in-from-bottom-2 duration-500 no-print">
 
       {/* LEFT SIDE: Tickets list & Filters */}
-      <div className="lg:col-span-4 flex flex-col bg-slate-900 backdrop-blur-2xl border border-carbon-950/10 rounded-3xl overflow-hidden shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] h-full">
+      <div className="lg:col-span-4 flex flex-col bg-slate-900 backdrop-blur-2xl border border-carbon-950/10 rounded-3xl overflow-hidden shadow-[0_1px_2px_rgba(12,16,22,0.04),0_12px_32px_-18px_rgba(12,16,22,0.18)] h-full">
         {/* Header and filters */}
         <div className="p-6 border-b border-carbon-950/10 space-y-4 shrink-0 bg-slate-900">
           <div className="flex justify-between items-center">
@@ -176,7 +176,7 @@ export function POSTicketsHistory() {
                   className={cn(
                     "w-full text-left p-4 rounded-2xl border flex items-center justify-between transition-all duration-300 group relative overflow-hidden",
                     isSelected 
-                      ? "bg-slate-950 border-indigo-500/50 shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/5" 
+                      ? "bg-slate-950 border-indigo-500/50 shadow-[0_8px_20px_-12px_rgba(12,16,22,0.25)] shadow-indigo-500/5" 
                       : "bg-slate-950/40 border-carbon-950/10 hover:border-carbon-950/10 hover:bg-slate-950/20"
                   )}
                 >
@@ -236,7 +236,7 @@ export function POSTicketsHistory() {
       </div>
 
       {/* RIGHT SIDE: Ticket Live Preview & Actions */}
-      <div className="lg:col-span-8 flex flex-col bg-slate-900 backdrop-blur-2xl border border-carbon-950/10 rounded-3xl overflow-hidden shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] h-full">
+      <div className="lg:col-span-8 flex flex-col bg-slate-900 backdrop-blur-2xl border border-carbon-950/10 rounded-3xl overflow-hidden shadow-[0_1px_2px_rgba(12,16,22,0.04),0_12px_32px_-18px_rgba(12,16,22,0.18)] h-full">
         {selectedTicket ? (
           <div className="flex flex-col h-full">
             {/* Quick Actions Header */}
@@ -251,7 +251,7 @@ export function POSTicketsHistory() {
               <div className="flex gap-3 w-full sm:w-auto">
                 <button
                   onClick={() => handlePrint(selectedTicket, 'customer')}
-                  className="flex-1 sm:flex-initial bg-indigo-500 hover:bg-indigo-400 text-white px-5 py-3 rounded-2xl font-black text-xs transition-all shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20 flex items-center justify-center gap-2 active:scale-95"
+                  className="flex-1 sm:flex-initial bg-indigo-500 hover:bg-indigo-400 text-white px-5 py-3 rounded-2xl font-black text-xs transition-all shadow-[0_8px_20px_-12px_rgba(12,16,22,0.25)] shadow-indigo-500/20 flex items-center justify-center gap-2 active:scale-95"
                 >
                   <Printer size={15} /> CLIENTE
                 </button>
@@ -267,7 +267,7 @@ export function POSTicketsHistory() {
             {/* Receipt Preview scrollable area */}
             <div className="flex-grow overflow-y-auto no-scrollbar p-10 bg-slate-950/20 flex justify-center items-start">
               {/* Paper Ticket Representation */}
-              <div className="w-full max-w-[340px] bg-white text-carbon-950 p-6 rounded-2xl shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] relative overflow-hidden border border-black/5 animate-in zoom-in-95 duration-300">
+              <div className="w-full max-w-[340px] bg-white text-carbon-950 p-6 rounded-2xl shadow-[0_1px_2px_rgba(12,16,22,0.04),0_12px_32px_-18px_rgba(12,16,22,0.18)] relative overflow-hidden border border-black/5 animate-in zoom-in-95 duration-300">
                 {/* Vintage receipt thermal edge styling */}
                 <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-b from-slate-200 to-transparent" />
                 

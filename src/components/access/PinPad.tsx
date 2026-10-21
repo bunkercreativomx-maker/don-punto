@@ -24,7 +24,7 @@ export function PinPad({
       else if (e.key === 'Enter') submit();
       else if (e.key === 'Escape' && onClose) onClose();
     }} tabIndex={-1} ref={(el) => el?.focus()}>
-      <div className="bg-white border border-carbon-950/10 rounded-3xl w-full max-w-xs shadow-[0_24px_60px_-24px_rgba(13,16,14,0.35)] overflow-hidden">
+      <div className="bg-white border border-carbon-950/10 rounded-3xl w-full max-w-xs shadow-[0_24px_60px_-24px_rgba(12,16,22,0.35)] overflow-hidden">
         <div className="p-6 text-center border-b border-carbon-950/10">
           <div className="w-12 h-12 bg-agave-50 text-agave-700 rounded-full flex items-center justify-center mx-auto mb-3"><Lock size={22} /></div>
           <h3 className="font-display text-xl font-bold text-carbon-950">{title}</h3>

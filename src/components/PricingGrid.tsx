@@ -39,7 +39,7 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
         <div className="w-full space-y-4">
             {/* Header Area */}
             {rows.length > 0 && (
-                <div className="bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-2xl px-6 py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)]">
+                <div className="bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-2xl px-6 py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-[0_8px_20px_-12px_rgba(12,16,22,0.25)]">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
                             <TrendingUp size={20} />
@@ -60,7 +60,7 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
             )}
 
             {/* Scrollable Table */}
-            <div className="w-full overflow-x-auto pb-4 custom-scrollbar bg-slate-950/40 rounded-2xl border border-carbon-950/10 shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)]">
+            <div className="w-full overflow-x-auto pb-4 custom-scrollbar bg-slate-950/40 rounded-2xl border border-carbon-950/10 shadow-[0_1px_2px_rgba(12,16,22,0.04),0_12px_32px_-18px_rgba(12,16,22,0.18)]">
                 <div className="min-w-[2200px]">
                     {rows.length > 0 ? (
                         <>
@@ -247,7 +247,7 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
                             <p className="mb-8 text-slate-400">Agrega productos para visualizar tus precios estratégicos de plataforma.</p>
                             <button
                                 onClick={addRow}
-                                className="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-carbon-950 px-6 py-3 rounded-2xl font-bold transition-all border border-carbon-950/10 shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)]"
+                                className="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-carbon-950 px-6 py-3 rounded-2xl font-bold transition-all border border-carbon-950/10 shadow-[0_1px_2px_rgba(12,16,22,0.04),0_12px_32px_-18px_rgba(12,16,22,0.18)]"
                             >
                                 <Plus size={20} />
                                 EMPEZAR AHORA
@@ -262,17 +262,17 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
                     height: 10px;
                 }
                 .custom-scrollbar::-webkit-scrollbar-track {
-                    background: rgba(255, 255, 255, 0.02);
+                    background: rgba(255,255,255, 0.02);
                     border-radius: 10px;
                 }
                 .custom-scrollbar::-webkit-scrollbar-thumb {
-                    background: rgba(22,137,95, 0.3);
+                    background: rgba(17,81,143, 0.3);
                     border-radius: 10px;
                     border: 3px solid transparent;
                     background-clip: content-box;
                 }
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                    background: rgba(22,137,95, 0.5);
+                    background: rgba(17,81,143, 0.5);
                     background-clip: content-box;
                 }
             `}</style>

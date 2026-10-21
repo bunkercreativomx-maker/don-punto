@@ -362,7 +362,7 @@ export function POSDashboard() {
     <>
     <div className="space-y-4 no-print">
         {stockAlerts.length > 0 && (
-            <div className="fixed bottom-5 right-5 z-[90] w-80 rounded-2xl border border-maiz-300 bg-white p-4 shadow-[0_18px_40px_-18px_rgba(13,16,14,0.45)]">
+            <div className="fixed bottom-5 right-5 z-[90] w-80 rounded-2xl border border-maiz-300 bg-white p-4 shadow-[0_18px_40px_-18px_rgba(12,16,22,0.45)]">
                 <div className="flex items-start gap-3">
                     <AlertTriangle size={18} className="text-maiz-600 mt-0.5 shrink-0" />
                     <div className="flex-1 min-w-0">
@@ -410,7 +410,7 @@ export function POSDashboard() {
         
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Products Grid */}
-            <div className="lg:col-span-8 bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-2xl p-4 sm:p-6 shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)]">
+            <div className="lg:col-span-8 bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-2xl p-4 sm:p-6 shadow-[0_1px_2px_rgba(12,16,22,0.04),0_12px_32px_-18px_rgba(12,16,22,0.18)]">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                     <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                         <h2 className="font-display text-xl font-bold text-carbon-950 flex items-center gap-2">
@@ -527,7 +527,7 @@ export function POSDashboard() {
                         <button
                             key={p.id}
                             onClick={() => handleProductClick(p)}
-                            className="bg-white border border-carbon-950/10 p-4 rounded-2xl text-left shadow-[0_1px_2px_rgba(13,16,14,0.05)] hover:border-agave-400 hover:shadow-[0_10px_24px_-14px_rgba(14,111,77,0.45)] active:scale-[0.98] transition-all duration-200 group relative overflow-hidden h-32 flex flex-col justify-between"
+                            className="bg-white border border-carbon-950/10 p-4 rounded-2xl text-left shadow-[0_1px_2px_rgba(12,16,22,0.05)] hover:border-agave-400 hover:shadow-[0_10px_24px_-14px_rgba(14,111,77,0.45)] active:scale-[0.98] transition-all duration-200 group relative overflow-hidden h-32 flex flex-col justify-between"
                         >
                             <div className="font-semibold text-carbon-900 group-hover:text-agave-700 text-[15px] leading-tight line-clamp-2">{p.name}</div>
                             <div className="font-display font-bold text-carbon-950 text-xl tracking-tight tabular-nums">${money(getItemPrice(p.id, []))}</div>
@@ -547,7 +547,7 @@ export function POSDashboard() {
 
             {/* Cart Section */}
             <div className="lg:col-span-4 flex flex-col gap-4">
-                <div className="bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-2xl p-6 shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] flex-grow flex flex-col min-h-[520px]">
+                <div className="bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-2xl p-6 shadow-[0_1px_2px_rgba(12,16,22,0.04),0_12px_32px_-18px_rgba(12,16,22,0.18)] flex-grow flex flex-col min-h-[520px]">
                     <h3 className="text-lg font-bold text-carbon-950 mb-4">Orden Actual</h3>
                     <div className="flex-grow space-y-3 overflow-y-auto no-scrollbar pr-1">
                         {cart.length === 0 ? (
@@ -611,7 +611,7 @@ export function POSDashboard() {
                             )}
                         </div>
                         {showSuggest && suggestions.length > 0 && (
-                            <div className="absolute left-0 right-0 bottom-full mb-1 z-30 rounded-xl border border-carbon-950/10 bg-white shadow-[0_12px_32px_-12px_rgba(13,16,14,0.3)] p-1">
+                            <div className="absolute left-0 right-0 bottom-full mb-1 z-30 rounded-xl border border-carbon-950/10 bg-white shadow-[0_12px_32px_-12px_rgba(12,16,22,0.3)] p-1">
                                 {suggestions.map((c) => (
                                     <button key={c.id} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { setClientId(c.id); setOrderCustomerName(c.name); setShowSuggest(false); }} className="w-full flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-left hover:bg-agave-50">
                                         <span className="text-sm font-semibold text-carbon-900 truncate">{c.name}</span>
@@ -709,7 +709,7 @@ export function POSDashboard() {
                             <button 
                                 disabled={cart.length === 0}
                                 onClick={handleCheckout}
-                                className="bg-indigo-500 hover:bg-indigo-400 disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none disabled:text-slate-600 text-white font-black py-4 rounded-2xl transition-all shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/10 active:scale-95 flex items-center justify-center gap-2"
+                                className="bg-indigo-500 hover:bg-indigo-400 disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none disabled:text-slate-600 text-white font-black py-4 rounded-2xl transition-all shadow-[0_8px_20px_-12px_rgba(12,16,22,0.25)] shadow-indigo-500/10 active:scale-95 flex items-center justify-center gap-2"
                             >
                                 <CreditCard size={20}/> FINALIZAR
                             </button>
@@ -725,7 +725,7 @@ export function POSDashboard() {
     {/* Modifier Selection Modal */}
     {isModModalOpen && selectedProduct && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-carbon-950/35 backdrop-blur-md no-print">
-            <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl w-full max-w-lg shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl w-full max-w-lg shadow-[0_1px_2px_rgba(12,16,22,0.04),0_12px_32px_-18px_rgba(12,16,22,0.18)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
                 <div className="p-6 bg-slate-800/30 border-b border-carbon-950/10">
                     <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-1">Personalizar</h4>
                     <h3 className="text-xl font-bold text-carbon-950">{selectedProduct.name}</h3>
@@ -799,7 +799,7 @@ export function POSDashboard() {
                     <button onClick={() => setIsModModalOpen(false)} className="flex-grow py-4 rounded-2xl font-bold text-slate-500 hover:text-carbon-950 transition-all">CANCELAR</button>
                     <button 
                         onClick={() => addToCart(selectedProduct.id, pendingModifiers, customerNote)}
-                        className="flex-[2] bg-indigo-500 hover:bg-indigo-400 text-white font-black py-4 rounded-2xl shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20 transition-all active:scale-95"
+                        className="flex-[2] bg-indigo-500 hover:bg-indigo-400 text-white font-black py-4 rounded-2xl shadow-[0_8px_20px_-12px_rgba(12,16,22,0.25)] shadow-indigo-500/20 transition-all active:scale-95"
                     >AGREGAR A LA ORDEN</button>
                 </div>
             </div>
@@ -809,7 +809,7 @@ export function POSDashboard() {
     {/* --- CHANGE CALCULATOR MODAL --- */}
     {isChangeModalOpen && (
         <div className="fixed inset-0 z-[65] flex items-center justify-center p-4 bg-carbon-950/35 backdrop-blur-md no-print">
-            <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl w-full max-w-md shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl w-full max-w-md shadow-[0_1px_2px_rgba(12,16,22,0.04),0_12px_32px_-18px_rgba(12,16,22,0.18)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
                 <div className="p-6 bg-slate-800/30 border-b border-carbon-950/10">
                     <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-1">Calculadora de Cambio</h4>
                     <h3 className="text-xl font-bold text-carbon-950">Pago en {paymentMethod.toUpperCase()}</h3>
@@ -870,7 +870,7 @@ export function POSDashboard() {
                             setIsChangeModalOpen(false);
                             processCheckout();
                         }}
-                        className="flex-[2] bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none text-white font-black py-4 rounded-2xl shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-emerald-500/20 transition-all active:scale-95"
+                        className="flex-[2] bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none text-white font-black py-4 rounded-2xl shadow-[0_8px_20px_-12px_rgba(12,16,22,0.25)] shadow-emerald-500/20 transition-all active:scale-95"
                     >FINALIZAR Y COBRAR</button>
                 </div>
             </div>
@@ -880,7 +880,7 @@ export function POSDashboard() {
     {/* --- PIN SECURITY MODAL --- */}
     {isPinModalOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-carbon-950/35 backdrop-blur-md no-print">
-            <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl w-full max-w-sm shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl w-full max-w-sm shadow-[0_1px_2px_rgba(12,16,22,0.04),0_12px_32px_-18px_rgba(12,16,22,0.18)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
                 <div className="p-6 bg-slate-800/30 border-b border-carbon-950/10 text-center">
                     <div className="w-12 h-12 bg-pink-500/20 text-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Lock size={24} />
@@ -915,7 +915,7 @@ export function POSDashboard() {
     {/* --- TICKETS ABIERTOS MODAL --- */}
     {isTicketsModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-carbon-950/35 backdrop-blur-md no-print">
-            <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl w-full max-w-2xl shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl w-full max-w-2xl shadow-[0_1px_2px_rgba(12,16,22,0.04),0_12px_32px_-18px_rgba(12,16,22,0.18)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
                 <div className="p-6 bg-slate-800/30 border-b border-carbon-950/10 flex justify-between items-center">
                     <div>
                         <h4 className="text-[10px] font-black text-amber-500 uppercase tracking-[0.2em] mb-1">Pendientes</h4>
@@ -1015,7 +1015,7 @@ export function POSDashboard() {
 
     {/* Toast notification */}
     {toast && (
-        <div className="fixed bottom-8 right-8 z-[200] bg-emerald-500 text-white px-5 py-3 rounded-xl font-bold text-sm shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] shadow-emerald-500/30 flex items-center gap-2 animate-in slide-in-from-bottom-3 duration-200 no-print">
+        <div className="fixed bottom-8 right-8 z-[200] bg-emerald-500 text-white px-5 py-3 rounded-xl font-bold text-sm shadow-[0_1px_2px_rgba(12,16,22,0.04),0_12px_32px_-18px_rgba(12,16,22,0.18)] shadow-emerald-500/30 flex items-center gap-2 animate-in slide-in-from-bottom-3 duration-200 no-print">
             <CheckCircle size={16} />
             {toast}
         </div>

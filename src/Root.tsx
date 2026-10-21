@@ -113,7 +113,7 @@ function RootApp() {
   // Color de la barra del navegador: claro en la página de ventas, oscuro dentro de la app
   useEffect(() => {
     const meta = document.querySelector('meta[name="theme-color"]');
-    meta?.setAttribute('content', phase === 'landing' ? '#FAFAF7' : '#F3F4F0');
+    meta?.setAttribute('content', phase === 'landing' ? '#F8FAFC' : '#F2F4F7');
   }, [phase]);
 
   // Sesión guardada

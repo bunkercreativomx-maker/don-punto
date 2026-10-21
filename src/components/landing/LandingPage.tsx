@@ -40,7 +40,7 @@ function TicketCalculator({ onStart }: { onStart: () => void }) {
   return (
     <div className="relative mx-auto w-full max-w-[400px]">
       <div className="absolute -inset-6 rounded-[2.5rem] bg-agave-500/10 blur-2xl" aria-hidden="true" />
-      <div className="relative rounded-t-2xl bg-white shadow-[0_30px_80px_-30px_rgba(4,33,26,0.45),0_2px_6px_rgba(4,33,26,0.06)] ring-1 ring-carbon-200/70">
+      <div className="relative rounded-t-2xl bg-white shadow-[0_30px_80px_-30px_rgba(2,19,37,0.45),0_2px_6px_rgba(2,19,37,0.06)] ring-1 ring-carbon-200/70">
         <div className="px-7 pt-7 pb-5 border-b border-dashed border-carbon-300">
           <div className="flex items-center justify-between">
             <Wordmark tone="light" height={18} />
@@ -84,7 +84,7 @@ function TicketCalculator({ onStart }: { onStart: () => void }) {
             max={40}
             value={commission}
             onChange={(e) => setCommission(Number(e.target.value))}
-            className="mt-4 h-6 w-full accent-[#16895F]"
+            className="mt-4 h-6 w-full accent-[#11518F]"
           />
         </div>
 
@@ -119,7 +119,7 @@ function TicketCalculator({ onStart }: { onStart: () => void }) {
         style={{
           background:
             'linear-gradient(-45deg, transparent 8px, #fff 0) 0 0 / 16px 16px repeat-x, linear-gradient(45deg, transparent 8px, #fff 0) 0 0 / 16px 16px repeat-x',
-          filter: 'drop-shadow(0 6px 6px rgba(4,33,26,0.08))',
+          filter: 'drop-shadow(0 6px 6px rgba(2,19,37,0.08))',
         }}
       />
     </div>
@@ -146,7 +146,7 @@ function Section({ id, className = '', children }: { id?: string; className?: st
 
 function Shot({ src, alt, className = '' }: { src: string; alt: string; className?: string }) {
   return (
-    <div className={`rounded-[1.4rem] bg-carbon-900 p-1.5 ring-1 ring-black/10 shadow-[0_40px_80px_-40px_rgba(4,33,26,0.55)] ${className}`}>
+    <div className={`rounded-[1.4rem] bg-carbon-900 p-1.5 ring-1 ring-black/10 shadow-[0_40px_80px_-40px_rgba(2,19,37,0.55)] ${className}`}>
       <img src={src} alt={alt} loading="lazy" decoding="async" className="block w-full rounded-[1.1rem]" />
     </div>
   );
@@ -178,9 +178,9 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
   const [open, setOpen] = useState<number | null>(0);
 
   return (
-    <div className="min-h-[100dvh] bg-[#FAFAF7] text-carbon-950 overflow-x-hidden selection:bg-maiz-200">
+    <div className="min-h-[100dvh] bg-[#F8FAFC] text-carbon-950 overflow-x-hidden selection:bg-maiz-200">
       {/* Encabezado */}
-      <header className="sticky top-0 z-40 border-b border-carbon-200/60 bg-[#FAFAF7]/85 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-carbon-200/60 bg-[#F8FAFC]/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-8">
           <a href="#inicio" aria-label="Don Punto, inicio" className="shrink-0"><Logo size={32} className="sm:hidden" /><Logo size={44} className="hidden sm:block" /></a>
           <nav className="hidden md:flex items-center gap-8 text-sm text-carbon-600">
@@ -316,7 +316,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 <InstallAppButton className="rounded-full px-6 py-3 font-semibold text-white ring-1 ring-white/20 hover:bg-white/5" />
               </div>
             </div>
-            <div className="relative flex items-center justify-center p-10 sm:p-14 bg-[radial-gradient(120%_80%_at_70%_20%,rgba(22,137,95,0.35),transparent_60%)]">
+            <div className="relative flex items-center justify-center p-10 sm:p-14 bg-[radial-gradient(120%_80%_at_70%_20%,rgba(17,81,143,0.35),transparent_60%)]">
               <div className="w-full max-w-sm space-y-3">
                 <Notification time="10:02 p.m." title="Cierre de hoy: $8,940" body="63 ventas · ticket promedio $142. Toca para ver tu reporte." />
                 <Notification time="Ayer" title="Cierre de hoy: $7,310" body="51 ventas · ticket promedio $143." muted />
@@ -497,7 +497,7 @@ function Notification({ time, title, body, muted }: { time: string; title: strin
 
 function Plan({ name, price, text, items, cta, note, onClick, featured }: { name: string; price: number; text: string; items: string[]; cta: string; note?: string; onClick: () => void; featured?: boolean }) {
   return (
-    <div className={featured ? 'rounded-[1.6rem] bg-agave-950 p-1.5 shadow-[0_40px_80px_-40px_rgba(4,33,26,0.7)]' : 'rounded-[1.6rem] bg-carbon-100 p-1.5'}>
+    <div className={featured ? 'rounded-[1.6rem] bg-agave-950 p-1.5 shadow-[0_40px_80px_-40px_rgba(2,19,37,0.7)]' : 'rounded-[1.6rem] bg-carbon-100 p-1.5'}>
       <div className={`h-full rounded-[1.25rem] p-8 sm:p-10 flex flex-col ${featured ? 'bg-agave-900 text-white ring-1 ring-white/10' : 'bg-white ring-1 ring-carbon-200/70'}`}>
         <div className="flex items-center justify-between">
           <h3 className="font-display text-2xl font-bold">{name}</h3>

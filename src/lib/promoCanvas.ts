@@ -84,8 +84,8 @@ export async function renderPromo(a: PromoArt): Promise<HTMLCanvasElement> {
   const pill = (a.dia ? `SOLO ESTE ${a.dia}` : 'PROMOCIÓN').toUpperCase();
   ctx.font = `800 34px ${SANS}`;
   const pw = ctx.measureText(pill).width + 56;
-  rr(ctx, PAD, y, pw, 64, 32); ctx.fillStyle = '#F5B323'; ctx.fill();
-  ctx.fillStyle = '#1a1206'; ctx.textBaseline = 'middle'; ctx.fillText(pill, PAD + 28, y + 34);
+  rr(ctx, PAD, y, pw, 64, 32); ctx.fillStyle = '#94E01F'; ctx.fill();
+  ctx.fillStyle = '#0F1A02'; ctx.textBaseline = 'middle'; ctx.fillText(pill, PAD + 28, y + 34);
   y += 64 + 34;
 
   // título
@@ -98,7 +98,7 @@ export async function renderPromo(a: PromoArt): Promise<HTMLCanvasElement> {
   // oferta
   if (a.oferta) {
     const o = fit(ctx, a.oferta, (z) => `600 ${z}px ${SANS}`, 46, 34, W - PAD * 2, 2);
-    ctx.font = `600 ${o.size}px ${SANS}`; ctx.fillStyle = '#FDE7B0';
+    ctx.font = `600 ${o.size}px ${SANS}`; ctx.fillStyle = '#E4F9B8';
     y += 20;
     for (const l of o.lines) { y += o.size * 1.18; ctx.fillText(l, PAD, y); }
   }
@@ -106,8 +106,8 @@ export async function renderPromo(a: PromoArt): Promise<HTMLCanvasElement> {
   // precio (círculo amarillo abajo a la derecha)
   const R = 170, cx = W - PAD - R + 20, cy = H - 150 - R + 40;
   ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = 40;
-  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fillStyle = '#F5B323'; ctx.fill(); ctx.restore();
-  ctx.textAlign = 'center'; ctx.fillStyle = '#1a1206';
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fillStyle = '#94E01F'; ctx.fill(); ctx.restore();
+  ctx.textAlign = 'center'; ctx.fillStyle = '#0F1A02';
   if (a.precioPromo !== null && a.precioPromo < a.precioNormal) {
     ctx.font = `700 40px ${SANS}`;
     const before = `Antes ${fmt(a.precioNormal)}`;
@@ -131,6 +131,6 @@ export async function renderPromo(a: PromoArt): Promise<HTMLCanvasElement> {
     let ny = (a.telefono ? by - 54 : by) - (n.lines.length - 1) * n.size * 1.05;
     for (const l of n.lines) { ctx.fillText(l, PAD, ny); ny += n.size * 1.05; }
   }
-  if (a.telefono) { ctx.font = `600 38px ${SANS}`; ctx.fillStyle = '#FDE7B0'; ctx.fillText(`Tel. ${a.telefono}`, PAD, by); }
+  if (a.telefono) { ctx.font = `600 38px ${SANS}`; ctx.fillStyle = '#E4F9B8'; ctx.fillText(`Tel. ${a.telefono}`, PAD, by); }
   return c;
 }

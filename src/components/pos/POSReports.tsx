@@ -44,7 +44,7 @@ export function POSReports({ onUpgrade }: { onUpgrade?: () => void } = {}) {
           { label: 'Este Mes', data: summaries.monthly, color: 'text-amber-400', icon: Wallet },
           { label: 'Este Año', data: summaries.yearly, color: 'text-rose-400', icon: Percent },
         ].map((card, i) => (
-          <div key={i} className="bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-3xl p-6 shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] relative group overflow-hidden">
+          <div key={i} className="bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-3xl p-6 shadow-[0_1px_2px_rgba(12,16,22,0.04),0_12px_32px_-18px_rgba(12,16,22,0.18)] relative group overflow-hidden">
             <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
                <card.icon size={80} />
             </div>
@@ -103,7 +103,7 @@ export function POSReports({ onUpgrade }: { onUpgrade?: () => void } = {}) {
                     <button 
                         onClick={handlePrintCorte}
                         disabled={filteredTransactions.length === 0}
-                        className="w-full bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none text-white font-black py-4 rounded-2xl shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20 transition-all active:scale-95 flex items-center justify-center gap-3 mt-4"
+                        className="w-full bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none text-white font-black py-4 rounded-2xl shadow-[0_8px_20px_-12px_rgba(12,16,22,0.25)] shadow-indigo-500/20 transition-all active:scale-95 flex items-center justify-center gap-3 mt-4"
                     >
                         <Scissors size={18} />
                         IMPRIMIR CORTE Z
@@ -128,7 +128,7 @@ export function POSReports({ onUpgrade }: { onUpgrade?: () => void } = {}) {
 
         {/* --- TRANSACTIONS LIST --- */}
         <div className="lg:col-span-8 flex flex-col">
-            <div className="bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-3xl p-6 shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] flex-grow overflow-hidden flex flex-col min-h-[500px]">
+            <div className="bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-3xl p-6 shadow-[0_1px_2px_rgba(12,16,22,0.04),0_12px_32px_-18px_rgba(12,16,22,0.18)] flex-grow overflow-hidden flex flex-col min-h-[500px]">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="text-lg font-bold text-carbon-950">Transacciones del {selectedDate}</h3>
                     <div className="text-[10px] font-black text-slate-500 bg-slate-950 border border-carbon-950/10 px-3 py-1.5 rounded-full uppercase tracking-widest">

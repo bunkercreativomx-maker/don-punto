@@ -206,7 +206,7 @@ function FacturaModal({ onClose, onConfirm }: { onClose: () => void; onConfirm: 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-carbon-950/35 backdrop-blur-md">
-      <div className="bg-slate-900 border border-carbon-950/10 rounded-2xl w-full max-w-lg shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] flex flex-col max-h-[90vh] overflow-hidden">
+      <div className="bg-slate-900 border border-carbon-950/10 rounded-2xl w-full max-w-lg shadow-[0_1px_2px_rgba(12,16,22,0.04),0_12px_32px_-18px_rgba(12,16,22,0.18)] flex flex-col max-h-[90vh] overflow-hidden">
         <div className="flex items-center justify-between p-5 border-b border-carbon-950/10">
           <div>
             <div className="font-black text-carbon-950">Subir Factura</div>

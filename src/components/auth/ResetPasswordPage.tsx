@@ -33,7 +33,7 @@ export function ResetPasswordPage() {
   const input = 'w-full bg-slate-950/50 border border-carbon-950/10 rounded-xl pl-11 pr-4 py-3 text-carbon-950 outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all';
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-slate-900 border border-carbon-950/10 rounded-3xl p-8 shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)]">
+      <div className="w-full max-w-md bg-slate-900 border border-carbon-950/10 rounded-3xl p-8 shadow-[0_1px_2px_rgba(12,16,22,0.04),0_12px_32px_-18px_rgba(12,16,22,0.18)]">
         <div className="text-center mb-8">
           <div className="flex justify-center"><Logo size={72} tagline /></div>
           <p className="text-slate-400 mt-2 text-sm font-medium">{done ? 'Listo.' : 'Crea tu contraseña nueva.'}</p>

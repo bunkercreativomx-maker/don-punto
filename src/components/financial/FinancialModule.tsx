@@ -197,7 +197,7 @@ export function FinancialModule() {
   return (
     <div className="space-y-6">
       {/* ── Date Filter ── */}
-      <div className="bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-2xl p-5 shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)]">
+      <div className="bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-2xl p-5 shadow-[0_8px_20px_-12px_rgba(12,16,22,0.25)]">
         <div className="flex items-center gap-2 mb-3">
           <Calendar size={16} className="text-emerald-400" />
           <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Período</span>

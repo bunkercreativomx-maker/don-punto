@@ -90,13 +90,13 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-carbon-950/35 backdrop-blur-xl animate-in fade-in duration-300 no-print">
-            <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl w-full max-w-2xl shadow-[0_0_100px_-20px_rgba(22,137,95,0.3)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl w-full max-w-2xl shadow-[0_0_100px_-20px_rgba(17,81,143,0.3)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
                 
                 {/* Header */}
                 <div className="p-6 border-b border-carbon-950/10 flex justify-between items-center bg-slate-800/30 relative overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10" />
                     <div className="relative flex items-center gap-3">
-                        <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30 shadow-[0_0_20px_rgba(22,137,95,0.2)]">
+                        <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30 shadow-[0_0_20px_rgba(17,81,143,0.2)]">
                             <FileSpreadsheet size={20} />
                         </div>
                         <div>
@@ -288,7 +288,7 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
                             )}
                         >
                             <div className={cn(
-                                "p-4 rounded-2xl shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] transition-all duration-300 mb-4 relative",
+                                "p-4 rounded-2xl shadow-[0_8px_20px_-12px_rgba(12,16,22,0.25)] transition-all duration-300 mb-4 relative",
                                 file 
                                     ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" 
                                     : "bg-slate-900 border border-indigo-500/20 text-indigo-400 group-hover:scale-105"
@@ -341,7 +341,7 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
                         onClick={handleProcessImport}
                         disabled={!file}
                         className={cn(
-                            "flex-1 py-4 font-black rounded-2xl transition-all flex items-center justify-center gap-2 shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] active:scale-[0.98]",
+                            "flex-1 py-4 font-black rounded-2xl transition-all flex items-center justify-center gap-2 shadow-[0_8px_20px_-12px_rgba(12,16,22,0.25)] active:scale-[0.98]",
                             file 
                                 ? "bg-indigo-500 hover:bg-indigo-400 text-white shadow-indigo-500/20" 
                                 : "bg-slate-800 text-slate-600 cursor-not-allowed"

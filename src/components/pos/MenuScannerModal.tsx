@@ -149,13 +149,13 @@ export function MenuScannerModal({ onClose, onScanSuccess }: MenuScannerModalPro
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-carbon-950/35 backdrop-blur-xl animate-in fade-in duration-300 no-print">
-            <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl w-full max-w-xl shadow-[0_0_100px_-20px_rgba(22,137,95,0.3)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl w-full max-w-xl shadow-[0_0_100px_-20px_rgba(17,81,143,0.3)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
                 
                 {/* Header */}
                 <div className="p-6 border-b border-carbon-950/10 flex justify-between items-center bg-slate-800/30 relative overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10" />
                     <div className="relative flex items-center gap-3">
-                        <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30 shadow-[0_0_20px_rgba(22,137,95,0.2)]">
+                        <div className="p-2 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30 shadow-[0_0_20px_rgba(17,81,143,0.2)]">
                             <Sparkles size={20} className={step === 'scanning' ? "animate-spin-slow" : ""} />
                         </div>
                         <div>
@@ -181,7 +181,7 @@ export function MenuScannerModal({ onClose, onScanSuccess }: MenuScannerModalPro
                                 onClick={() => fileInputRef.current?.click()}
                                 className="border-2 border-dashed border-indigo-500/30 bg-indigo-500/5 hover:bg-indigo-500/10 rounded-3xl p-12 flex flex-col items-center justify-center text-center cursor-pointer transition-all group"
                             >
-                                <div className="bg-slate-900 p-4 rounded-2xl shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] group-hover:scale-110 group-hover:-translate-y-2 transition-all duration-300 mb-6 relative">
+                                <div className="bg-slate-900 p-4 rounded-2xl shadow-[0_8px_20px_-12px_rgba(12,16,22,0.25)] group-hover:scale-110 group-hover:-translate-y-2 transition-all duration-300 mb-6 relative">
                                     <div className="absolute inset-0 bg-indigo-500/20 rounded-2xl blur-xl" />
                                     <Camera size={48} className="text-indigo-400 relative z-10" />
                                 </div>
@@ -197,7 +197,7 @@ export function MenuScannerModal({ onClose, onScanSuccess }: MenuScannerModalPro
 
                     {step === 'scanning' && (
                         <div className="flex flex-col items-center justify-center py-12 animate-in fade-in zoom-in-95">
-                            <div className="relative w-48 h-64 bg-slate-800 rounded-2xl border border-carbon-950/10 overflow-hidden shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] mb-8 flex items-center justify-center">
+                            <div className="relative w-48 h-64 bg-slate-800 rounded-2xl border border-carbon-950/10 overflow-hidden shadow-[0_1px_2px_rgba(12,16,22,0.04),0_12px_32px_-18px_rgba(12,16,22,0.18)] mb-8 flex items-center justify-center">
                                 {/* Real Image Preview */}
                                 {previewImage ? (
                                     <img src={previewImage} alt="Menu preview" className="absolute inset-0 w-full h-full object-cover opacity-30" />
@@ -207,7 +207,7 @@ export function MenuScannerModal({ onClose, onScanSuccess }: MenuScannerModalPro
                                 
                                 {/* Scanner Line */}
                                 <div 
-                                    className="absolute left-0 right-0 h-1 bg-indigo-400 shadow-[0_0_20px_2px_rgba(22,137,95,1)] z-20 transition-all duration-300"
+                                    className="absolute left-0 right-0 h-1 bg-indigo-400 shadow-[0_0_20px_2px_rgba(17,81,143,1)] z-20 transition-all duration-300"
                                     style={{ top: `${progress}%` }}
                                 />
                                 <div 
@@ -245,7 +245,7 @@ export function MenuScannerModal({ onClose, onScanSuccess }: MenuScannerModalPro
 
                     {step === 'success' && (
                         <div className="flex flex-col items-center justify-center py-4 animate-in fade-in slide-in-from-bottom-4">
-                            <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mb-4 shadow-[0_0_40px_rgba(52,211,153,0.3)]">
+                            <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mb-4 shadow-[0_0_40px_rgba(148,224,31,0.3)]">
                                 <CheckCircle2 size={32} />
                             </div>
                             <h4 className="text-2xl font-black text-carbon-950 tracking-tight mb-2">¡Menú Digitalizado!</h4>
@@ -368,7 +368,7 @@ export function MenuScannerModal({ onClose, onScanSuccess }: MenuScannerModalPro
 
                             <button 
                                 onClick={handleComplete}
-                                className="w-full bg-indigo-500 hover:bg-indigo-400 text-white font-black py-4 rounded-2xl shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                className="w-full bg-indigo-500 hover:bg-indigo-400 text-white font-black py-4 rounded-2xl shadow-[0_8px_20px_-12px_rgba(12,16,22,0.25)] shadow-indigo-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
                             >
                                 <Sparkles size={20} /> IMPORTAR AL SISTEMA
                             </button>

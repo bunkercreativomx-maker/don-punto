@@ -500,7 +500,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                 <ChevronDown size={14} className="hidden lg:block text-carbon-500" />
               </button>
               {branchMenu && (
-                <div className="absolute left-0 right-0 lg:right-auto lg:w-56 top-full mt-1 z-50 rounded-xl border border-carbon-950/10 bg-white shadow-[0_12px_32px_-12px_rgba(13,16,14,0.3)] p-1">
+                <div className="absolute left-0 right-0 lg:right-auto lg:w-56 top-full mt-1 z-50 rounded-xl border border-carbon-950/10 bg-white shadow-[0_12px_32px_-12px_rgba(12,16,22,0.3)] p-1">
                   <div className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-carbon-500">Este equipo cobra en</div>
                   {branches.map((b) => (
                     <button key={b.id} onClick={() => { setBranchMenu(false); if (b.id !== branch.id) setActiveBranch(b.id); }} className={cn('w-full text-left rounded-lg px-3 py-2 text-sm', b.id === branch.id ? 'bg-agave-50 text-agave-800 font-semibold' : 'text-carbon-700 hover:bg-carbon-50')}>{b.name}</button>
@@ -634,21 +634,21 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => setIsImportModalOpen(true)}
-                        className="bg-slate-900 border border-emerald-500/30 hover:bg-slate-800 text-emerald-400 px-6 py-3 rounded-2xl font-black text-sm transition-all shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-emerald-500/10 active:scale-95 flex items-center gap-2"
+                        className="bg-slate-900 border border-emerald-500/30 hover:bg-slate-800 text-emerald-400 px-6 py-3 rounded-2xl font-black text-sm transition-all shadow-[0_8px_20px_-12px_rgba(12,16,22,0.25)] shadow-emerald-500/10 active:scale-95 flex items-center gap-2"
                     >
                         <FileSpreadsheet size={18} />
                         IMPORTAR MENÚ
                     </button>
                     <button
                         onClick={() => setIsScannerOpen(true)}
-                        className="bg-slate-900 border border-indigo-500/30 hover:bg-slate-800 text-indigo-400 px-6 py-3 rounded-2xl font-black text-sm transition-all shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/10 active:scale-95 flex items-center gap-2"
+                        className="bg-slate-900 border border-indigo-500/30 hover:bg-slate-800 text-indigo-400 px-6 py-3 rounded-2xl font-black text-sm transition-all shadow-[0_8px_20px_-12px_rgba(12,16,22,0.25)] shadow-indigo-500/10 active:scale-95 flex items-center gap-2"
                     >
                         <Sparkles size={18} /> ESCANEAR MENÚ
                     </button>
                     {(shownTab === 'profits' || shownTab === 'pricing') && (
                         <button
                           onClick={addRow}
-                          className="bg-indigo-500 hover:bg-indigo-400 text-white px-6 py-3 rounded-2xl font-black text-sm transition-all shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20 active:scale-95 flex items-center gap-2"
+                          className="bg-indigo-500 hover:bg-indigo-400 text-white px-6 py-3 rounded-2xl font-black text-sm transition-all shadow-[0_8px_20px_-12px_rgba(12,16,22,0.25)] shadow-indigo-500/20 active:scale-95 flex items-center gap-2"
                         >
                           <Plus size={18} strokeWidth={3} /> AGREGAR PRODUCTO
                         </button>
@@ -692,7 +692,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                         )}
                     </div>
                     <div className="lg:col-span-3">
-                         <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-6 shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] relative overflow-hidden">
+                         <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-6 shadow-[0_1px_2px_rgba(12,16,22,0.04),0_12px_32px_-18px_rgba(12,16,22,0.18)] relative overflow-hidden">
                             <div className="absolute -right-6 -bottom-6 opacity-10 pointer-events-none">
                                 <TrendingUp size={110} className="text-emerald-400" />
                             </div>
@@ -876,7 +876,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                             <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Plataforma Principal</label>
                             <div className="grid grid-cols-3 gap-4">
                                 {(['Uber', 'Didi', 'Rappi'] as Platform[]).map((p) => (
-                                <button key={p} onClick={() => updateSetting('platform', p)} className={cn("py-4 rounded-2xl text-xs font-black transition-all border", settings.platform === p ? "bg-indigo-500 border-indigo-400 text-white shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20" : "bg-slate-950 border-carbon-950/10 text-slate-500 hover:text-slate-300")}>{p.toUpperCase()}</button>
+                                <button key={p} onClick={() => updateSetting('platform', p)} className={cn("py-4 rounded-2xl text-xs font-black transition-all border", settings.platform === p ? "bg-indigo-500 border-indigo-400 text-white shadow-[0_8px_20px_-12px_rgba(12,16,22,0.25)] shadow-indigo-500/20" : "bg-slate-950 border-carbon-950/10 text-slate-500 hover:text-slate-300")}>{p.toUpperCase()}</button>
                                 ))}
                             </div>
                           </div>
@@ -884,7 +884,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                             <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Método de Cobro Predeterminado</label>
                             <div className="grid grid-cols-3 gap-4">
                                 {(['Efectivo', 'Transferencia', 'Tarjeta'] as PaymentMethod[]).map((method) => (
-                                <button key={method} onClick={() => updateSetting('paymentMethod', method)} className={cn("py-4 rounded-2xl text-xs font-black transition-all border", settings.paymentMethod === method ? "bg-indigo-500 border-indigo-400 text-white shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20" : "bg-slate-950 border-carbon-950/10 text-slate-500 hover:text-slate-300")}>{method.toUpperCase()}</button>
+                                <button key={method} onClick={() => updateSetting('paymentMethod', method)} className={cn("py-4 rounded-2xl text-xs font-black transition-all border", settings.paymentMethod === method ? "bg-indigo-500 border-indigo-400 text-white shadow-[0_8px_20px_-12px_rgba(12,16,22,0.25)] shadow-indigo-500/20" : "bg-slate-950 border-carbon-950/10 text-slate-500 hover:text-slate-300")}>{method.toUpperCase()}</button>
                                 ))}
                             </div>
                           </div>
@@ -903,8 +903,8 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                           <div className="space-y-4">
                             <label className="text-xs font-black text-slate-500 uppercase tracking-widest">Tasa de IVA (desglose en precio)</label>
                             <div className="grid grid-cols-2 gap-4">
-                                <button onClick={() => updateSetting('ivaRate', 0.16)} className={cn("py-4 rounded-2xl text-xs font-black transition-all border", (settings.ivaRate ?? 0.16) === 0.16 ? "bg-indigo-500 border-indigo-400 text-white shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20" : "bg-slate-950 border-carbon-950/10 text-slate-500 hover:text-slate-300")}>16% — Resto de la República</button>
-                                <button onClick={() => updateSetting('ivaRate', 0.08)} className={cn("py-4 rounded-2xl text-xs font-black transition-all border", (settings.ivaRate ?? 0.16) === 0.08 ? "bg-indigo-500 border-indigo-400 text-white shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20" : "bg-slate-950 border-carbon-950/10 text-slate-500 hover:text-slate-300")}>8% — Zona Fronteriza</button>
+                                <button onClick={() => updateSetting('ivaRate', 0.16)} className={cn("py-4 rounded-2xl text-xs font-black transition-all border", (settings.ivaRate ?? 0.16) === 0.16 ? "bg-indigo-500 border-indigo-400 text-white shadow-[0_8px_20px_-12px_rgba(12,16,22,0.25)] shadow-indigo-500/20" : "bg-slate-950 border-carbon-950/10 text-slate-500 hover:text-slate-300")}>16% — Resto de la República</button>
+                                <button onClick={() => updateSetting('ivaRate', 0.08)} className={cn("py-4 rounded-2xl text-xs font-black transition-all border", (settings.ivaRate ?? 0.16) === 0.08 ? "bg-indigo-500 border-indigo-400 text-white shadow-[0_8px_20px_-12px_rgba(12,16,22,0.25)] shadow-indigo-500/20" : "bg-slate-950 border-carbon-950/10 text-slate-500 hover:text-slate-300")}>8% — Zona Fronteriza</button>
                             </div>
                           </div>
                       </div>
