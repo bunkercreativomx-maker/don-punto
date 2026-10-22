@@ -18,6 +18,8 @@ export interface PushPayload {
   body: string;
   url?: string;
   tag?: string;
+  renotify?: boolean;
+  sticky?: boolean;
 }
 
 /** Envía a todos los dispositivos del usuario; borra suscripciones vencidas (404/410). */

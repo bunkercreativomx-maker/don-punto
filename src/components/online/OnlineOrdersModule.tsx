@@ -52,10 +52,17 @@ export function chime() {
   } catch { /* el navegador no deja sonar sin un toque previo */ }
 }
 
-/** Pedidos nuevos sin atender + aviso cuando llega uno (para el menú lateral). */
+/** Pedidos nuevos sin atender. El timbre suena cada 5 s hasta que alguien acepte o rechace (o se silencie un rato). */
 export function useIncomingOrders() {
   const [pending, setPending] = useState(0);
   const [latest, setLatest] = useState<{ number: number; name: string } | null>(null);
+  const [mutedUntil, setMutedUntil] = useState(0);
+  useEffect(() => {
+    if (!pending) return;
+    const ring = () => { if (Date.now() >= mutedUntil) chime(); };
+    const iv = setInterval(ring, 5000);
+    return () => clearInterval(iv);
+  }, [pending, mutedUntil]);
   useEffect(() => {
     const uid = pb.authStore.record?.id;
     if (!uid) return;
@@ -63,6 +70,7 @@ export function useIncomingOrders() {
     const refresh = () => pb.collection('web_orders').getList(1, 1, { filter: pb.filter('owner = {:o} && status = "new"', { o: uid }), fields: 'id', requestKey: null })
       .then((r) => alive && setPending(r.totalItems)).catch(() => undefined);
     refresh();
+    const poll = setInterval(refresh, 30_000); // por si se cae la conexión en tiempo real
     let unsub: (() => void) | undefined;
     pb.collection('web_orders').subscribe('*', (e) => {
       refresh();
@@ -71,9 +79,10 @@ export function useIncomingOrders() {
         setLatest({ number: e.record.number, name: e.record.customer_name });
       }
     }).then((u) => { unsub = u; }).catch(() => undefined);
-    return () => { alive = false; unsub?.(); };
+    return () => { alive = false; clearInterval(poll); unsub?.(); };
   }, []);
-  return { pending, latest, dismiss: () => setLatest(null) };
+  const muted = mutedUntil > Date.now();
+  return { pending, latest, muted, mute: (ms = 2 * 60_000) => { setMutedUntil(Date.now() + ms); setTimeout(() => setMutedUntil(0), ms); }, unmute: () => setMutedUntil(0), dismiss: () => setLatest(null) };
 }
 
 // ---------------------------------------------------------------- módulo

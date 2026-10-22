@@ -161,7 +161,7 @@ async function createOrder(token: string, body: any, ip: string) {
     await sendToUser(s.owner, {
       title: `🛎️ Pedido en línea #${number}`,
       body: `${name} · ${type === 'delivery' ? 'A domicilio' : 'Para recoger'} · $${total}${payment === 'codi' ? ' · CoDi' : ''}`,
-      url: '/?tab=online', tag: 'order-' + created.data.id,
+      url: '/?tab=online', tag: 'order-' + created.data.id, sticky: true,
     });
   } catch (e) { console.error('push pedido', e); }
   return { token: t, number };

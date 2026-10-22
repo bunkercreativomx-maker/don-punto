@@ -28,7 +28,7 @@ clientsClaim();
 
 // ---------------------------------------------------------------- push
 self.addEventListener('push', (event) => {
-  let data: { title?: string; body?: string; url?: string; tag?: string } = {};
+  let data: { title?: string; body?: string; url?: string; tag?: string; renotify?: boolean; sticky?: boolean } = {};
   try {
     data = event.data?.json() ?? {};
   } catch {
@@ -41,6 +41,10 @@ self.addEventListener('push', (event) => {
       icon: '/pwa-192.png',
       badge: '/brand/badge-96.png',
       tag: data.tag,
+      // Pedidos en línea: el aviso se repite (vuelve a sonar) y no se quita solo hasta que lo atiendan
+      renotify: !!(data.renotify && data.tag),
+      requireInteraction: !!data.sticky,
+      vibrate: data.sticky ? [300, 120, 300, 120, 300] : undefined,
       data: { url: data.url || '/' },
       lang: 'es-MX',
     }),

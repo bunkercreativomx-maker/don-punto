@@ -447,14 +447,17 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
           />
       )}
 
-      {/* --- Aviso de pedido en línea nuevo (en cualquier pantalla) --- */}
-      {incoming.latest && shownTab !== 'online' && (
-        <div className="fixed bottom-5 left-1/2 z-[150] -translate-x-1/2 no-print">
-          <div className="flex items-center gap-3 rounded-2xl bg-carbon-950 px-4 py-3 text-white shadow-2xl">
-            <Bike size={20} className="text-maiz-400" />
-            <span className="text-sm font-semibold">Pedido en línea #{incoming.latest.number} · {incoming.latest.name}</span>
-            <button onClick={() => { incoming.dismiss(); goTo('online'); }} className="rounded-xl bg-maiz-400 px-3 py-1.5 text-xs font-black text-carbon-950">Ver</button>
-            <button onClick={incoming.dismiss} className="text-carbon-400 text-xs">✕</button>
+      {/* --- Pedidos en línea sin atender: aviso fijo + timbre hasta aceptar/rechazar --- */}
+      {incoming.pending > 0 && (
+        <div className="fixed bottom-5 left-1/2 z-[150] -translate-x-1/2 no-print w-[calc(100%-2rem)] max-w-xl">
+          <div className="flex items-center gap-3 rounded-2xl bg-carbon-950 px-4 py-3 text-white shadow-2xl ring-2 ring-maiz-400">
+            <Bike size={22} className={cn("shrink-0 text-maiz-400", !incoming.muted && "animate-bounce")} />
+            <span className="flex-1 text-sm font-semibold">
+              {incoming.pending === 1 ? '1 pedido en línea esperando' : `${incoming.pending} pedidos en línea esperando`}
+              {incoming.latest && <span className="block text-xs font-normal text-carbon-300">Último: #{incoming.latest.number} · {incoming.latest.name}</span>}
+            </span>
+            {shownTab !== 'online' && <button onClick={() => { incoming.dismiss(); goTo('online'); }} className="rounded-xl bg-maiz-400 px-3 py-2 text-xs font-black text-carbon-950">Ver</button>}
+            <button onClick={() => (incoming.muted ? incoming.unmute() : incoming.mute())} className="rounded-xl border border-white/20 px-3 py-2 text-xs font-bold text-white whitespace-nowrap">{incoming.muted ? 'Activar timbre' : 'Silenciar 2 min'}</button>
           </div>
         </div>
       )}
