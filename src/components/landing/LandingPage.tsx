@@ -187,6 +187,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
             <a href="#como-funciona" className="hover:text-carbon-950">Cómo funciona</a>
             <a href="#precios" className="hover:text-carbon-950">Precios</a>
             <a href="#preguntas" className="hover:text-carbon-950">Preguntas</a>
+            <a href="/blog" className="hover:text-carbon-950">Blog</a>
           </nav>
           <div className="flex items-center gap-1 sm:gap-3">
             <button onClick={onLogin} className="whitespace-nowrap rounded-full px-2.5 sm:px-4 py-2 text-[13px] sm:text-sm font-medium text-carbon-700 hover:bg-carbon-100">
@@ -454,6 +455,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
           </div>
           <nav className="flex flex-wrap gap-x-6 gap-y-3 text-sm text-carbon-600">
             <a href="#precios" className="hover:text-carbon-950">Precios</a>
+            <a href="/blog" className="hover:text-carbon-950">Blog</a>
             <a href="/privacidad" className="hover:text-carbon-950">Aviso de Privacidad</a>
             <a href="/terminos" className="hover:text-carbon-950">Términos</a>
             {SUPPORT_EMAIL && (

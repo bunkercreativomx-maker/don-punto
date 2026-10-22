@@ -2,3 +2,5 @@ User-agent: *
 Allow: /
 Disallow: /api/
 Sitemap: https://donpunto.com/sitemap.xml
+
+Sitemap: https://donpunto.com/blog/sitemap.xml

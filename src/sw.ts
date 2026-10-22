@@ -13,7 +13,7 @@ precacheAndRoute(self.__WB_MANIFEST);
 // La app abre sin internet: cualquier navegación (excepto API y páginas legales) sirve index.html
 registerRoute(
   new NavigationRoute(createHandlerBoundToURL('/index.html'), {
-    denylist: [/^\/api\//, /^\/privacidad/, /^\/terminos/, /^\/webinar/],
+    denylist: [/^\/api\//, /^\/blog/, /^\/privacidad/, /^\/terminos/, /^\/webinar/],
   }),
 );
 
