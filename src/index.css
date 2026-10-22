@@ -293,3 +293,10 @@
 }
 .ticket-pop { animation: dp-pop 0.35s cubic-bezier(0.32, 0.72, 0, 1); }
 input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* Pedidos en línea: hojas que suben desde abajo */
+@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+@keyframes sheetUp { from { transform: translateY(24px); opacity: 0 } to { transform: none; opacity: 1 } }
+@media (prefers-reduced-motion: reduce) {
+  [class*="animate-[sheetUp"], [class*="animate-[fadeIn"] { animation: none !important; }
+}

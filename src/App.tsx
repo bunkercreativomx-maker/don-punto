@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { useCalculator } from './hooks/useCalculator';
 import type { Platform, PaymentMethod } from './types/calculator';
-import { CreditCard, BarChart3, ShoppingBasket, Calculator, Layers, User, LineChart, Settings, Plus, Lock, Key, Sparkles, Receipt, LogOut, FileSpreadsheet, TrendingUp, Package, Target, BookOpen, Wallet, Search, Users, Store, UserCog, LockOpen, ChevronDown } from 'lucide-react';
+import { CreditCard, BarChart3, ShoppingBasket, Calculator, Layers, User, LineChart, Settings, Plus, Lock, Key, Sparkles, Receipt, LogOut, FileSpreadsheet, TrendingUp, Package, Target, BookOpen, Wallet, Search, Users, Store, UserCog, LockOpen, ChevronDown, Bike } from 'lucide-react';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { ProfitGrid } from './components/ProfitGrid';
@@ -30,6 +30,7 @@ import { setActiveBranch } from './lib/cloudStore';
 import { TeamModule } from './components/team/TeamModule';
 import { BranchesModule } from './components/branches/BranchesModule';
 import { ClientsModule } from './components/clients/ClientsModule';
+import { OnlineOrdersModule, useIncomingOrders } from './components/online/OnlineOrdersModule';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -96,7 +97,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
 
   const [activeTab, setActiveTab] = useState<Tab>(() => {
     const saved = (storeGet('donPuntoActiveTab') || '').replace(/"/g, '');
-    const valid = ['profits', 'pricing', 'pos', 'menu', 'reports', 'tickets', 'inventory', 'engineering', 'recipes', 'financial', 'clients', 'branches', 'team'];
+    const valid = ['profits', 'pricing', 'pos', 'menu', 'reports', 'tickets', 'inventory', 'engineering', 'recipes', 'financial', 'clients', 'branches', 'team', 'online'];
     return (valid.includes(saved) ? saved : 'pos') as any;
   });
 
@@ -104,7 +105,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab');
-    const allowed = ['profits', 'pricing', 'pos', 'menu', 'reports', 'tickets', 'inventory', 'engineering', 'recipes', 'financial', 'clients', 'branches', 'team'];
+    const allowed = ['profits', 'pricing', 'pos', 'menu', 'reports', 'tickets', 'inventory', 'engineering', 'recipes', 'financial', 'clients', 'branches', 'team', 'online'];
     if (tab && allowed.includes(tab)) setActiveTab(tab as typeof activeTab);
     if (params.has('tab') || params.has('source')) window.history.replaceState({}, '', '/');
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -394,6 +395,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
   const branches = getBranches();
   const needCashier = requiresCashierLogin() && !operator;
 
+  const incoming = useIncomingOrders();
   const goTo = (tab: Tab) => {
     if (canAccess(tab)) setActiveTab(tab);
     else setPinFor(tab);
@@ -410,6 +412,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
 
   const NAV: { tab: Tab; label: string; Icon: typeof BarChart3; pro?: boolean; sep?: boolean }[] = [
     { tab: 'pos', label: 'Punto de Venta', Icon: ShoppingBasket },
+    { tab: 'online', label: 'Pedidos en línea', Icon: Bike },
     { tab: 'tickets', label: 'Tickets', Icon: Receipt },
     { tab: 'reports', label: 'Reportes', Icon: LineChart },
     { tab: 'clients', label: 'Clientes', Icon: Users, pro: true },
@@ -442,6 +445,18 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
               onClose={() => setIsImportModalOpen(false)}
               onImport={handleExcelImport}
           />
+      )}
+
+      {/* --- Aviso de pedido en línea nuevo (en cualquier pantalla) --- */}
+      {incoming.latest && shownTab !== 'online' && (
+        <div className="fixed bottom-5 left-1/2 z-[150] -translate-x-1/2 no-print">
+          <div className="flex items-center gap-3 rounded-2xl bg-carbon-950 px-4 py-3 text-white shadow-2xl">
+            <Bike size={20} className="text-maiz-400" />
+            <span className="text-sm font-semibold">Pedido en línea #{incoming.latest.number} · {incoming.latest.name}</span>
+            <button onClick={() => { incoming.dismiss(); goTo('online'); }} className="rounded-xl bg-maiz-400 px-3 py-1.5 text-xs font-black text-carbon-950">Ver</button>
+            <button onClick={incoming.dismiss} className="text-carbon-400 text-xs">✕</button>
+          </div>
+        </div>
       )}
 
       {/* --- PIN: desbloquear pantallas / cambiar de cajero --- */}
@@ -539,6 +554,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                 <button onClick={() => goTo(tab)} title={label} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === tab ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
                   <Icon size={20} className="shrink-0" />
                   <span className="hidden lg:block text-xs font-bold whitespace-nowrap flex-1 text-left">{label}</span>
+                  {tab === 'online' && incoming.pending > 0 && <span className="absolute -right-1 -top-1 lg:static grid h-5 min-w-5 place-items-center rounded-full bg-maiz-400 px-1 text-[10px] font-black text-carbon-950 animate-pulse">{incoming.pending}</span>}
                   {pro && !isPro() && <span className="hidden lg:block text-[9px] font-black uppercase tracking-wider rounded-full bg-maiz-100 text-maiz-800 px-1.5 py-0.5">Pro</span>}
                   {locked && <Lock size={12} className="absolute right-1.5 top-1.5 lg:static text-carbon-400" />}
                   {activeTab === tab && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-agave-500 rounded-r-full" />}
@@ -605,6 +621,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                   {shownTab === 'clients' && 'Clientes frecuentes'}
                   {shownTab === 'branches' && 'Sucursales'}
                   {shownTab === 'team' && 'Equipo y permisos'}
+                  {shownTab === 'online' && 'Pedidos en línea'}
                 </h1>
                 <p className="text-slate-500 mt-2 font-medium tracking-wide">
                   {shownTab === 'profits' && ''}
@@ -620,6 +637,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                   {shownTab === 'financial' && 'Registra ventas diarias por canal y controla compras y egresos semanales.'}
                   {shownTab === 'clients' && 'Tus clientes, lo que compran y sus recompensas por visita.'}
                   {shownTab === 'branches' && 'Todas tus sucursales en un solo lugar: quién vende más y cuál necesita atención.'}
+                  {shownTab === 'online' && 'Tu página para que te pidan a domicilio o para recoger. Los pedidos llegan aquí.'}
                   {shownTab === 'team' && 'Cada empleado con su PIN: las ventas, descuentos y cancelaciones quedan a su nombre.'}
                 </p>
               </div>
@@ -740,6 +758,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                 </div>
               ); })()}
               {shownTab === 'pos' && <POSDashboard />}
+              {shownTab === 'online' && <OnlineOrdersModule rows={rows} categories={categories} modifierGroups={modifierGroups} onNeedPin={() => setPinFor('online')} />}
               {shownTab === 'reports' && <POSReports onUpgrade={onBilling} />}
               {shownTab === 'tickets' && <POSTicketsHistory />}
               {shownTab === 'inventory' && <InventoryModule />}

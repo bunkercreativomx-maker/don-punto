@@ -17,7 +17,7 @@ export function CorteTicket({ summary, date, paperSize = '58mm' }: CorteTicketPr
   const printDate = new Date();
   const reportDate = new Date(date + 'T00:00:00');
 
-  const methods: POSPaymentMethod[] = ['Efectivo', 'Tarjeta', 'Uber', 'Didi', 'Rappi', 'Didi Efectivo'];
+  const methods: POSPaymentMethod[] = ['Efectivo', 'Tarjeta', 'Uber', 'Didi', 'Rappi', 'Didi Efectivo', 'Transferencia'];
 
   return (
     <div className={cn("ticket-body font-mono text-black bg-white leading-snug", paperSize === 'Standard' ? "p-4" : "p-0")}>
@@ -48,6 +48,7 @@ export function CorteTicket({ summary, date, paperSize = '58mm' }: CorteTicketPr
         <div className="space-y-1">
             {methods.map((method) => {
                 const amount = summary.byMethod[method] || 0;
+                if (method === 'Transferencia' && !amount) return null;
                 return (
                     <div key={method} className="flex-row-print">
                         <span className="uppercase">{method}:</span>

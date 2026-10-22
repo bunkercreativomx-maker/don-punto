@@ -21,17 +21,17 @@ export function isPro(): boolean { return plan !== 'basico'; }
 // ---------------------------------------------------------------- pantallas
 export type Tab =
   | 'profits' | 'pricing' | 'pos' | 'menu' | 'reports' | 'tickets' | 'settings' | 'inventory'
-  | 'engineering' | 'recipes' | 'financial' | 'clients' | 'branches' | 'team';
+  | 'engineering' | 'recipes' | 'financial' | 'clients' | 'branches' | 'team' | 'online';
 
 export const TAB_LABEL: Record<Tab, string> = {
   pos: 'Punto de Venta', tickets: 'Tickets', reports: 'Reportes', profits: 'Tienda Física', pricing: 'Plataformas',
   menu: 'Catálogo', inventory: 'Inventario', engineering: 'Radar de Menú', recipes: 'Recetario', financial: 'Financiero',
-  clients: 'Clientes', branches: 'Sucursales', team: 'Equipo', settings: 'Ajustes',
+  clients: 'Clientes', branches: 'Sucursales', team: 'Equipo', settings: 'Ajustes', online: 'Pedidos en línea',
 };
 
 /** Pantallas que la caja puede abrir sin PIN (configurable por el dueño) */
-export const CAJA_CONFIGURABLE: Tab[] = ['tickets', 'clients', 'menu', 'inventory', 'recipes'];
-const DEFAULT_CAJA: Tab[] = ['clients'];
+export const CAJA_CONFIGURABLE: Tab[] = ['online', 'tickets', 'clients', 'menu', 'inventory', 'recipes'];
+const DEFAULT_CAJA: Tab[] = ['clients', 'online'];
 /** El gerente ve todo excepto lo del dueño */
 const OWNER_ONLY: Tab[] = ['settings', 'financial', 'team', 'branches'];
 

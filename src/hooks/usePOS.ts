@@ -118,7 +118,7 @@ export function usePOS() {
     const byMethod = txs.reduce((acc, tx) => {
        acc[tx.paymentMethod] = (acc[tx.paymentMethod] || 0) + tx.amount;
        return acc;
-    }, { Efectivo: 0, Didi: 0, Uber: 0, Rappi: 0, Tarjeta: 0, 'Didi Efectivo': 0 } as Record<POSPaymentMethod, number>);
+    }, { Efectivo: 0, Didi: 0, Uber: 0, Rappi: 0, Tarjeta: 0, 'Didi Efectivo': 0, Transferencia: 0 } as Record<POSPaymentMethod, number>);
 
     const byDestination = txs.reduce((acc, tx) => {
         const dest = tx.destination || 'Tienda';

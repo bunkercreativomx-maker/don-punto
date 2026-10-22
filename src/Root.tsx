@@ -8,8 +8,10 @@ import { apiPost } from './lib/api';
 import { supportLink } from './config';
 import { Mark } from './components/brand/Logo';
 import { setPlan, type Plan } from './lib/session';
+import { storeSlugFromPath } from './lib/onlineStore';
 
 const App = lazy(() => import('./App'));
+const StorePage = lazy(() => import('./components/online/StorePage'));
 const LandingPage = lazy(() => import('./components/landing/LandingPage').then((m) => ({ default: m.LandingPage })));
 
 function Splash({ text = 'Cargando Don Punto…' }: { text?: string }) {
@@ -59,6 +61,9 @@ function SyncBadge() {
 
 export default function Root() {
   if (window.location.pathname.startsWith('/restablecer')) return <ResetPasswordPage />;
+  // Página pública de un restaurante: donpunto.com/<tienda>
+  const storeSlug = storeSlugFromPath();
+  if (storeSlug) return <Suspense fallback={<div className="min-h-screen bg-[#F6F5F1]" />}><StorePage slug={storeSlug} /></Suspense>;
   return <RootApp />;
 }
 

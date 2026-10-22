@@ -1,6 +1,6 @@
 import type { Modifier } from './calculator';
 
-export type POSPaymentMethod = 'Efectivo' | 'Didi' | 'Uber' | 'Rappi' | 'Tarjeta' | 'Didi Efectivo';
+export type POSPaymentMethod = 'Efectivo' | 'Didi' | 'Uber' | 'Rappi' | 'Tarjeta' | 'Didi Efectivo' | 'Transferencia';
 export type OrderDestination = 'Tienda' | 'Uber' | 'Didi' | 'Rappi';
 
 export interface CartItem {
