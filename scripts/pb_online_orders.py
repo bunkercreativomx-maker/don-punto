@@ -49,6 +49,10 @@ def main():
             f("delivery_fee", "number", min=0), f("min_order", "number", min=0),
             f("delivery_area", "text", max=300), f("prep_minutes", "number", min=0),
             f("pay_cash", "bool"), f("pay_codi", "bool"),
+            # Efectivo a domicilio: solo como solicitud que el restaurante aprueba (o le pide CoDi)
+            f("cash_delivery", "bool"),
+            # Ubicación del negocio y radio de entrega (km)
+            f("lat", "number"), f("lng", "number"), f("radius_km", "number", min=0),
             f("codi_qr", "file", maxSelect=1, maxSize=3_000_000, mimeTypes=IMG),
             f("codi_clabe", "text", max=30), f("codi_bank", "text", max=60), f("codi_holder", "text", max=100),
             f("menu", "json", maxSize=3_000_000),
@@ -79,6 +83,8 @@ def main():
             f("payment_status", "select", maxSelect=1, values=["pending", "reported", "paid"]),
             f("status", "select", maxSelect=1, values=["new", "accepted", "ready", "on_way", "done", "rejected"]),
             f("reason", "text", max=200), f("sale_id", "text", max=64),
+            f("lat", "number"), f("lng", "number"), f("distance_km", "number"),
+            f("pay_changed", "bool"),
             f("created", "autodate", onCreate=True, onUpdate=False),
             f("updated", "autodate", onCreate=True, onUpdate=True),
         ],

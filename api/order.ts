@@ -21,6 +21,33 @@ const q = (s: string) => encodeURIComponent(s);
 const esc = (s: string) => s.replace(/["\\]/g, '');
 const fileUrl = (col: string, id: string, name?: string) => (name ? `${PB_URL}/api/files/${col}/${id}/${encodeURIComponent(name)}` : null);
 const round2 = (n: number) => Math.round(n * 100) / 100;
+const num = (v: unknown) => (v === null || v === undefined || v === '' ? NaN : Number(v));
+/** Distancia en línea recta (km) */
+function km(aLat: number, aLng: number, bLat: number, bLng: number) {
+  const R = 6371, rad = Math.PI / 180;
+  const dLat = (bLat - aLat) * rad, dLng = (bLng - aLng) * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(aLat * rad) * Math.cos(bLat * rad) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+const hasLoc = (s: any) => Number.isFinite(num(s.lat)) && Number.isFinite(num(s.lng)) && !(Number(s.lat) === 0 && Number(s.lng) === 0);
+const radiusOf = (s: any) => Number(s.radius_km) > 0 ? Number(s.radius_km) : 3;
+
+// Geocodificación con OpenStreetMap (Nominatim): máx. ~1 petición/seg, con caché en memoria
+const geoCache = new Map<string, { at: number; data: any }>();
+async function nominatim(path: string) {
+  const hit = geoCache.get(path);
+  if (hit && Date.now() - hit.at < 24 * 3600 * 1000) return hit.data;
+  const r = await fetch('https://nominatim.openstreetmap.org' + path, { headers: { 'User-Agent': 'DonPunto/1.0 (soporte@donpunto.com)', 'Accept-Language': 'es-MX' } });
+  if (!r.ok) throw new HttpError(502, 'No se pudo buscar la dirección. Intenta de nuevo o usa tu ubicación.');
+  const data = await r.json();
+  geoCache.set(path, { at: Date.now(), data });
+  return data;
+}
+const shortAddr = (a: any, fallback: string) => {
+  if (!a) return fallback;
+  const street = [a.road, a.house_number].filter(Boolean).join(' ');
+  return [street, a.neighbourhood || a.suburb || a.quarter, a.city || a.town || a.village].filter(Boolean).join(', ') || fallback;
+};
 const str = (v: unknown, max: number) => String(v ?? '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, max);
 
 interface OMod { id: string; name: string; price: number }
@@ -51,10 +78,13 @@ function publicStore(s: any, active: boolean) {
     slug: s.slug, name: s.name || 'Mi restaurante', tagline: s.tagline || '', phone: s.phone || '', address: s.address || '',
     hours: s.hours || '', color: s.color || '#16803C',
     logo: fileUrl('stores', s.id, s.logo), cover: fileUrl('stores', s.id, s.cover),
-    open: active && !!s.accepting, pickup: !!s.pickup, delivery: !!s.delivery,
+    open: active && !!s.accepting, pickup: !!s.pickup,
+    // A domicilio solo si hay ubicación del negocio y forma de pago válida (CoDi o efectivo con aprobación)
+    delivery: !!s.delivery && hasLoc(s) && ((!!s.pay_codi && !!(s.codi_clabe || s.codi_qr)) || !!s.cash_delivery),
     deliveryFee: Number(s.delivery_fee) || 0, minOrder: Number(s.min_order) || 0, deliveryArea: s.delivery_area || '',
     prepMinutes: Number(s.prep_minutes) || 0,
-    payCash: !!s.pay_cash, payCodi: !!s.pay_codi && !!(s.codi_clabe || s.codi_qr),
+    payCash: !!s.pay_cash, payCodi: !!s.pay_codi && !!(s.codi_clabe || s.codi_qr), cashDelivery: !!s.cash_delivery,
+    lat: hasLoc(s) ? Number(s.lat) : null, lng: hasLoc(s) ? Number(s.lng) : null, radiusKm: radiusOf(s),
     categories: (menu.categories || []).filter((c) => usedCats.has(c.id)),
     groups: (menu.groups || []).filter((g) => usedGroups.has(g.id)),
     products,
@@ -67,7 +97,7 @@ function codiInfo(s: any) {
 
 function publicOrder(o: any, s: any) {
   return {
-    number: o.number, status: o.status, reason: o.reason || '', type: o.type, payment: o.payment, paymentStatus: o.payment_status,
+    number: o.number, status: o.status, reason: o.reason || '', type: o.type, payment: o.payment, paymentStatus: o.payment_status, payChanged: !!o.pay_changed,
     subtotal: o.subtotal, deliveryFee: o.delivery_fee, total: o.total, created: o.created, customerName: o.customer_name,
     items: (o.items || []).map((i: any) => ({ name: i.name, quantity: i.quantity, line: i.line, mods: (i.selectedModifiers || []).flatMap((g: any) => g.modifiers.map((m: any) => m.name)), note: i.customerNote || '' })),
     store: { slug: s.slug, name: s.name, phone: s.phone || '', address: s.address || '', color: s.color || '#16803C', logo: fileUrl('stores', s.id, s.logo), prepMinutes: Number(s.prep_minutes) || 0 },
@@ -96,7 +126,17 @@ async function createOrder(token: string, body: any, ip: string) {
   if (type === 'pickup' && !s.pickup) throw new HttpError(400, 'Este restaurante solo hace entregas a domicilio.');
   const payment = body.payment === 'codi' ? 'codi' : 'cash';
   if (payment === 'codi' && !(s.pay_codi && (s.codi_clabe || s.codi_qr))) throw new HttpError(400, 'El pago por CoDi no está disponible.');
-  if (payment === 'cash' && !s.pay_cash) throw new HttpError(400, 'Este restaurante solo acepta pago por CoDi.');
+  // Recoger: efectivo al recoger. A domicilio: CoDi; efectivo solo como solicitud si el restaurante lo permite.
+  if (payment === 'cash' && type === 'pickup' && !s.pay_cash) throw new HttpError(400, 'Este restaurante solo acepta pago por CoDi.');
+  if (payment === 'cash' && type === 'delivery' && !s.cash_delivery) throw new HttpError(400, 'Para entregas a domicilio el pago es por CoDi.');
+  let lat = NaN, lng = NaN, distance = NaN;
+  if (type === 'delivery') {
+    if (!hasLoc(s)) throw new HttpError(400, 'El restaurante aún no configura su zona de entrega.');
+    lat = num(body.lat); lng = num(body.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) throw new HttpError(400, 'Confirma tu ubicación de entrega (botón "Usar mi ubicación" o busca tu dirección).', 'need_location');
+    distance = Math.round(km(Number(s.lat), Number(s.lng), lat, lng) * 100) / 100;
+    if (distance > radiusOf(s)) throw new HttpError(400, `Estás a ${distance.toFixed(1)} km. Este restaurante entrega hasta ${radiusOf(s)} km.`, 'out_of_zone');
+  }
 
   const name = str(body.name, 80);
   const phone = str(body.phone, 30).replace(/[^\d+ ]/g, '');
@@ -151,6 +191,7 @@ async function createOrder(token: string, body: any, ip: string) {
       store: s.id, owner: s.owner, number, token: t, customer_name: name, customer_phone: phone, type,
       address: type === 'delivery' ? address : '', notes: str(body.notes, 300), items, subtotal, delivery_fee: deliveryFee, total,
       payment, payment_status: 'pending', status: 'new',
+      ...(type === 'delivery' ? { lat, lng, distance_km: distance } : {}),
     },
   });
   if (!created.ok) {
@@ -159,8 +200,8 @@ async function createOrder(token: string, body: any, ip: string) {
   }
   try {
     await sendToUser(s.owner, {
-      title: `🛎️ Pedido en línea #${number}`,
-      body: `${name} · ${type === 'delivery' ? 'A domicilio' : 'Para recoger'} · $${total}${payment === 'codi' ? ' · CoDi' : ''}`,
+      title: type === 'delivery' && payment === 'cash' ? `💵 Pedido #${number}: pide pagar en efectivo` : `🛎️ Pedido en línea #${number}`,
+      body: `${name} · ${type === 'delivery' ? `A domicilio (${distance.toFixed(1)} km)` : 'Para recoger'} · $${total}${payment === 'codi' ? ' · CoDi' : type === 'delivery' ? ' · ¿Aceptas efectivo?' : ''}`,
       url: '/?tab=online', tag: 'order-' + created.data.id, sticky: true,
     });
   } catch (e) { console.error('push pedido', e); }
@@ -172,7 +213,27 @@ export default async function handler(req: any, res: any) {
     const ip = String(req.headers?.['x-forwarded-for'] || '').split(',')[0].trim() || 'x';
     const token = await adminToken();
     if (req.method === 'GET') {
-      const { slug, check, t } = req.query || {};
+      const { slug, check, t, geo, rev } = req.query || {};
+      if (geo !== undefined || rev !== undefined) {
+        rateLimit('geo:' + ip, 20, 60 * 1000);
+        if (rev !== undefined) {
+          const [la, lo] = String(rev).split(',').map(Number);
+          if (!Number.isFinite(la) || !Number.isFinite(lo)) throw new HttpError(400, 'Ubicación inválida');
+          const d = await nominatim(`/reverse?format=jsonv2&addressdetails=1&zoom=18&lat=${la.toFixed(5)}&lon=${lo.toFixed(5)}`);
+          return res.status(200).json({ address: shortAddr(d?.address, d?.display_name || '') });
+        }
+        const qtext = str(geo, 160);
+        if (qtext.length < 4) return res.status(200).json({ results: [] });
+        let bias = '';
+        const sl = String(slug || '').toLowerCase();
+        const st = SLUG_RE.test(sl) ? await storeBySlug(token, sl) : null;
+        if (st && hasLoc(st)) {
+          const d = 0.12; // ~13 km alrededor del negocio
+          bias = `&viewbox=${Number(st.lng) - d},${Number(st.lat) + d},${Number(st.lng) + d},${Number(st.lat) - d}&bounded=1`;
+        }
+        const d = await nominatim(`/search?format=jsonv2&addressdetails=1&limit=5&countrycodes=mx,us&q=${q(qtext)}${bias}`);
+        return res.status(200).json({ results: (Array.isArray(d) ? d : []).map((x: any) => ({ label: shortAddr(x.address, x.display_name), full: x.display_name, lat: Number(x.lat), lng: Number(x.lon) })) });
+      }
       if (check !== undefined) {
         rateLimit('check:' + ip, 60, 60 * 1000);
         const c = String(check).toLowerCase();

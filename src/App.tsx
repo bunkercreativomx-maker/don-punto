@@ -449,7 +449,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
 
       {/* --- Pedidos en línea sin atender: aviso fijo + timbre hasta aceptar/rechazar --- */}
       {incoming.pending > 0 && (
-        <div className="fixed bottom-5 left-1/2 z-[150] -translate-x-1/2 no-print w-[calc(100%-2rem)] max-w-xl">
+        <div className="fixed bottom-5 left-1/2 z-[150] -translate-x-1/2 no-print w-[calc(100%-2rem)] max-w-xl lg:left-auto lg:right-6 lg:translate-x-0 lg:w-auto lg:max-w-md">
           <div className="flex items-center gap-3 rounded-2xl bg-carbon-950 px-4 py-3 text-white shadow-2xl ring-2 ring-maiz-400">
             <Bike size={22} className={cn("shrink-0 text-maiz-400", !incoming.muted && "animate-bounce")} />
             <span className="flex-1 text-sm font-semibold">

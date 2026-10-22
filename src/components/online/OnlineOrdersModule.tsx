@@ -1,6 +1,6 @@
 // Pedidos en línea (panel del restaurante): pedidos entrantes, página pública, menú con fotos y cobro con CoDi.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, Bike, Store as StoreIcon, Check, X, Printer, Phone, MapPin, ExternalLink, Copy, Image as ImageIcon, Loader2, Globe, QrCode, Banknote, Lock, Eye, EyeOff, Clock, ChefHat, PackageCheck, AlertTriangle, Upload } from 'lucide-react';
+import { Bell, Bike, Store as StoreIcon, Check, X, Printer, Phone, MapPin, ExternalLink, Copy, Image as ImageIcon, Loader2, Globe, QrCode, Banknote, Lock, Eye, EyeOff, Clock, ChefHat, PackageCheck, AlertTriangle, Upload, LocateFixed, Search } from 'lucide-react';
 import { pb } from '../../lib/pocketbase';
 import { buildMenu, compressImage, slugify, money, SLUG_RE, RESERVED_SLUGS, type OMenu } from '../../lib/onlineStore';
 import { getPushState, enablePush, type PushState } from '../../lib/pwa';
@@ -21,8 +21,15 @@ interface WebOrder {
   items: { rowId: string; name: string; quantity: number; unit: number; line: number; customerNote?: string; selectedModifiers: CartItem['selectedModifiers'] }[];
   subtotal: number; delivery_fee: number; total: number; payment: 'cash' | 'codi'; payment_status: 'pending' | 'reported' | 'paid';
   status: 'new' | 'accepted' | 'ready' | 'on_way' | 'done' | 'rejected'; reason: string; sale_id: string; created: string;
+  lat?: number; lng?: number; distance_km?: number; pay_changed?: boolean;
 }
 
+/** JSON con llaves ordenadas (y sin undefined/null) para comparar sin importar el orden */
+function stableJSON(v: unknown): string {
+  const norm = (x: any): any => Array.isArray(x) ? x.map(norm) : x && typeof x === 'object'
+    ? Object.fromEntries(Object.keys(x).sort().filter((k) => x[k] !== undefined && x[k] !== null && x[k] !== '').map((k) => [k, norm(x[k])])) : x;
+  return JSON.stringify(norm(v));
+}
 const fileUrl = (rec: Rec, name?: string) => (name ? pb.files.getURL(rec, name) : '');
 const COLORS = ['#16803C', '#C2410C', '#B91C1C', '#1D4ED8', '#7C3AED', '#0F766E', '#A16207', '#111827'];
 
@@ -108,16 +115,18 @@ export function OnlineOrdersModule({ rows, categories, modifierGroups, onNeedPin
   }, [uid]);
   useEffect(() => { load(); }, [load]);
 
-  // El menú publicado sigue al Catálogo (precios, nombres, modificadores) sin perder fotos ni descripciones
-  const syncing = useRef(false);
+  // El menú publicado sigue al Catálogo (precios, nombres, modificadores) sin perder fotos ni descripciones.
+  // PocketBase reordena las llaves del JSON: comparar con llaves ordenadas, y solo cuando cambia el Catálogo.
+  const storeRef = useRef(store);
+  storeRef.current = store;
+  const storeId = store?.id;
   useEffect(() => {
-    if (!store || !canEdit || syncing.current) return;
-    const next = buildMenu(rows, categories, modifierGroups, store.menu as OMenu);
-    const strip = (m: any) => JSON.stringify({ ...m, syncedAt: undefined });
-    if (strip(next) === strip(store.menu || {})) return;
-    syncing.current = true;
-    pb.collection('stores').update(store.id, { menu: next }, { requestKey: null }).then(setStore).catch(() => undefined).finally(() => { syncing.current = false; });
-  }, [store, rows, categories, modifierGroups, canEdit]);
+    const cur = storeRef.current;
+    if (!cur || !canEdit) return;
+    const next = buildMenu(rows, categories, modifierGroups, cur.menu as OMenu);
+    if (stableJSON({ ...next, syncedAt: null }) === stableJSON({ ...(cur.menu || {}), syncedAt: null })) return;
+    pb.collection('stores').update(cur.id, { menu: next }, { requestKey: 'menu-sync' }).then(setStore).catch(() => undefined);
+  }, [storeId, rows, categories, modifierGroups, canEdit]);
 
   if (loading) return <div className="py-24 grid place-items-center"><Loader2 className="w-6 h-6 animate-spin text-carbon-400" /></div>;
 
@@ -135,7 +144,7 @@ export function OnlineOrdersModule({ rows, categories, modifierGroups, onNeedPin
   ];
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-28">
       <StoreHeader store={store} link={link} canEdit={canEdit} onChange={setStore} />
       <div className="flex gap-1 overflow-x-auto no-scrollbar rounded-2xl bg-white p-1 ring-1 ring-carbon-950/5 w-fit max-w-full">
         {TABS.map(({ k, label, Icon, owner }) => (
@@ -259,6 +268,7 @@ function StoreHeader({ store, link, canEdit, onChange }: { store: Rec; link: str
       const problems = [
         !visible && 'tu menú no tiene platillos visibles',
         !(store.pickup || store.delivery) && 'elige recoger en tienda o a domicilio',
+        store.delivery && !(store.lat || store.lng) && 'marca la ubicación de tu negocio (Cobro y entrega)',
         !(store.pay_cash || (store.pay_codi && (store.codi_clabe || store.codi_qr))) && 'elige cómo te van a pagar',
       ].filter(Boolean);
       if (problems.length) return alert('Antes de publicar: ' + problems.join(', ') + '.');
@@ -333,7 +343,9 @@ function OrdersBoard({ store, rows }: { store: Rec; rows: ProductRowData[] }) {
     try { await pb.collection('web_orders').update(o.id, data); } catch (e: any) { alert('No se pudo actualizar: ' + (e?.message || '')); load(); }
   };
   const printComanda = (o: WebOrder) => { setPrinting(o); setTimeout(() => runPrint('ticket', () => setPrinting(null)), 50); };
+  const canCodi = !!store.pay_codi && !!(store.codi_clabe || store.codi_qr);
   const accept = (o: WebOrder) => { patch(o, { status: 'accepted' }); if (settings.printKitchenTicket) printComanda(o); };
+  const askCodi = (o: WebOrder) => { patch(o, { status: 'accepted', payment: 'codi', pay_changed: true }); if (settings.printKitchenTicket) printComanda(o); };
   const reject = (o: WebOrder) => {
     const reason = window.prompt('¿Por qué no puedes aceptar el pedido? (lo verá el cliente)', 'Estamos por cerrar');
     if (reason === null) return;
@@ -366,8 +378,8 @@ function OrdersBoard({ store, rows }: { store: Rec; rows: ProductRowData[] }) {
           <p className="mt-1 text-[13px] text-carbon-500">{store.published ? 'Comparte tu link en redes y en tu perfil de mensajes.' : 'Publica tu página para empezar a recibir pedidos.'}</p>
         </div>
       )}
-      {groups.new.length > 0 && <Column title="Nuevos" tone="maiz" list={groups.new} render={(o) => <OrderCard key={o.id} o={o} onAccept={() => accept(o)} onReject={() => reject(o)} onPrint={() => printComanda(o)} onPatch={(d) => patch(o, d)} onCharge={() => setCharging(o)} />} />}
-      {groups.live.length > 0 && <Column title="En curso" tone="agave" list={groups.live} render={(o) => <OrderCard key={o.id} o={o} onAccept={() => accept(o)} onReject={() => reject(o)} onPrint={() => printComanda(o)} onPatch={(d) => patch(o, d)} onCharge={() => setCharging(o)} />} />}
+      {groups.new.length > 0 && <Column title="Nuevos" tone="maiz" list={groups.new} render={(o) => <OrderCard key={o.id} o={o} canCodi={canCodi} onAskCodi={() => askCodi(o)} onAccept={() => accept(o)} onReject={() => reject(o)} onPrint={() => printComanda(o)} onPatch={(d) => patch(o, d)} onCharge={() => setCharging(o)} />} />}
+      {groups.live.length > 0 && <Column title="En curso" tone="agave" list={groups.live} render={(o) => <OrderCard key={o.id} o={o} canCodi={canCodi} onAskCodi={() => askCodi(o)} onAccept={() => accept(o)} onReject={() => reject(o)} onPrint={() => printComanda(o)} onPatch={(d) => patch(o, d)} onCharge={() => setCharging(o)} />} />}
       {groups.past.length > 0 && (
         <details className="rounded-3xl bg-white ring-1 ring-carbon-950/5">
           <summary className="cursor-pointer px-5 py-4 text-sm font-bold text-carbon-700">Terminados recientes ({groups.past.length})</summary>
@@ -429,12 +441,13 @@ function ago(iso: string) {
   return m < 1 ? 'ahora' : m < 60 ? `hace ${m} min` : `hace ${Math.floor(m / 60)} h ${m % 60} min`;
 }
 
-function OrderCard({ o, onAccept, onReject, onPrint, onPatch, onCharge }: { o: WebOrder; onAccept: () => void; onReject: () => void; onPrint: () => void; onPatch: (d: Partial<WebOrder>) => void; onCharge: () => void }) {
+function OrderCard({ o, canCodi, onAskCodi, onAccept, onReject, onPrint, onPatch, onCharge }: { o: WebOrder; canCodi: boolean; onAskCodi: () => void; onAccept: () => void; onReject: () => void; onPrint: () => void; onPatch: (d: Partial<WebOrder>) => void; onCharge: () => void }) {
   const [, tick] = useState(0);
   useEffect(() => { const iv = setInterval(() => tick((x) => x + 1), 30_000); return () => clearInterval(iv); }, []);
   const isNew = o.status === 'new';
+  const cashRequest = isNew && o.type === 'delivery' && o.payment === 'cash';
   const payBadge = o.payment === 'cash'
-    ? { t: o.type === 'delivery' ? 'Paga al recibir' : 'Paga al recoger', c: 'bg-carbon-100 text-carbon-700' }
+    ? (cashRequest ? { t: 'Pide pagar en efectivo', c: 'bg-maiz-100 text-maiz-800' } : { t: o.type === 'delivery' ? 'Efectivo al recibir' : 'Paga al recoger', c: 'bg-carbon-100 text-carbon-700' })
     : o.payment_status === 'paid' ? { t: 'CoDi pagado ✓', c: 'bg-agave-100 text-agave-800' }
     : o.payment_status === 'reported' ? { t: 'CoDi: dice que ya pagó', c: 'bg-maiz-100 text-maiz-800' }
     : { t: 'CoDi: pendiente', c: 'bg-carbon-100 text-carbon-700' };
@@ -454,7 +467,7 @@ function OrderCard({ o, onAccept, onReject, onPrint, onPatch, onCharge }: { o: W
         <div>
           <p className="font-bold text-carbon-900">{o.customer_name}</p>
           <a href={`tel:${o.customer_phone.replace(/\s/g, '')}`} className="flex items-center gap-1.5 text-[13px] text-agave-700 font-semibold"><Phone className="w-3.5 h-3.5" />{o.customer_phone}</a>
-          {o.type === 'delivery' && o.address && <a target="_blank" rel="noreferrer" href={`https://maps.google.com/?q=${encodeURIComponent(o.address)}`} className="mt-1 flex items-start gap-1.5 text-[13px] text-carbon-700"><MapPin className="mt-0.5 w-3.5 h-3.5 shrink-0" />{o.address}</a>}
+          {o.type === 'delivery' && (o.address || o.lat) && <a target="_blank" rel="noreferrer" href={o.lat ? `https://maps.google.com/?q=${o.lat},${o.lng}` : `https://maps.google.com/?q=${encodeURIComponent(o.address)}`} className="mt-1 flex items-start gap-1.5 text-[13px] text-carbon-700"><MapPin className="mt-0.5 w-3.5 h-3.5 shrink-0" /><span>{o.address}{o.distance_km ? <b className="ml-1 text-carbon-900">· {Number(o.distance_km).toFixed(1)} km</b> : null}<span className="block text-[11px] font-semibold text-agave-700">Ver en mapa →</span></span></a>}
           {o.notes && <p className="mt-1 rounded-lg bg-maiz-50 px-2.5 py-1.5 text-[12px] text-maiz-900">“{o.notes}”</p>}
         </div>
         <ul className="space-y-1.5 border-t border-dashed border-carbon-200 pt-3">
@@ -471,7 +484,16 @@ function OrderCard({ o, onAccept, onReject, onPrint, onPatch, onCharge }: { o: W
         <div className="flex justify-between border-t border-carbon-100 pt-2 font-black text-carbon-900"><span>Total{o.delivery_fee ? <span className="ml-1 text-[11px] font-semibold text-carbon-500">(incluye envío {money(o.delivery_fee)})</span> : null}</span><span>{money(o.total)}</span></div>
       </div>
       <footer className="mt-auto flex flex-wrap gap-2 border-t border-carbon-100 p-3">
-        {isNew ? (
+        {cashRequest ? (
+          <div className="w-full space-y-2">
+            <p className="flex gap-2 rounded-xl bg-maiz-50 p-2.5 text-[12px] text-maiz-900"><Banknote className="w-4 h-4 shrink-0" /><span><b>El cliente pide pagar en efectivo al recibir.</b> Si no te conviene, acepta el pedido pidiendo pago por CoDi.</span></p>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={onReject} className="flex items-center gap-1.5 rounded-xl border border-carbon-200 px-3 py-2.5 text-[13px] font-bold text-carbon-600 hover:bg-red-50 hover:text-red-700"><X className="w-4 h-4" />Rechazar</button>
+              {canCodi && <button onClick={onAskCodi} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border-2 border-agave-600 px-3 py-2 text-[13px] font-bold text-agave-700"><QrCode className="w-4 h-4" />Aceptar con CoDi</button>}
+              <button onClick={onAccept} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-agave-600 px-3 py-2.5 text-[13px] font-bold text-white"><Check className="w-4 h-4" />Aceptar efectivo</button>
+            </div>
+          </div>
+        ) : isNew ? (
           <>
             <button onClick={onReject} className="flex items-center gap-1.5 rounded-xl border border-carbon-200 px-3 py-2.5 text-[13px] font-bold text-carbon-600 hover:bg-red-50 hover:text-red-700"><X className="w-4 h-4" />Rechazar</button>
             <button onClick={onAccept} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-agave-600 px-3 py-2.5 text-[13px] font-bold text-white hover:bg-agave-700"><Check className="w-4 h-4" />Aceptar pedido</button>
@@ -674,18 +696,43 @@ function MenuEditor({ store, onChange, categories }: { store: Rec; onChange: (s:
 
 // ---------------------------------------------------------------- cobro y entrega
 function PayEditor({ store, onChange }: { store: Rec; onChange: (s: Rec) => void }) {
-  const { d, set, dirty } = useDraft(store, ['pickup', 'delivery', 'delivery_fee', 'min_order', 'delivery_area', 'prep_minutes', 'pay_cash', 'pay_codi', 'codi_clabe', 'codi_bank', 'codi_holder']);
+  const { d, set, dirty } = useDraft(store, ['pickup', 'delivery', 'delivery_fee', 'min_order', 'delivery_area', 'prep_minutes', 'pay_cash', 'pay_codi', 'codi_clabe', 'codi_bank', 'codi_holder', 'cash_delivery', 'lat', 'lng', 'radius_km']);
+  const [geoQ, setGeoQ] = useState('');
+  const [geoRes, setGeoRes] = useState<{ label: string; lat: number; lng: number }[]>([]);
+  const [geoBusy, setGeoBusy] = useState(false);
+  const [geoMsg, setGeoMsg] = useState('');
+  const hasLoc = !!(d.lat || d.lng);
+  const gps = () => {
+    if (!navigator.geolocation) return setGeoMsg('Este navegador no da ubicación; busca la dirección.');
+    setGeoBusy(true); setGeoMsg('');
+    navigator.geolocation.getCurrentPosition((p) => { set('lat', p.coords.latitude); set('lng', p.coords.longitude); setGeoBusy(false); setGeoMsg('Ubicación tomada. Guarda los cambios.'); },
+      (e) => { setGeoBusy(false); setGeoMsg(e.code === 1 ? 'No diste permiso de ubicación.' : 'No se pudo obtener la ubicación.'); }, { enableHighAccuracy: true, timeout: 12000 });
+  };
+  const geoSearch = async () => {
+    const qq = (geoQ || store.address || '').trim();
+    if (qq.length < 4) return;
+    setGeoBusy(true); setGeoMsg('');
+    try {
+      const r = await fetch(`/api/order?geo=${encodeURIComponent(qq)}`).then((x) => x.json());
+      setGeoRes(r.results || []);
+      if (!r.results?.length) setGeoMsg('No encontramos esa dirección. Prueba calle, número, colonia y ciudad.');
+    } catch { setGeoMsg('No se pudo buscar.'); }
+    setGeoBusy(false);
+  };
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const clabe = String(d.codi_clabe || '').replace(/\D/g, '');
   const save = async () => {
     if (!d.pickup && !d.delivery) return setMsg('Elige al menos recoger o domicilio');
-    if (!d.pay_cash && !d.pay_codi) return setMsg('Elige al menos una forma de pago');
+    if (!d.pay_cash && !d.pay_codi && !d.cash_delivery) return setMsg('Elige al menos una forma de pago');
+    if (d.delivery && !hasLoc) return setMsg('Para entregar a domicilio marca la ubicación de tu negocio');
+    if (d.delivery && !d.pay_codi && !d.cash_delivery) return setMsg('A domicilio necesita CoDi o efectivo con aprobación');
+    if (d.pickup && !d.pay_cash && !d.pay_codi) return setMsg('Para recoger elige efectivo o CoDi');
     if (d.pay_codi && clabe && clabe.length !== 18) return setMsg('La CLABE debe tener 18 dígitos');
     if (d.pay_codi && !clabe && !store.codi_qr) return setMsg('Para CoDi sube tu QR o escribe tu CLABE');
     setBusy(true); setMsg('');
     try {
-      onChange(await pb.collection('stores').update(store.id, { ...d, codi_clabe: clabe, delivery_fee: Number(d.delivery_fee) || 0, min_order: Number(d.min_order) || 0, prep_minutes: Number(d.prep_minutes) || 0 }));
+      onChange(await pb.collection('stores').update(store.id, { ...d, codi_clabe: clabe, radius_km: Number(d.radius_km) || 3, lat: Number(d.lat) || null, lng: Number(d.lng) || null, delivery_fee: Number(d.delivery_fee) || 0, min_order: Number(d.min_order) || 0, prep_minutes: Number(d.prep_minutes) || 0 }));
       setMsg('Guardado ✓');
     } catch { setMsg('No se pudo guardar'); }
     setBusy(false);
@@ -704,17 +751,31 @@ function PayEditor({ store, onChange }: { store: Rec; onChange: (s: Rec) => void
           {check2({ k: "pickup", title: "Recoger en tienda", sub: "El cliente pasa por su pedido", Icon: StoreIcon })}
           {check2({ k: "delivery", title: "A domicilio", sub: "Tú o tu repartidor lo llevan", Icon: Bike })}
           {d.delivery && (
+            <div className="space-y-3 rounded-2xl bg-carbon-50 p-4">
+              <p className="font-bold text-carbon-900">Ubicación del negocio y zona de entrega</p>
+              <p className={`flex items-center gap-2 text-[13px] font-semibold ${hasLoc ? 'text-agave-700' : 'text-red-600'}`}>{hasLoc ? <><Check className="w-4 h-4" />Ubicación marcada · <a className="underline" target="_blank" rel="noreferrer" href={`https://maps.google.com/?q=${d.lat},${d.lng}`}>ver en mapa</a></> : <><AlertTriangle className="w-4 h-4" />Falta marcar dónde está tu negocio</>}</p>
+              <button type="button" onClick={gps} disabled={geoBusy} className="flex items-center gap-2 rounded-xl bg-carbon-900 px-4 py-2.5 text-[13px] font-bold text-white disabled:opacity-50">{geoBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <LocateFixed className="w-4 h-4" />}Estoy en el negocio: usar mi ubicación</button>
+              <div className="flex gap-2">
+                <input value={geoQ} onChange={(e) => setGeoQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), geoSearch())} placeholder={store.address || 'o busca la dirección del negocio'} className="min-w-0 flex-1 rounded-xl border border-carbon-200 bg-white px-3 py-2.5 text-[14px] outline-none focus:border-agave-500" />
+                <button type="button" onClick={geoSearch} className="grid w-11 place-items-center rounded-xl border border-carbon-200 bg-white" aria-label="Buscar"><Search className="w-4 h-4" /></button>
+              </div>
+              {geoRes.length > 0 && <div className="divide-y divide-carbon-100 rounded-xl border border-carbon-200 bg-white">{geoRes.map((r, i) => <button type="button" key={i} onClick={() => { set('lat', r.lat); set('lng', r.lng); setGeoRes([]); setGeoMsg('Ubicación elegida. Guarda los cambios.'); }} className="flex w-full items-start gap-2 px-3 py-2.5 text-left text-[13px]"><MapPin className="mt-0.5 w-4 h-4 shrink-0 text-carbon-400" />{r.label}</button>)}</div>}
+              {geoMsg && <p className="text-[12px] font-semibold text-carbon-600">{geoMsg}</p>}
+              <Input label="Entregas hasta (km a la redonda)" value={d.radius_km || 3} onChange={(v) => set('radius_km', v.replace(/[^\d.]/g, ''))} type="number" hint="El cliente confirma su ubicación y el sistema no deja pedir si está más lejos." />
+            </div>
+          )}
+          {d.delivery && (
             <div className="grid gap-4 sm:grid-cols-2">
               <Input label="Costo de envío ($)" value={d.delivery_fee} onChange={(v) => set('delivery_fee', v.replace(/[^\d.]/g, ''))} type="number" hint="0 = envío gratis" />
               <Input label="Pedido mínimo ($)" value={d.min_order} onChange={(v) => set('min_order', v.replace(/[^\d.]/g, ''))} type="number" hint="0 = sin mínimo" />
-              <div className="sm:col-span-2"><Input label="¿Hasta dónde entregas?" value={d.delivery_area} onChange={(v) => set('delivery_area', v)} placeholder="Colonias Centro, Partido Romero y 3 km a la redonda" /></div>
             </div>
           )}
           <Input label="Tiempo de preparación aproximado (min)" value={d.prep_minutes} onChange={(v) => set('prep_minutes', v.replace(/\D/g, ''))} type="number" />
         </Card>
         <Card title="Cobro" desc="El dinero llega directo a ti. Don Punto no cobra comisión por pedido.">
-          {check2({ k: "pay_cash", title: "Pago al recibir o al recoger", sub: "Efectivo o tarjeta con tu terminal", Icon: Banknote })}
-          {check2({ k: "pay_codi", title: "CoDi / transferencia", sub: "Tu cliente paga desde la app de su banco", Icon: QrCode })}
+          {check2({ k: "pay_cash", title: "Efectivo al recoger en tienda", sub: "Efectivo o tarjeta cuando pasan por su pedido", Icon: Banknote })}
+          {check2({ k: "pay_codi", title: "CoDi / transferencia", sub: "Recoger o a domicilio. Tu cliente paga desde la app de su banco", Icon: QrCode })}
+          {check2({ k: "cash_delivery", title: "Efectivo a domicilio (con tu aprobación)", sub: "El cliente lo solicita y tú decides: aceptar efectivo o pedirle CoDi", Icon: Bike })}
           {d.pay_codi && (
             <div className="grid gap-4 sm:grid-cols-[150px_1fr]">
               <ImagePick store={store} field="codi_qr" label="Tu QR de CoDi" aspect="aspect-square" onChange={onChange} />

@@ -1,6 +1,6 @@
 // Página pública del restaurante: donpunto.com/<slug> — menú, carrito, pedido y seguimiento.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ShoppingBag, Bike, Store as StoreIcon, Clock, MapPin, Phone, Minus, Plus, X, ChevronLeft, Check, Copy, Loader2, AlertCircle, QrCode, Banknote, ImageOff } from 'lucide-react';
+import { ShoppingBag, Bike, Store as StoreIcon, Clock, MapPin, Phone, Minus, Plus, X, ChevronLeft, Check, Copy, Loader2, AlertCircle, QrCode, Banknote, ImageOff, LocateFixed, Search } from 'lucide-react';
 import { money, STATUS_LABEL } from '../../lib/onlineStore';
 
 interface PMod { id: string; name: string; price: number }
@@ -9,10 +9,25 @@ interface PProduct { id: string; name: string; description: string; price: numbe
 interface PStore {
   slug: string; name: string; tagline: string; phone: string; address: string; hours: string; color: string;
   logo: string | null; cover: string | null; open: boolean; pickup: boolean; delivery: boolean; deliveryFee: number;
-  minOrder: number; deliveryArea: string; prepMinutes: number; payCash: boolean; payCodi: boolean;
+  minOrder: number; deliveryArea: string; prepMinutes: number; payCash: boolean; payCodi: boolean; cashDelivery: boolean;
+  lat: number | null; lng: number | null; radiusKm: number;
   categories: { id: string; name: string }[]; groups: PGroup[]; products: PProduct[];
 }
 interface CartLine { key: string; id: string; qty: number; mods: Record<string, string[]>; note: string }
+
+function distKm(aLat: number, aLng: number, bLat: number, bLng: number) {
+  const R = 6371, rad = Math.PI / 180;
+  const dLat = (bLat - aLat) * rad, dLng = (bLng - aLng) * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(aLat * rad) * Math.cos(bLat * rad) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+/** Formas de pago según entrega: recoger = efectivo o CoDi; domicilio = CoDi (efectivo solo como solicitud). */
+function payOptions(store: { payCash: boolean; payCodi: boolean; cashDelivery: boolean }, mode: 'pickup' | 'delivery') {
+  const o: ('cash' | 'codi')[] = [];
+  if (mode === 'delivery') { if (store.payCodi) o.push('codi'); if (store.cashDelivery) o.push('cash'); }
+  else { if (store.payCash) o.push('cash'); if (store.payCodi) o.push('codi'); }
+  return o;
+}
 
 const ls = {
   get<T>(k: string, d: T): T { try { const v = localStorage.getItem(k); return v ? (JSON.parse(v) as T) : d; } catch { return d; } },
@@ -246,8 +261,8 @@ function ModeSwitch({ store, mode, setMode }: { store: PStore; mode: 'pickup' | 
           </button>
         ))}
       </div>
-      {mode === 'delivery' && (store.deliveryArea || store.minOrder > 0) && (
-        <p className="mt-2 text-[12px] text-carbon-500">{store.deliveryArea && <>Entregamos en: {store.deliveryArea}. </>}{store.minOrder > 0 && <>Pedido mínimo {money(store.minOrder)}.</>}</p>
+      {mode === 'delivery' && (
+        <p className="mt-2 text-[12px] text-carbon-500">Entregamos hasta {store.radiusKm} km a la redonda.{store.minOrder > 0 && <> Pedido mínimo {money(store.minOrder)}.</>}</p>
       )}
     </div>
   );
@@ -322,7 +337,43 @@ function Checkout(props: {
   const [phone, setPhone] = useState(saved.phone);
   const [address, setAddress] = useState(saved.address);
   const [notes, setNotes] = useState('');
-  const [payment, setPayment] = useState<'cash' | 'codi'>(store.payCash ? 'cash' : 'codi');
+  const opts = payOptions(store, mode);
+  const [payPick, setPayment] = useState<'cash' | 'codi'>(opts[0] || 'cash');
+  const payment = opts.includes(payPick) ? payPick : opts[0] || 'cash';
+  // Al cambiar recoger/domicilio vuelve a la forma de pago principal (a domicilio: CoDi primero)
+  useEffect(() => { setPayment(payOptions(store, mode)[0] || 'cash'); }, [store, mode]);
+  const savedLoc = ls.get<{ lat: number; lng: number } | null>('dpstore:loc', null);
+  const [loc, setLoc] = useState<{ lat: number; lng: number } | null>(savedLoc);
+  const [locBusy, setLocBusy] = useState(false);
+  const [locErr, setLocErr] = useState('');
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<{ label: string; full: string; lat: number; lng: number }[]>([]);
+  const dist = loc && store.lat != null && store.lng != null ? distKm(store.lat, store.lng, loc.lat, loc.lng) : null;
+  const outOfZone = mode === 'delivery' && dist != null && dist > store.radiusKm;
+  const pickLoc = (l: { lat: number; lng: number }) => { setLoc(l); ls.set('dpstore:loc', l); setResults([]); setLocErr(''); };
+  const useGPS = () => {
+    if (!navigator.geolocation) return setLocErr('Tu navegador no permite ubicación. Busca tu dirección.');
+    setLocBusy(true); setLocErr('');
+    navigator.geolocation.getCurrentPosition(async (p) => {
+      const l = { lat: p.coords.latitude, lng: p.coords.longitude };
+      pickLoc(l);
+      try {
+        const r = await getJSON<{ address: string }>(`/api/order?rev=${l.lat},${l.lng}`);
+        if (r.address && !address.trim()) setAddress(r.address);
+      } catch { /* la dirección la escribe el cliente */ }
+      setLocBusy(false);
+    }, (e) => { setLocBusy(false); setLocErr(e.code === 1 ? 'No diste permiso de ubicación. Busca tu dirección abajo.' : 'No se pudo obtener tu ubicación. Busca tu dirección.'); }, { enableHighAccuracy: true, timeout: 12000 });
+  };
+  const search = async () => {
+    if (query.trim().length < 4) return;
+    setLocBusy(true); setLocErr('');
+    try {
+      const r = await getJSON<{ results: { label: string; full: string; lat: number; lng: number }[] }>(`/api/order?geo=${encodeURIComponent(query)}&slug=${slug}`);
+      setResults(r.results);
+      if (!r.results.length) setLocErr('No encontramos esa dirección. Prueba con calle y colonia, o usa tu ubicación.');
+    } catch (e: any) { setLocErr(e.message); }
+    setLocBusy(false);
+  };
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const hp = useRef<HTMLInputElement>(null);
@@ -334,13 +385,15 @@ function Checkout(props: {
     setErr('');
     if (name.trim().length < 2) return setErr('Escribe tu nombre.');
     if (phone.replace(/\D/g, '').length < 10) return setErr('Escribe tu teléfono a 10 dígitos.');
-    if (mode === 'delivery' && address.trim().length < 8) return setErr('Escribe tu dirección completa.');
+    if (mode === 'delivery' && !loc) return setErr('Confirma tu ubicación: toca "Usar mi ubicación" o busca tu dirección.');
+    if (outOfZone) return setErr(`Estás a ${dist!.toFixed(1)} km. Este restaurante entrega hasta ${store.radiusKm} km.`);
+    if (mode === 'delivery' && address.trim().length < 8) return setErr('Escribe tu dirección completa (calle, número, colonia).');
     setBusy(true);
     ls.set('dpstore:customer', { name: name.trim(), phone: phone.trim(), address: address.trim() });
     try {
       const r = await getJSON<{ token: string; number: number }>('/api/order', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'create', slug, type: mode, payment, name, phone, address, notes, website: hp.current?.value || '', items: cart.map((l) => ({ id: l.id, qty: l.qty, mods: l.mods, note: l.note })) }),
+        body: JSON.stringify({ action: 'create', slug, type: mode, payment, name, phone, address, notes, ...(mode === 'delivery' && loc ? { lat: loc.lat, lng: loc.lng } : {}), website: hp.current?.value || '', items: cart.map((l) => ({ id: l.id, qty: l.qty, mods: l.mods, note: l.note })) }),
       });
       onDone(r.token, r.number);
     } catch (e: any) {
@@ -380,21 +433,55 @@ function Checkout(props: {
           <h4 className="font-bold">Tus datos</h4>
           <Field label="Nombre" value={name} onChange={setName} autoComplete="name" />
           <Field label="Teléfono (10 dígitos)" value={phone} onChange={setPhone} type="tel" autoComplete="tel" />
-          {mode === 'delivery' && <Field label="Dirección de entrega (calle, número, colonia, referencias)" value={address} onChange={setAddress} textarea autoComplete="street-address" />}
+          {mode === 'delivery' && (
+            <div className="space-y-3 rounded-2xl border border-carbon-200 p-4">
+              <p className="text-[13px] font-semibold text-carbon-600">¿Dónde te lo llevamos? <span className="font-normal text-carbon-500">(entregan hasta {store.radiusKm} km)</span></p>
+              <button type="button" onClick={useGPS} disabled={locBusy} className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-[14px] font-bold text-white disabled:opacity-60" style={{ background: store.color }}>
+                {locBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <LocateFixed className="w-4 h-4" />}Usar mi ubicación actual
+              </button>
+              <div className="flex gap-2">
+                <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), search())} placeholder="o busca: calle, número y colonia" className="min-w-0 flex-1 rounded-xl border border-carbon-200 px-3 py-2.5 text-[14px] outline-none focus:border-carbon-500" />
+                <button type="button" onClick={search} disabled={locBusy} className="grid w-11 place-items-center rounded-xl border border-carbon-200" aria-label="Buscar"><Search className="w-4 h-4" /></button>
+              </div>
+              {results.length > 0 && (
+                <div className="divide-y divide-carbon-100 rounded-xl border border-carbon-200">
+                  {results.map((r, i) => {
+                    const d = store.lat != null && store.lng != null ? distKm(store.lat, store.lng, r.lat, r.lng) : 0;
+                    return (
+                      <button type="button" key={i} onClick={() => { pickLoc({ lat: r.lat, lng: r.lng }); if (!address.trim()) setAddress(r.label); }} className="flex w-full items-start gap-2 px-3 py-2.5 text-left text-[13px]">
+                        <MapPin className="mt-0.5 w-4 h-4 shrink-0 text-carbon-400" />
+                        <span className="flex-1">{r.label}<span className={`block text-[11px] ${d > store.radiusKm ? 'text-red-600' : 'text-carbon-500'}`}>{d.toFixed(1)} km{d > store.radiusKm ? ' · fuera de zona' : ''}</span></span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {locErr && <p className="text-[12px] font-semibold text-amber-700">{locErr}</p>}
+              {loc && dist != null && (
+                <p className={`flex items-center gap-2 rounded-xl px-3 py-2 text-[13px] font-semibold ${outOfZone ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}>
+                  {outOfZone ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+                  {outOfZone ? `Estás a ${dist.toFixed(1)} km: fuera de su zona (máx. ${store.radiusKm} km).${store.pickup ? ' Puedes pedir para recoger.' : ''}` : `Ubicación confirmada · estás a ${dist.toFixed(1)} km`}
+                </p>
+              )}
+              <Field label="Dirección y referencias (calle, número, colonia, color de la casa)" value={address} onChange={setAddress} textarea autoComplete="street-address" />
+            </div>
+          )}
           <Field label="Comentarios para el restaurante (opcional)" value={notes} onChange={setNotes} />
           <input ref={hp} name="website" tabIndex={-1} autoComplete="off" className="absolute -left-[9999px] h-0 w-0 opacity-0" aria-hidden />
         </div>
 
         <div className="space-y-2">
           <h4 className="font-bold">¿Cómo vas a pagar?</h4>
-          {store.payCash && (
-            <PayOpt on={payment === 'cash'} brand={store.color} onClick={() => setPayment('cash')} Icon={Banknote}
-              title={mode === 'delivery' ? 'Al recibir tu pedido' : 'Al recoger en tienda'} sub="Efectivo o tarjeta en el momento" />
-          )}
-          {store.payCodi && (
+          {opts.includes('codi') && (
             <PayOpt on={payment === 'codi'} brand={store.color} onClick={() => setPayment('codi')} Icon={QrCode}
               title="CoDi / transferencia" sub="Pagas desde la app de tu banco con el QR o la CLABE" />
           )}
+          {opts.includes('cash') && (
+            <PayOpt on={payment === 'cash'} brand={store.color} onClick={() => setPayment('cash')} Icon={Banknote}
+              title={mode === 'delivery' ? 'Efectivo al recibir (solicitud)' : 'Al recoger en tienda'}
+              sub={mode === 'delivery' ? 'El restaurante debe aprobarlo; si no, te pedirá pagar con CoDi' : 'Efectivo o tarjeta en el momento'} />
+          )}
+          {opts.length === 0 && <p className="text-[13px] text-amber-700">Esta forma de entrega no tiene pago disponible.</p>}
         </div>
 
         <div className="space-y-1.5 rounded-2xl bg-carbon-50 p-4 text-[14px]">
@@ -406,7 +493,7 @@ function Checkout(props: {
         {err && <p className="rounded-xl bg-red-50 px-4 py-3 text-[13px] font-semibold text-red-700">{err}</p>}
       </div>
       <div className="sticky bottom-0 border-t border-carbon-100 bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <button disabled={busy || !store.open || belowMin || !cart.length} onClick={submit} className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 font-bold text-white disabled:opacity-40" style={{ background: store.color }}>
+        <button disabled={busy || !store.open || belowMin || !cart.length || outOfZone || !opts.length} onClick={submit} className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 font-bold text-white disabled:opacity-40" style={{ background: store.color }}>
           {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShoppingBag className="w-5 h-5" />}
           {!store.open ? 'El restaurante está cerrado' : `Enviar pedido · ${money(total)}`}
         </button>
@@ -417,7 +504,7 @@ function Checkout(props: {
 
 // ---------------------------------------------------------------- seguimiento
 interface POrder {
-  number: number; status: string; reason: string; type: 'pickup' | 'delivery'; payment: 'cash' | 'codi'; paymentStatus: string;
+  number: number; status: string; reason: string; type: 'pickup' | 'delivery'; payment: 'cash' | 'codi'; paymentStatus: string; payChanged?: boolean;
   subtotal: number; deliveryFee: number; total: number; created: string; customerName: string;
   items: { name: string; quantity: number; line: number; mods: string[]; note: string }[];
   store: { slug: string; name: string; phone: string; address: string; color: string; logo: string | null; prepMinutes: number };
@@ -447,7 +534,7 @@ function Tracking({ slug, token, onBack }: { slug: string; token: string; onBack
   const rejected = o.status === 'rejected';
   const stepLabel = (s: string) => (s === 'new' ? 'Recibido' : s === 'accepted' ? 'Preparando' : s === 'ready' ? 'Listo para recoger' : s === 'on_way' ? 'En camino' : 'Entregado');
   const headline = rejected ? 'El restaurante no pudo aceptar tu pedido'
-    : o.status === 'new' ? 'Esperando que el restaurante confirme'
+    : o.status === 'new' ? (o.type === 'delivery' && o.payment === 'cash' ? 'Esperando que el restaurante acepte tu pago en efectivo' : 'Esperando que el restaurante confirme')
     : o.status === 'accepted' ? 'Están preparando tu pedido'
     : o.status === 'ready' ? (o.type === 'pickup' ? '¡Tu pedido está listo! Pasa por él' : 'Tu pedido está listo y saldrá pronto')
     : o.status === 'on_way' ? 'Tu pedido va en camino' : '¡Pedido entregado! Buen provecho';
@@ -496,6 +583,7 @@ function Tracking({ slug, token, onBack }: { slug: string; token: string; onBack
                 <p className="flex items-center gap-2 font-bold text-emerald-700"><Check className="w-5 h-5" />Pago confirmado por el restaurante</p>
               ) : (
                 <>
+                  {o.payChanged && <p className="mb-2 rounded-xl bg-amber-50 px-3 py-2 text-[13px] font-semibold text-amber-800">El restaurante aceptó tu pedido y te pide pagar con CoDi en lugar de efectivo.</p>}
                   <h2 className="font-display text-lg font-extrabold">Paga con CoDi o transferencia</h2>
                   <p className="mt-1 text-[13px] text-carbon-600">Abre la app de tu banco, escanea el QR o usa la CLABE. Monto exacto y concepto:</p>
                   <div className="mt-3 flex items-baseline justify-between rounded-2xl bg-white px-4 py-3 ring-1 ring-carbon-100">
@@ -533,7 +621,7 @@ function Tracking({ slug, token, onBack }: { slug: string; token: string; onBack
             <div className="mt-2 space-y-1 border-t border-carbon-200 pt-3 text-[14px]">
               {o.deliveryFee > 0 && <Row k="Envío" v={money(o.deliveryFee)} />}
               <div className="flex justify-between text-base font-black"><span>Total</span><span>{money(o.total)}</span></div>
-              <p className="text-[12px] text-carbon-500">{o.payment === 'codi' ? 'Pago por CoDi / transferencia' : o.type === 'delivery' ? 'Pagas al recibir' : 'Pagas al recoger'}</p>
+              <p className="text-[12px] text-carbon-500">{o.payment === 'codi' ? 'Pago por CoDi / transferencia' : o.type === 'delivery' ? (o.status === 'new' ? 'Pediste pagar en efectivo al recibir (pendiente de aprobación)' : 'Pagas en efectivo al recibir') : 'Pagas al recoger'}</p>
             </div>
           </div>
           {o.store.phone && <a href={`tel:${o.store.phone.replace(/\s/g, '')}`} className="flex w-full items-center justify-center gap-2 rounded-2xl border border-carbon-200 py-3.5 font-bold"><Phone className="w-4 h-4" />Llamar al restaurante</a>}

@@ -74,7 +74,7 @@ def main():
         "phone": "656 000 0000", "address": "Av. 16 de Septiembre, Cd. Juárez", "hours": "Lun a Dom · 1:00 pm a 12:00 am",
         "color": "#C2410C", "published": True, "accepting": True, "pickup": True, "delivery": True,
         "delivery_fee": 30, "min_order": 100, "delivery_area": "Centro, Partido Romero, Chaveña y 4 km a la redonda", "prep_minutes": 20,
-        "pay_cash": True, "pay_codi": True, "codi_clabe": "000000000000000000", "codi_bank": "Banco demo", "codi_holder": "Cuenta de demostración (no transferir)",
+        "pay_cash": True, "pay_codi": True, "cash_delivery": True, "lat": 31.7383053, "lng": -106.4697303, "radius_km": 3, "codi_clabe": "000000000000000000", "codi_bank": "Banco demo", "codi_holder": "Cuenta de demostración (no transferir)",
     }
     q = urllib.parse.quote(f"owner='{uid}'")
     cur = p.req("GET", f"/api/collections/stores/records?perPage=1&filter={q}", token=tok)["items"]
