@@ -212,7 +212,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 Vende en apps sin regalar tu ganancia<span className="text-maiz-500">.</span>
               </h1>
               <p className="mt-6 max-w-xl text-lg sm:text-xl leading-relaxed text-carbon-600">
-                Cobra en mostrador, cuadra tu caja y pon el precio correcto en Uber Eats, DiDi Food y Rappi. Todo desde el celular, la tablet o la compu que ya tienes.
+                Cobra en mostrador, cuadra tu caja y pon el precio correcto en cada plataforma de delivery. Todo desde el celular, la tablet o la compu que ya tienes.
               </p>
               <div className="mt-9 flex flex-col sm:flex-row gap-3">
                 <button onClick={onSubscribe} className="group inline-flex items-center justify-center gap-3 rounded-full bg-agave-600 hover:bg-agave-700 pl-7 pr-2 py-2 text-base font-semibold text-white transition-colors">
@@ -241,7 +241,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
         <section className="bg-agave-950 text-white">
           <div className="mx-auto max-w-6xl px-5 sm:px-8 py-20 sm:py-28 grid gap-12 lg:grid-cols-[1fr_1fr] items-end">
             <h2 className="font-display text-4xl sm:text-5xl font-bold leading-[1.05] tracking-[-0.03em]">
-              Un platillo de $100 en Uber te deja <span className="text-maiz-400">$56</span>.
+              Un platillo de $100 en una app de reparto te deja <span className="text-maiz-400">$56</span>.
             </h2>
             <div className="space-y-5 text-lg text-agave-100/90 leading-relaxed">
               <p>
@@ -274,7 +274,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 </p>
               </div>
               <ul className="space-y-2.5 text-sm text-carbon-700">
-                {['Ticket de cliente y comanda de cocina', 'Mostrador, Uber, DiDi y Rappi por separado', 'Candado con PIN para borrar o descontar'].map((t) => (
+                {['Ticket de cliente y comanda de cocina', 'Mostrador y cada plataforma de delivery por separado', 'Candado con PIN para borrar o descontar'].map((t) => (
                   <li key={t} className="flex gap-2.5"><Check size={18} className="text-agave-500 shrink-0" /> {t}</li>
                 ))}
               </ul>
@@ -310,7 +310,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
               <Smartphone className="text-maiz-400" strokeWidth={1.6} />
               <h2 className="mt-6 font-display text-4xl font-bold leading-[1.05] tracking-[-0.03em]">Instálala como app. Recibe tu cierre del día en el celular.</h2>
               <p className="mt-5 text-lg text-carbon-300 leading-relaxed">
-                Don Punto se instala en Android, iPhone y computadora sin pasar por ninguna tienda de apps. Cada noche te llega una notificación con lo que vendiste, aunque no estés en el negocio.
+                Don Punto se instala en cualquier celular, tablet o computadora sin pasar por ninguna tienda de apps. Cada noche te llega una notificación con lo que vendiste, aunque no estés en el negocio.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <button onClick={onSubscribe} className="rounded-full bg-maiz-400 hover:bg-maiz-300 px-6 py-3 font-semibold text-carbon-950 transition-colors">Empezar ahora</button>
@@ -338,7 +338,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 { icon: <UserCog strokeWidth={1.6} />, t: 'Cada empleado con su PIN', d: 'Sabes quién cobró, quién hizo descuentos y quién canceló tickets. Cajeros y gerentes con permisos distintos.' },
                 { icon: <PackageCheck strokeWidth={1.6} />, t: 'Inventario que se descuenta solo', d: 'Al vender un platillo se restan los insumos de su receta. Te llega un aviso al celular cuando algo se está acabando.' },
                 { icon: <HeartHandshake strokeWidth={1.6} />, t: 'Clientes que regresan', d: 'Guarda a tus clientes con su WhatsApp, mira lo que compran y prémialos: "tu orden 10 va por la casa".' },
-                { icon: <BarChart3 strokeWidth={1.6} />, t: 'Reportes avanzados', d: 'Esta semana contra la pasada, horas pico, mejores días y platillos estrella. Descarga a Excel o PDF.' },
+                { icon: <BarChart3 strokeWidth={1.6} />, t: 'Reportes avanzados', d: 'Esta semana contra la pasada, horas pico, mejores días y platillos estrella. Descarga en hoja de cálculo o PDF.' },
                 { icon: <FileScan strokeWidth={1.6} />, t: 'Facturas leídas con IA', d: 'Tómale foto a la factura del proveedor y las compras se capturan solas en tu inventario.' },
               ].map((f) => (
                 <div key={f.t}>
@@ -357,7 +357,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
           <ol className="mt-12 grid gap-8 md:grid-cols-3">
             {[
               ['Crea tu cuenta', 'Tu correo y el nombre de tu negocio. Eliges tu plan y listo.'],
-              ['Sube tu menú', 'Captúralo, impórtalo desde Excel o tómale foto y la IA lo digitaliza.'],
+              ['Sube tu menú', 'Captúralo, impórtalo desde una hoja de cálculo o tómale foto y la IA lo digitaliza.'],
               ['Cobra y cuadra', 'Vende en mostrador y apps, imprime tickets y haz tu corte con el IVA ya separado.'],
             ].map(([t, d], i) => (
               <li key={t} className="border-t-2 border-carbon-950 pt-6">
@@ -381,7 +381,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 name="Básico"
                 price={350}
                 text="Para un negocio con una sucursal que quiere orden y vender más."
-                items={['1 sucursal, ventas ilimitadas', 'Calculadora Uber, DiDi y Rappi', 'Tu menú desde una foto con IA', 'Combos sugeridos para mover tus platillos', 'Corte de caja con IVA, inventario y recetario', 'Reportes y ganancias protegidos con PIN', 'Respaldo en la nube y app instalable']}
+                items={['1 sucursal, ventas ilimitadas', 'Calculadora de precios para apps de delivery', 'Tu menú desde una foto con IA', 'Combos sugeridos para mover tus platillos', 'Corte de caja con IVA, inventario y recetario', 'Reportes y ganancias protegidos con PIN', 'Respaldo en la nube y app instalable']}
                 cta="Prueba 15 días gratis"
                 note="Luego $350 al mes. Cancela cuando quieras."
                 onClick={onSubscribe}
@@ -391,7 +391,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 name="Pro"
                 price={799}
                 text="Para negocios con equipo, varias sucursales y ganas de crecer."
-                items={['Todo lo del plan Básico', 'Varias sucursales con reporte de todas juntas', 'Empleados con su propio PIN y reporte por cajero', 'Inventario que se descuenta solo y avisos al celular', 'Clientes frecuentes y recompensas por visita', 'Reportes avanzados con Excel y PDF', 'Facturas de proveedor leídas con IA', 'Soporte prioritario por WhatsApp']}
+                items={['Todo lo del plan Básico', 'Varias sucursales con reporte de todas juntas', 'Empleados con su propio PIN y reporte por cajero', 'Inventario que se descuenta solo y avisos al celular', 'Clientes frecuentes y recompensas por visita', 'Reportes avanzados con hoja de cálculo y PDF', 'Facturas de proveedor leídas con IA', 'Soporte prioritario por WhatsApp']}
                 cta="Elegir Pro"
                 onClick={onSubscribe}
               />
