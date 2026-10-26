@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { LockKeyhole, Store, UserCog, PackageCheck, HeartHandshake, BarChart3, FileScan,
   Check, ChevronDown, Receipt, Calculator, Wallet, Boxes, ChefHat, ScanLine, WifiOff, BellRing,
-  Smartphone, MessageCircle, Mail, ArrowRight, ShieldCheck,
+  Smartphone, MessageCircle, Mail, ArrowRight, ShieldCheck, Globe, Bike, Banknote,
 } from 'lucide-react';
 import { Logo, Mark, Wordmark } from '../brand/Logo';
 import { InstallAppButton } from '../pwa/InstallApp';
@@ -154,6 +154,7 @@ function Shot({ src, alt, className = '' }: { src: string; alt: string; classNam
 
 const FAQS = [
   { q: '¿Cómo funciona la prueba gratis?', a: 'Tienes 15 días gratis con todo tu plan. Registras tu tarjeta al empezar, pero no se cobra nada hasta el día 16. Te avisamos al celular 3 días antes; si cancelas antes, no pagas nada.' },
+  { q: '¿La tienda en línea cobra comisión?', a: 'No. Está incluida en tu plan. Tus clientes te pagan directo: efectivo al recoger o transferencia CoDi a tu cuenta. Don Punto no se queda con ningún porcentaje de tus pedidos.' },
   { q: '¿Tengo que firmar contrato?', a: 'No. Pagas mes a mes y cancelas cuando quieras desde "Mi plan" dentro de tu cuenta. No hay penalizaciones.' },
   { q: '¿Necesito comprar equipo?', a: 'No. Funciona en la computadora, tablet o celular que ya tienes. Puedes instalarla como app y abrirla desde tu pantalla de inicio.' },
   { q: '¿Qué pasa si se va el internet?', a: 'Sigues cobrando en el mismo equipo. Cuando regresa la conexión, tus ventas se respaldan solas en la nube.' },
@@ -184,6 +185,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-8">
           <a href="#inicio" aria-label="Don Punto, inicio" className="shrink-0"><Logo size={32} className="sm:hidden" /><Logo size={44} className="hidden sm:block" /></a>
           <nav className="hidden md:flex items-center gap-8 text-sm text-carbon-600">
+            <a href="#tienda-en-linea" className="hover:text-carbon-950">Tienda en línea</a>
             <a href="#como-funciona" className="hover:text-carbon-950">Cómo funciona</a>
             <a href="#precios" className="hover:text-carbon-950">Precios</a>
             <a href="#preguntas" className="hover:text-carbon-950">Preguntas</a>
@@ -212,7 +214,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 Vende en apps sin regalar tu ganancia<span className="text-maiz-500">.</span>
               </h1>
               <p className="mt-6 max-w-xl text-lg sm:text-xl leading-relaxed text-carbon-600">
-                Cobra en mostrador, cuadra tu caja y pon el precio correcto en cada plataforma de delivery. Todo desde el celular, la tablet o la compu que ya tienes.
+                Cobra en mostrador, recibe pedidos en tu propia tienda en línea, cuadra tu caja y pon el precio correcto en cada plataforma de delivery. Todo desde el celular, la tablet o la compu que ya tienes.
               </p>
               <div className="mt-9 flex flex-col sm:flex-row gap-3">
                 <button onClick={onSubscribe} className="group inline-flex items-center justify-center gap-3 rounded-full bg-agave-600 hover:bg-agave-700 pl-7 pr-2 py-2 text-base font-semibold text-white transition-colors">
@@ -253,6 +255,50 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
             </div>
           </div>
         </section>
+
+        {/* Tienda en línea */}
+        <Section id="tienda-en-linea" className="pt-24 sm:pt-32">
+          <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
+            <div>
+              <p className="inline-flex items-center gap-2 rounded-full bg-maiz-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-maiz-800">Nuevo · incluido en todos los planes</p>
+              <h2 className="mt-5 font-display text-4xl sm:text-5xl font-bold leading-[1.05] tracking-[-0.03em]">
+                Tu propia tienda en línea. <span className="text-agave-600">Cero comisión por pedido.</span>
+              </h2>
+              <p className="mt-5 text-lg text-carbon-600 leading-relaxed">
+                Tus clientes de siempre te piden directo desde <b className="font-semibold text-carbon-900 whitespace-nowrap">donpunto.com/tu-negocio</b>, con tu menú, tus fotos y tus precios. El dinero llega completo a ti, no a una plataforma de reparto.
+              </p>
+              <div className="mt-10 grid gap-x-8 gap-y-8 sm:grid-cols-2">
+                {[
+                  { icon: <Globe strokeWidth={1.6} />, t: 'Lista en minutos', d: 'Se arma sola con el menú que ya tienes en tu caja. Agrega fotos, marca lo agotado y comparte tu enlace.' },
+                  { icon: <Bike strokeWidth={1.6} />, t: 'Para recoger o a domicilio', d: 'Tú decides hasta cuántos kilómetros entregas y cuánto cobras de envío. El cliente confirma su ubicación.' },
+                  { icon: <Banknote strokeWidth={1.6} />, t: 'Cobras directo', d: 'Efectivo al recoger o transferencia CoDi a tu cuenta. Sin intermediarios ni porcentajes por venta.' },
+                  { icon: <BellRing strokeWidth={1.6} />, t: 'Te suena cada pedido', d: 'Aviso en el celular y en la caja. Aceptas, tu cliente ve el avance y la venta cae sola en tu corte.' },
+                ].map((f) => (
+                  <div key={f.t}>
+                    <div className="grid h-11 w-11 place-items-center rounded-xl bg-agave-50 text-agave-600 ring-1 ring-agave-100 [&>svg]:h-5 [&>svg]:w-5">{f.icon}</div>
+                    <h3 className="mt-4 text-lg font-semibold">{f.t}</h3>
+                    <p className="mt-1.5 text-carbon-600 leading-relaxed">{f.d}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-10 flex flex-col sm:flex-row gap-3">
+                <button onClick={onSubscribe} className="rounded-full bg-agave-600 hover:bg-agave-700 px-7 py-3.5 font-semibold text-white transition-colors">Quiero mi tienda en línea</button>
+                <a href="/donchuy" target="_blank" rel="noopener" className="inline-flex items-center justify-center gap-2 rounded-full px-7 py-3.5 font-semibold text-carbon-800 ring-1 ring-carbon-300 hover:bg-white">Ver tienda de ejemplo <ArrowRight size={16} /></a>
+              </div>
+            </div>
+            <div className="relative mx-auto w-full max-w-[320px]">
+              <div className="absolute -inset-8 rounded-[3rem] bg-maiz-300/25 blur-2xl" aria-hidden="true" />
+              <div className="relative rounded-[2.6rem] bg-carbon-950 p-2.5 shadow-[0_40px_80px_-30px_rgba(4,33,26,0.6)] ring-1 ring-black/20">
+                <img src="/screens/store.webp" alt="Tienda en línea de una taquería hecha con Don Punto: menú con fotos, recoger o a domicilio" loading="lazy" decoding="async" className="block w-full rounded-[2.1rem]" />
+              </div>
+              <div className="absolute -left-6 sm:-left-14 bottom-16 w-60 rounded-2xl bg-white p-4 shadow-[0_20px_50px_-20px_rgba(4,33,26,0.45)] ring-1 ring-carbon-200/70">
+                <p className="text-xs font-semibold uppercase tracking-wider text-agave-600">Pedido nuevo</p>
+                <p className="mt-1 font-semibold text-carbon-950">3 al pastor + horchata</p>
+                <p className="text-sm text-carbon-500">A domicilio · $135 · comisión $0</p>
+              </div>
+            </div>
+          </div>
+        </Section>
 
         {/* Producto */}
         <Section id="como-funciona" className="py-24 sm:py-32">
@@ -381,7 +427,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 name="Básico"
                 price={350}
                 text="Para un negocio con una sucursal que quiere orden y vender más."
-                items={['1 sucursal, ventas ilimitadas', 'Calculadora de precios para apps de delivery', 'Tu menú desde una foto con IA', 'Combos sugeridos para mover tus platillos', 'Corte de caja con IVA, inventario y recetario', 'Reportes y ganancias protegidos con PIN', 'Respaldo en la nube y app instalable']}
+                items={['1 sucursal, ventas ilimitadas', 'Tienda en línea propia, sin comisión por pedido', 'Calculadora de precios para apps de delivery', 'Tu menú desde una foto con IA', 'Combos sugeridos para mover tus platillos', 'Corte de caja con IVA, inventario y recetario', 'Reportes y ganancias protegidos con PIN', 'Respaldo en la nube y app instalable']}
                 cta="Prueba 15 días gratis"
                 note="Luego $350 al mes. Cancela cuando quieras."
                 onClick={onSubscribe}
@@ -391,7 +437,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 name="Pro"
                 price={799}
                 text="Para negocios con equipo, varias sucursales y ganas de crecer."
-                items={['Todo lo del plan Básico', 'Varias sucursales con reporte de todas juntas', 'Empleados con su propio PIN y reporte por cajero', 'Inventario que se descuenta solo y avisos al celular', 'Clientes frecuentes y recompensas por visita', 'Reportes avanzados con hoja de cálculo y PDF', 'Facturas de proveedor leídas con IA', 'Soporte prioritario por WhatsApp']}
+                items={['Todo lo del plan Básico, incluida la tienda en línea', 'Varias sucursales con reporte de todas juntas', 'Empleados con su propio PIN y reporte por cajero', 'Inventario que se descuenta solo y avisos al celular', 'Clientes frecuentes y recompensas por visita', 'Reportes avanzados con hoja de cálculo y PDF', 'Facturas de proveedor leídas con IA', 'Soporte prioritario por WhatsApp']}
                 cta="Elegir Pro"
                 onClick={onSubscribe}
               />
