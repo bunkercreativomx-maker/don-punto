@@ -291,7 +291,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
               <div className="relative rounded-[2.6rem] bg-carbon-950 p-2.5 shadow-[0_40px_80px_-30px_rgba(4,33,26,0.6)] ring-1 ring-black/20">
                 <img src="/screens/store.webp" alt="Tienda en línea de una taquería hecha con Don Punto: menú con fotos, recoger o a domicilio" loading="lazy" decoding="async" className="block w-full rounded-[2.1rem]" />
               </div>
-              <div className="absolute -left-6 sm:-left-14 bottom-16 w-60 rounded-2xl bg-white p-4 shadow-[0_20px_50px_-20px_rgba(4,33,26,0.45)] ring-1 ring-carbon-200/70">
+              <div className="absolute -right-3 sm:-right-12 top-8 w-56 rounded-2xl bg-white p-4 shadow-[0_20px_50px_-20px_rgba(4,33,26,0.45)] ring-1 ring-carbon-200/70">
                 <p className="text-xs font-semibold uppercase tracking-wider text-agave-600">Pedido nuevo</p>
                 <p className="mt-1 font-semibold text-carbon-950">3 al pastor + horchata</p>
                 <p className="text-sm text-carbon-500">A domicilio · $135 · comisión $0</p>
