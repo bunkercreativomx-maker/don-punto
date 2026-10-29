@@ -5,7 +5,7 @@
  * siguen en la siguiente hoja, y no importa si la pantalla de origen está marcada como no-print.
  * La clase se quita en `afterprint` (en celular/tablet window.print() no espera al diálogo).
  */
-export type PrintKind = 'ticket' | 'corte';
+export type PrintKind = 'ticket' | 'corte' | 'reporte';
 
 let busy = false;
 

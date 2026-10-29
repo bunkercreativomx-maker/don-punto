@@ -53,7 +53,7 @@ export function usePOS() {
     dateStr?: string,
     items?: CartItem[],
     discountAmount?: number,
-    extra?: { clientId?: string; rewardApplied?: boolean; waiterId?: string; waiterName?: string }
+    extra?: { clientId?: string; rewardApplied?: boolean; waiterId?: string; waiterName?: string; tip?: number; guests?: number; courtesy?: boolean; shiftId?: string }
   ) => {
     const op = getOperator();
     const newTx: POSTransaction = {
@@ -87,7 +87,26 @@ export function usePOS() {
     setTransactions((prev) => prev.filter((tx) => tx.id !== id));
   };
 
-  const saveTicket = (customerName: string, destination: OrderDestination, items: CartItem[], total: number, waiter?: { id: string; name: string }) => {
+  /** Reabrir una cuenta cobrada: la venta sale del registro y vuelve a Tickets Abiertos */
+  const reopenTransaction = (id: string) => {
+    const tx = transactions.find((t) => t.id === id);
+    if (!tx) return null;
+    const ticket: OpenTicket = {
+      id: crypto.randomUUID(),
+      customerName: tx.customerName || 'Sin Nombre',
+      createdAt: new Date().toISOString(),
+      destination: tx.destination || 'Tienda',
+      items: tx.items || [],
+      total: tx.amount + (tx.discountAmount || 0),
+      waiterId: tx.waiterId, waiterName: tx.waiterName,
+      ...(tx.guests ? { guests: tx.guests } : {}),
+    };
+    setTransactions((prev) => prev.filter((t) => t.id !== id));
+    setOpenTickets((prev) => [ticket, ...prev]);
+    return ticket;
+  };
+
+  const saveTicket = (customerName: string, destination: OrderDestination, items: CartItem[], total: number, waiter?: { id: string; name: string }, guests?: number) => {
     // La orden queda a nombre de quien la tomó (o de quien la abrió originalmente)
     const op = getOperator();
     const w = waiter || (op ? { id: op.id, name: op.name } : undefined);
@@ -99,7 +118,8 @@ export function usePOS() {
         createdAt: new Date().toISOString(),
         destination,
         items,
-        total
+        total,
+        ...(guests ? { guests } : {}),
     };
     setOpenTickets(prev => [newTicket, ...prev]);
   };
@@ -168,6 +188,7 @@ export function usePOS() {
     summaries,
     addTransaction,
     removeTransaction,
+    reopenTransaction,
     saveTicket,
     deleteOpenTicket,
     updateSettings,

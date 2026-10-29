@@ -34,6 +34,14 @@ export interface POSTransaction {
   clientId?: string;
   /** Recompensa de lealtad aplicada */
   rewardApplied?: boolean;
+  /** Propina (NO forma parte de la venta; se cobra con la misma forma de pago) */
+  tip?: number;
+  /** Número de personas en la cuenta */
+  guests?: number;
+  /** Cortesía: la casa invita (descuento del 100% autorizado con PIN) */
+  courtesy?: boolean;
+  /** Turno de caja en el que se cobró */
+  shiftId?: string;
 }
 
 export interface OpenTicket {
@@ -46,6 +54,8 @@ export interface OpenTicket {
     /** Quién tomó la orden */
     waiterId?: string;
     waiterName?: string;
+    /** Número de personas */
+    guests?: number;
 }
 
 export interface POSSummary {
@@ -70,3 +80,20 @@ export interface POSSettings {
 }
 
 export interface Cancellation { id: string; date: string; txId: string; amount: number; detail?: string; byId?: string; byName?: string }
+
+/** Turno de caja: apertura con fondo, movimientos de efectivo y cierre con declaración del cajero */
+export interface CashMovement { id: string; date: string; type: 'retiro' | 'deposito'; amount: number; reason?: string; byName?: string }
+export interface CashDeclaration { efectivo: number; tarjeta: number; transferencia: number; otros: number }
+export interface CashShift {
+  id: string;
+  number: number;
+  openedAt: string;
+  openedByName?: string;
+  openingFloat: number;
+  movements: CashMovement[];
+  closedAt?: string;
+  closedByName?: string;
+  declaration?: CashDeclaration;
+}
+/** Bitácora de eventos de seguridad (reimpresiones y reaperturas de cuentas) */
+export interface SecurityEvent { id: string; date: string; type: 'reimpresion' | 'reapertura'; txId: string; amount: number; byName?: string; detail?: string }

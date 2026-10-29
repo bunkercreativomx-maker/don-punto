@@ -21,13 +21,19 @@ import clsx from 'clsx';
 import { money } from '../../lib/format';
 import { PrintArea } from '../print/PrintArea';
 import { runPrint } from '../../lib/print';
+import { logEvent, getShifts } from '../../lib/cashShift';
+import { authorizeWithPin } from '../../lib/session';
+import { RotateCcw } from 'lucide-react';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
 
 export function POSTicketsHistory() {
-  const { transactions, settings } = usePOS();
+  const { transactions, settings, reopenTransaction } = usePOS();
+  const [reopenFor, setReopenFor] = useState<string | null>(null);
+  const [pin, setPin] = useState('');
+  const [pinError, setPinError] = useState(false);
   const { rows } = useCalculator();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -82,6 +88,7 @@ export function POSTicketsHistory() {
   const handlePrint = (ticket: any, type: 'customer' | 'kitchen') => {
     setTicketToPrint(ticket);
     setPrintType(type);
+    if (type === 'customer') logEvent('reimpresion', ticket.id, ticket.amount, ticket.folio);
     
     runPrint('ticket', () => setTicketToPrint(null));
   };
@@ -261,6 +268,17 @@ export function POSTicketsHistory() {
                 >
                   <Printer size={15} /> COCINA
                 </button>
+                <button
+                  onClick={() => {
+                    const sh = selectedTicket.shiftId ? getShifts().find((x) => x.id === selectedTicket.shiftId) : null;
+                    if (sh?.closedAt) { alert(`Esta cuenta es del turno ${sh.number}, que ya se cerró. No se puede reabrir para no alterar el corte.`); return; }
+                    setReopenFor(selectedTicket.id); setPin(''); setPinError(false);
+                  }}
+                  className="flex-1 sm:flex-initial bg-white hover:bg-carbon-50 text-carbon-700 border border-carbon-950/10 px-5 py-3 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 active:scale-95"
+                  title="Regresa la cuenta a Tickets Abiertos para corregirla (requiere PIN)"
+                >
+                  <RotateCcw size={15} /> REABRIR
+                </button>
               </div>
             </div>
 
@@ -378,6 +396,32 @@ export function POSTicketsHistory() {
         )}
       </div>
 
+      {reopenFor && (() => {
+        const tx = transactionsWithFolios.find((t) => t.id === reopenFor);
+        const confirm = () => {
+          if (!authorizeWithPin(pin, settings.adminPin)) { setPinError(true); setPin(''); return; }
+          if (tx) { logEvent('reapertura', tx.id, tx.amount, `${tx.folio} ${tx.customerName || ''}`.trim()); reopenTransaction(tx.id); }
+          setReopenFor(null); setSelectedTicketId(null);
+        };
+        return (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-carbon-950/35 backdrop-blur-md">
+            <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl w-full max-w-sm p-6 space-y-4">
+              <div>
+                <h3 className="text-lg font-bold text-carbon-950">Reabrir cuenta {tx?.folio}</h3>
+                <p className="text-xs text-slate-500 mt-1">La venta sale del registro y vuelve a Tickets Abiertos en el Punto de Venta para corregirla y cobrarla de nuevo. Queda anotado en el corte. PIN del dueño o gerente.</p>
+              </div>
+              <input type="password" autoFocus value={pin} onChange={(e) => setPin(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && confirm()} placeholder="••••"
+                className={cn("w-full bg-slate-950 border-2 rounded-2xl text-center text-3xl tracking-[0.5em] font-black text-carbon-950 py-3 outline-none", pinError ? "border-rose-500" : "border-carbon-950/10 focus:border-indigo-500")} />
+              {pinError && <div className="text-rose-500 text-xs font-bold text-center">PIN INCORRECTO</div>}
+              <div className="grid grid-cols-2 gap-3">
+                <button onClick={() => setReopenFor(null)} className="py-3 rounded-xl font-bold text-slate-500 bg-slate-800/50">CANCELAR</button>
+                <button onClick={confirm} className="py-3 rounded-xl font-black text-white bg-indigo-500 hover:bg-indigo-400">REABRIR</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* HIDDEN IN DOM: ONLY VISIBLE DURING window.print() */}
       {ticketToPrint && (
         <PrintArea kind="ticket" paper={settings.paperSize}>
@@ -393,6 +437,7 @@ export function POSTicketsHistory() {
             businessPhone={settings.businessPhone}
             businessAddress={settings.businessAddress}
             discountAmount={ticketToPrint.discountAmount}
+            tip={ticketToPrint.tip}
             date={ticketToPrint.date}
           />
         </PrintArea>

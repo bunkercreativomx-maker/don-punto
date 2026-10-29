@@ -23,9 +23,10 @@ interface POSTicketProps {
   businessAddress?: string;
   discountAmount?: number;
   waiterName?: string;
+  tip?: number;
 }
 
-export function POSTicket({ items, total, paymentMethod, destination, customerName, date, isKitchen = false, paperSize = '58mm', receivedAmount, businessName, businessPhone, businessAddress, discountAmount, waiterName }: POSTicketProps) {
+export function POSTicket({ items, total, paymentMethod, destination, customerName, date, isKitchen = false, paperSize = '58mm', receivedAmount, businessName, businessPhone, businessAddress, discountAmount, waiterName, tip }: POSTicketProps) {
   const { rows } = useCalculator();
   const printDate = date ? new Date(date) : new Date();
   const subtotal = total + (discountAmount || 0);
@@ -120,6 +121,18 @@ export function POSTicket({ items, total, paymentMethod, destination, customerNa
             <span>TOTAL:</span>
             <span>${money(total)}</span>
           </div>
+          {tip !== undefined && tip > 0 && (
+            <>
+              <div className="flex-row-print">
+                <span>Propina:</span>
+                <span>${money(tip)}</span>
+              </div>
+              <div className="flex-row-print font-bold">
+                <span>TOTAL PAGADO:</span>
+                <span>${money(total + tip)}</span>
+              </div>
+            </>
+          )}
           <div className="flex-row-print">
             <span>Metodo de Pago:</span>
             <span>{paymentMethod}</span>
@@ -132,7 +145,7 @@ export function POSTicket({ items, total, paymentMethod, destination, customerNa
               </div>
               <div className="flex-row-print font-bold border-t border-black pt-1 mt-1">
                 <span>CAMBIO:</span>
-                <span>${money((receivedAmount - total))}</span>
+                <span>${money((receivedAmount - total - (tip || 0)))}</span>
               </div>
             </>
           )}

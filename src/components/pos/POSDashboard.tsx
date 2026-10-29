@@ -8,6 +8,8 @@ import { getClients, addClient, recordVisit, rewardReady, rewardDiscount, getLoy
 import { applySaleToInventory, type StockAlert } from '../../lib/inventoryAuto';
 import { apiPost } from '../../lib/api';
 import { POSTicket } from './POSTicket';
+import { CashShiftBar } from './CashShiftBar';
+import { getOpenShift } from '../../lib/cashShift';
 import { PrintArea } from '../print/PrintArea';
 import { runPrint } from '../../lib/print';
 import clsx from 'clsx';
@@ -20,7 +22,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 }
 
 export function POSDashboard() {
-  const { addTransaction, openTickets, saveTicket, deleteOpenTicket, settings, updateSettings } = usePOS();
+  const { addTransaction, openTickets, saveTicket, deleteOpenTicket, settings, updateSettings, transactions } = usePOS();
   const { rows, settings: calcGlobalSettings, categories, modifierGroups } = useCalculator();
 
   const [paymentMethod, setPaymentMethod] = useState<POSPaymentMethod>('Efectivo');
@@ -93,6 +95,11 @@ export function POSDashboard() {
     return clients.filter((c) => c.name.toLowerCase().includes(t) || (digits.length >= 3 && (c.phone || '').includes(digits))).slice(0, 5);
   }, [orderCustomerName, clients, clientId, pro]);
 
+  // Propina, personas y cortesía
+  const [tipInput, setTipInput] = useState<string>('');
+  const [guests, setGuests] = useState<string>('');
+  const [courtesy, setCourtesy] = useState(false);
+
   // Manual Discount State
   const [discountInput, setDiscountInput] = useState<number>(0);
   const [discountType, setDiscountType] = useState<'amount' | 'percent'>('amount');
@@ -136,6 +143,7 @@ export function POSDashboard() {
     discountAmount?: number;
     kitchenOnly?: boolean;
     waiterName?: string;
+    tip?: number;
     } | null>(null);
 
   // Search query state
@@ -252,17 +260,21 @@ export function POSDashboard() {
   }, [cart, paymentMethod]);
 
   const discountAmount = useMemo(() => {
+    if (courtesy) return cartTotal;
     if (rewardOn && selectedClient) return rewardDiscount(cartTotal, loyalty);
     if (discountType === 'percent') {
         return cartTotal * (discountInput / 100);
     } else {
         return discountInput;
     }
-  }, [cartTotal, discountInput, discountType, rewardOn, selectedClient, loyalty]);
+  }, [cartTotal, discountInput, discountType, rewardOn, selectedClient, loyalty, courtesy]);
 
   const finalTotal = useMemo(() => {
     return Math.max(0, cartTotal - discountAmount);
   }, [cartTotal, discountAmount]);
+  // La propina solo aplica en tienda y no forma parte de la venta
+  const tipAmount = orderDestination === 'Tienda' && !courtesy ? Math.max(0, Number(tipInput) || 0) : 0;
+  const chargeTotal = finalTotal + tipAmount;
 
   const handleCheckout = () => {
     if (waiterMode) return; // el mesero no cobra
@@ -293,8 +305,12 @@ export function POSDashboard() {
         ? ` (Desc: ${discountType === 'percent' ? `${discountInput}%` : `$${discountInput}`})` 
         : '';
     const rewardStr = rewardOn && selectedClient ? ' (Recompensa cliente frecuente)' : '';
-    addTransaction(finalTotal, paymentMethod, orderDestination, detail + (rewardStr || discountStr), customerName, undefined, [...cart], discountAmount,
-      { ...(selectedClient ? { clientId: selectedClient.id, rewardApplied: rewardOn } : {}), ...(resumedWaiter ? { waiterId: resumedWaiter.id, waiterName: resumedWaiter.name } : {}) });
+    const courtesyStr = courtesy ? ' (Cortesía)' : '';
+    const shift = getOpenShift();
+    const nGuests = Math.max(0, Math.round(Number(guests) || 0));
+    addTransaction(finalTotal, paymentMethod, orderDestination, detail + (courtesyStr || rewardStr || discountStr), customerName, undefined, [...cart], discountAmount,
+      { ...(selectedClient ? { clientId: selectedClient.id, rewardApplied: rewardOn } : {}), ...(resumedWaiter ? { waiterId: resumedWaiter.id, waiterName: resumedWaiter.name } : {}),
+        ...(tipAmount > 0 ? { tip: Math.round(tipAmount * 100) / 100 } : {}), ...(nGuests ? { guests: nGuests } : {}), ...(courtesy ? { courtesy: true } : {}), ...(shift ? { shiftId: shift.id } : {}) });
     setResumedWaiter(null);
     if (pro && selectedClient) { recordVisit(selectedClient.id, finalTotal, rewardOn); setClients(getClients()); }
     // Inventario automático (Pro): descontar insumos de las recetas
@@ -316,6 +332,7 @@ export function POSDashboard() {
         customerName,
         receivedAmount: isCash && receivedAmount ? Number(receivedAmount) : undefined,
         discountAmount: discountAmount,
+        tip: tipAmount,
     });
 
     setCart([]);
@@ -323,6 +340,9 @@ export function POSDashboard() {
     setDiscountInput(0);
     setClientId(null);
     setRewardOn(false);
+    setTipInput('');
+    setGuests('');
+    setCourtesy(false);
 
     // Trigger print dialog if any ticket is enabled
     if (settings.printCustomerTicket || settings.printKitchenTicket) runPrint('ticket');
@@ -331,12 +351,15 @@ export function POSDashboard() {
   const handleSaveTicket = () => {
       if (cart.length === 0) return;
       const customerName = orderCustomerName.trim() || cart.find(i => i.customerNote)?.customerNote || 'Sin Nombre';
-      saveTicket(customerName, orderDestination, cart, finalTotal, resumedWaiter || undefined);
+      saveTicket(customerName, orderDestination, cart, finalTotal, resumedWaiter || undefined, Math.max(0, Math.round(Number(guests) || 0)) || undefined);
       const items = [...cart];
       setCart([]);
       setOrderCustomerName('');
       setDiscountInput(0);
       setResumedWaiter(null);
+      setGuests('');
+      setTipInput('');
+      setCourtesy(false);
       if (waiterMode) {
           // Comanda a cocina y se cierra la sesión del mesero para que el siguiente ponga su PIN
           if (settings.printKitchenTicket) {
@@ -354,6 +377,7 @@ export function POSDashboard() {
       setOrderDestination(ticket.destination);
       setOrderCustomerName(ticket.customerName === 'Sin Nombre' ? '' : ticket.customerName);
       setResumedWaiter(ticket.waiterId && ticket.waiterName ? { id: ticket.waiterId, name: ticket.waiterName } : null);
+      setGuests(ticket.guests ? String(ticket.guests) : '');
       deleteOpenTicket(ticket.id);
       setIsTicketsModalOpen(false);
   };
@@ -361,6 +385,7 @@ export function POSDashboard() {
   return (
     <>
     <div className="space-y-4 no-print">
+        {!waiterMode && <CashShiftBar transactions={transactions} settings={settings} rows={rows} categories={categories} />}
         {stockAlerts.length > 0 && (
             <div className="fixed bottom-5 right-5 z-[90] w-80 rounded-2xl border border-maiz-300 bg-white p-4 shadow-[0_18px_40px_-18px_rgba(13,16,14,0.45)]">
                 <div className="flex items-start gap-3">
@@ -621,6 +646,14 @@ export function POSDashboard() {
                             </div>
                         )}
                         </div>
+                        <div className="flex items-center gap-2 bg-slate-950/50 border border-carbon-950/10 rounded-xl px-3 py-1.5">
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Personas:</span>
+                            <div className="flex items-center gap-1 ml-auto">
+                                <button type="button" onClick={() => setGuests(String(Math.max(0, (Number(guests) || 0) - 1) || ''))} className="w-7 h-7 rounded-lg bg-white border border-carbon-950/10 text-carbon-700 flex items-center justify-center"><Minus size={12} /></button>
+                                <input type="number" min="0" value={guests} onChange={(e) => setGuests(e.target.value)} placeholder="—" className="w-10 bg-transparent text-center text-carbon-950 text-xs font-bold outline-none placeholder:text-slate-500" />
+                                <button type="button" onClick={() => setGuests(String((Number(guests) || 0) + 1))} className="w-7 h-7 rounded-lg bg-white border border-carbon-950/10 text-carbon-700 flex items-center justify-center"><Plus size={12} /></button>
+                            </div>
+                        </div>
                         {selectedClient && (
                             <div className="flex items-center justify-between gap-2 rounded-xl border border-maiz-200 bg-maiz-50 px-3 py-2">
                                 <div className="min-w-0">
@@ -672,7 +705,23 @@ export function POSDashboard() {
                                     </button>
                                 </div>
                             </div>
+                            <button type="button" title="Cortesía: la casa invita (requiere PIN)" onClick={() => courtesy ? setCourtesy(false) : requirePin(() => setCourtesy(true))}
+                                className={cn("shrink-0 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-black border", courtesy ? "bg-maiz-400 border-maiz-500 text-carbon-950" : "bg-white border-carbon-950/10 text-carbon-600 hover:text-carbon-950")}>
+                                <Gift size={12} /> {courtesy ? 'CORTESÍA' : 'Cortesía'}
+                            </button>
                         </div>}
+                        {!waiterMode && orderDestination === 'Tienda' && !courtesy && (
+                            <div className="flex items-center gap-2 bg-slate-950/50 border border-carbon-950/10 rounded-xl px-3 py-1.5">
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Propina:</span>
+                                <div className="flex items-center gap-1 flex-grow justify-end">
+                                    {[10, 15].map((p) => (
+                                        <button key={p} type="button" onClick={() => setTipInput((Math.round(finalTotal * p) / 100).toFixed(2))} className="px-2 py-0.5 rounded-md bg-white border border-carbon-950/10 text-[10px] font-black text-carbon-600 hover:text-carbon-950">{p}%</button>
+                                    ))}
+                                    <span className="text-xs font-bold text-slate-500 ml-1">$</span>
+                                    <input type="number" min="0" value={tipInput} onChange={(e) => setTipInput(e.target.value)} placeholder="0" className="w-16 bg-transparent text-carbon-950 text-xs font-bold outline-none placeholder:text-slate-500 text-right" />
+                                </div>
+                            </div>
+                        )}
                         {discountAmount > 0 && (
                             <div className="flex justify-between items-center text-xs font-bold text-slate-500 px-1">
                                 <span>Subtotal</span>
@@ -685,9 +734,21 @@ export function POSDashboard() {
                                 <span>-${money(discountAmount)}</span>
                             </div>
                         )}
+                        {tipAmount > 0 && (
+                            <>
+                                <div className="flex justify-between items-center text-xs font-bold text-slate-500 px-1">
+                                    <span>Venta</span>
+                                    <span>${money(finalTotal)}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-xs font-bold text-slate-500 px-1">
+                                    <span>Propina</span>
+                                    <span>+${money(tipAmount)}</span>
+                                </div>
+                            </>
+                        )}
                         <div className="flex justify-between items-end mb-2 pt-1 px-1">
                             <span className="text-xs font-black text-slate-500 uppercase tracking-widest">{waiterMode ? 'Total' : 'Total Cobrar'}</span>
-                            <span className="text-3xl font-black text-carbon-950 tracking-tighter">${money(finalTotal)}</span>
+                            <span className="text-3xl font-black text-carbon-950 tracking-tighter">${money(waiterMode ? finalTotal : chargeTotal)}</span>
                         </div>
                         {waiterMode ? (
                             <button
@@ -818,7 +879,7 @@ export function POSDashboard() {
                 <div className="p-8 space-y-8">
                     <div className="flex justify-between items-baseline">
                         <span className="text-sm font-bold text-slate-500">Total a Cobrar:</span>
-                        <span className="text-3xl font-black text-carbon-950">${money(finalTotal)}</span>
+                        <span className="text-3xl font-black text-carbon-950">${money(chargeTotal)}</span>
                     </div>
 
                     <div className="space-y-4">
@@ -846,18 +907,18 @@ export function POSDashboard() {
                                 </button>
                             ))}
                             <button 
-                                onClick={() => setReceivedAmount(finalTotal.toFixed(2))}
+                                onClick={() => setReceivedAmount(chargeTotal.toFixed(2))}
                                 className="col-span-3 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-[10px] font-black text-indigo-400 hover:bg-indigo-500/20 transition-all"
                             >
-                                EXACTO (${money(finalTotal)})
+                                EXACTO (${money(chargeTotal)})
                             </button>
                         </div>
                     </div>
 
-                    {Number(receivedAmount) >= finalTotal && (
+                    {Number(receivedAmount) >= chargeTotal && (
                         <div className="p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex justify-between items-center animate-in fade-in slide-in-from-top-2">
                             <span className="text-xs font-bold text-emerald-500/80 uppercase">Cambio a entregar:</span>
-                            <span className="text-3xl font-black text-emerald-400">${money((Number(receivedAmount) - finalTotal))}</span>
+                            <span className="text-3xl font-black text-emerald-400">${money((Number(receivedAmount) - chargeTotal))}</span>
                         </div>
                     )}
                 </div>
@@ -865,7 +926,7 @@ export function POSDashboard() {
                 <div className="p-6 bg-slate-800/10 border-t border-carbon-950/10 flex gap-4">
                     <button onClick={() => setIsChangeModalOpen(false)} className="flex-grow py-4 rounded-2xl font-bold text-slate-500 hover:text-carbon-950 transition-all">CANCELAR</button>
                     <button 
-                        disabled={!receivedAmount || Number(receivedAmount) < finalTotal}
+                        disabled={!receivedAmount || Number(receivedAmount) < chargeTotal}
                         onClick={() => {
                             setIsChangeModalOpen(false);
                             processCheckout();
@@ -983,6 +1044,7 @@ export function POSDashboard() {
                     paperSize={settings.paperSize}
                     receivedAmount={lastOrder.receivedAmount}
                     discountAmount={lastOrder.discountAmount}
+                    tip={lastOrder.tip}
                     businessName={settings.businessName}
                     businessPhone={settings.businessPhone}
                     businessAddress={settings.businessAddress}

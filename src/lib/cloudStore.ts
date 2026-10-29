@@ -36,6 +36,8 @@ export const BRANCH_KEYS = new Set([
   'donPuntoCierresDiarios',
   'donPuntoFinancialExpenses',
   'donPuntoCancelaciones',
+  'donPuntoTurnos',
+  'donPuntoEventos',
 ]);
 export const MAIN_BRANCH = 'main';
 let activeBranch = MAIN_BRANCH;

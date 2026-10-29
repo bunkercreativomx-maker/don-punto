@@ -199,6 +199,7 @@
 @media print {
   /* Sin márgenes: el navegador no agrega fecha/URL arriba y abajo, y no se corta el ticket */
   @page { size: auto; margin: 0; }
+  @page carta { size: letter portrait; margin: 9mm; }
 
   html, body {
     background: white !important;
@@ -214,17 +215,19 @@
   /* Mientras imprimimos, solo existe el ticket: lo demás no ocupa lugar (adiós hojas en blanco) */
   body.printing-ticket > *:not(.print-root-ticket),
   body.printing-corte > *:not(.print-root-corte),
+  body.printing-reporte > *:not(.print-root-reporte),
   body.printing-ticket > .print-root-corte,
   body.printing-corte > .print-root-ticket { display: none !important; }
 
   body.printing-ticket > .print-root-ticket,
-  body.printing-corte > .print-root-corte {
+  body.printing-corte > .print-root-corte,
+  body.printing-reporte > .print-root-reporte {
     display: block !important;
     position: static !important;
     background: white !important;
   }
 
-  .print-root * {
+  .print-root:not(.print-root-reporte) * {
     color: black !important;
     background: transparent !important;
     box-shadow: none !important;
@@ -262,6 +265,11 @@
   .paper-58mm .ticket-body, .paper-80mm .ticket-body { padding: 0 !important; }
   .paper-58mm h2, .paper-80mm h2 { font-size: 1.15em !important; }
   .paper-58mm [class*="text-["], .paper-80mm [class*="text-["] { font-size: 0.9em !important; }
+  /* Corte de caja en hoja carta: conserva colores, márgenes propios */
+  .print-root-reporte { page: carta; width: auto !important; max-width: none !important; padding: 0 !important; font-size: inherit !important; }
+  .print-root-reporte * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .print-root-reporte .corte-doc { width: 100%; box-shadow: none; border: 0; padding: 0; }
+  .print-root-reporte .cd-box, .print-root-reporte .cd-ops, .print-root-reporte .cd-sign { break-inside: avoid; }
   .print-page-break { break-after: page; page-break-after: always; height: 0; }
 
   .flex-row-print {
@@ -300,3 +308,52 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 @media (prefers-reduced-motion: reduce) {
   [class*="animate-[sheetUp"], [class*="animate-[fadeIn"] { animation: none !important; }
 }
+
+/* ---- Corte de caja (hoja carta) ---- */
+.corte-doc {
+  --cd-ink: #16201b; --cd-line: #d9dfdb; --cd-dark: #2c3a33; --cd-green: #0e6f4d; --cd-gold: #f2b705;
+  width: 8.5in; box-sizing: border-box; padding: 0.35in; background: #fff; color: var(--cd-ink);
+  font-family: 'Geist Variable', ui-sans-serif, system-ui, sans-serif; font-size: 10.5px; line-height: 1.38;
+  font-variant-numeric: tabular-nums;
+}
+.corte-doc * { box-sizing: border-box; }
+.cd-top { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; border-bottom: 2px solid var(--cd-dark); padding-bottom: 8px; }
+.cd-brand { display: flex; gap: 10px; align-items: center; }
+.cd-brand img { height: 38px; width: auto; }
+.cd-biz { font-size: 19px; font-weight: 800; letter-spacing: -0.01em; }
+.cd-title { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--cd-green); }
+.cd-meta { text-align: right; font-size: 10.5px; display: grid; gap: 2px; }
+.cd-warn { margin-top: 6px; padding: 5px 8px; border: 1px solid #e0a800; background: #fff7d6; font-weight: 600; font-size: 9.5px; }
+.cd-summary { display: grid; grid-template-columns: 1.1fr 3fr; gap: 6px; margin-top: 8px; }
+.cd-total { background: var(--cd-gold); color: #1c1600; padding: 8px 10px; display: flex; flex-direction: column; justify-content: center; }
+.cd-total span { font-size: 9px; font-weight: 800; letter-spacing: 0.12em; }
+.cd-total strong { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+.cd-total small { font-size: 9px; opacity: 0.85; }
+.cd-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.cd-kpis > div { background: #eef2ef; border-left: 3px solid var(--cd-dark); padding: 4px 6px; display: flex; flex-direction: column; }
+.cd-kpis span { font-size: 8.5px; font-weight: 700; letter-spacing: 0.06em; color: #34413a; }
+.cd-kpis b { font-size: 13px; }
+.cd-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+.cd-col { display: flex; flex-direction: column; gap: 8px; }
+.cd-box { border: 1px solid var(--cd-line); }
+.cd-h { margin: 0; padding: 4px 7px; font-size: 9.5px; font-weight: 800; letter-spacing: 0.08em; color: #fff; }
+.cd-h-dark { background: var(--cd-dark); }
+.cd-h-green { background: var(--cd-green); }
+.cd-body { padding: 5px 7px; }
+.cd-row { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; border-bottom: 1px dotted #c9d1cc; }
+.cd-row:last-child { border-bottom: 0; }
+.cd-row > span:last-child { text-align: right; white-space: nowrap; font-weight: 600; }
+.cd-row em { font-style: normal; color: #4f5d56; font-weight: 500; margin-left: 4px; }
+.cd-strong { font-weight: 800; border-top: 1px solid var(--cd-dark); }
+.cd-strong > span:last-child { font-weight: 800; }
+.cd-qty { display: inline-block; min-width: 24px; margin-right: 5px; color: var(--cd-green); }
+.cd-rank { display: inline-flex; width: 13px; height: 13px; border-radius: 99px; background: var(--cd-gold); color: #1c1600; font-size: 8px; align-items: center; justify-content: center; margin-right: 4px; }
+.cd-empty { color: #5d6b64; font-style: italic; padding: 2px 0; }
+.cd-note { margin: 5px 0 0; font-size: 9px; color: #4f5d56; }
+.cd-sep { height: 4px; }
+.cd-strip { display: flex; justify-content: space-between; margin-top: 8px; padding: 5px 9px; background: #eef2ef; border: 1px solid var(--cd-line); font-size: 10.5px; }
+.cd-ops { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 8px; padding: 5px 9px; border: 1px solid var(--cd-line); }
+.cd-grid4 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
+.cd-sign { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; margin-top: 30px; text-align: center; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; }
+.cd-sign span { display: block; border-top: 1px solid var(--cd-ink); margin-bottom: 3px; }
+.cd-foot { margin-top: 8px; text-align: center; font-size: 9px; color: #4f5d56; }
