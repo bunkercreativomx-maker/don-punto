@@ -552,7 +552,7 @@ function Input({ label, value, onChange, placeholder, type = 'text', hint, texta
   );
 }
 
-function ImagePick({ store, field, label, aspect, onChange }: { store: Rec; field: 'logo' | 'cover' | 'codi_qr'; label: string; aspect: string; onChange: (s: Rec) => void }) {
+function ImagePick({ store, field, label, aspect, hint, onChange }: { store: Rec; field: 'logo' | 'cover' | 'codi_qr'; label: string; aspect: string; hint?: string; onChange: (s: Rec) => void }) {
   const [busy, setBusy] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
   const pick = async (f?: File) => {
@@ -574,6 +574,7 @@ function ImagePick({ store, field, label, aspect, onChange }: { store: Rec; fiel
         {url ? <img src={url} alt="" className={`h-full w-full ${field === 'codi_qr' ? 'object-contain p-2 bg-white' : 'object-cover'}`} /> : <span className="flex flex-col items-center gap-1 text-[12px] font-semibold text-carbon-500"><Upload className="w-5 h-5" />Subir imagen</span>}
         {busy && <span className="absolute inset-0 grid place-items-center bg-white/70"><Loader2 className="w-5 h-5 animate-spin" /></span>}
       </button>
+      {hint && <p className="mt-1 text-[11px] leading-snug text-carbon-500">{hint}</p>}
       {url && <button type="button" onClick={async () => onChange(await pb.collection('stores').update(store.id, { [field]: null }))} className="mt-1 text-[12px] font-semibold text-carbon-500 hover:text-red-600">Quitar</button>}
       <input ref={ref} type="file" accept="image/*" className="hidden" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ''; }} />
     </div>
@@ -598,7 +599,7 @@ function PageEditor({ store, onChange }: { store: Rec; onChange: (s: Rec) => voi
         <Card title="Tu marca" desc="Así te ven tus clientes al abrir tu link.">
           <div className="grid grid-cols-[120px_1fr] gap-4">
             <ImagePick store={store} field="logo" label="Logo" aspect="aspect-square" onChange={onChange} />
-            <ImagePick store={store} field="cover" label="Foto de portada" aspect="aspect-[16/9]" onChange={onChange} />
+            <ImagePick store={store} field="cover" label="Foto de portada" aspect="aspect-[768/224]" hint="Tamaño recomendado: 1536 × 448 px. Deja lo importante al centro; en celular se recortan los lados y el logo tapa la esquina inferior izquierda." onChange={onChange} />
           </div>
           <div>
             <span className="text-[13px] font-semibold text-carbon-600">Color de tu página</span>
