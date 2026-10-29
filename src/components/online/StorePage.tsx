@@ -1,6 +1,6 @@
 // Página pública del restaurante: donpunto.com/<slug> — menú, carrito, pedido y seguimiento.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ShoppingBag, Bike, Store as StoreIcon, Clock, MapPin, Phone, Minus, Plus, X, ChevronLeft, Check, Copy, Loader2, AlertCircle, QrCode, Banknote, ImageOff, LocateFixed, Search } from 'lucide-react';
+import { ShoppingBag, Bike, Store as StoreIcon, Clock, MapPin, Phone, Minus, Plus, X, ChevronLeft, Check, Copy, Loader2, AlertCircle, QrCode, Banknote, LocateFixed, Search } from 'lucide-react';
 import { money, STATUS_LABEL } from '../../lib/onlineStore';
 
 interface PMod { id: string; name: string; price: number }
@@ -72,6 +72,7 @@ function Menu({ slug, onOrdered }: { slug: string; onOrdered: (t: string) => voi
   const [picked, setPicked] = useState<PProduct | null>(null);
   const [checkout, setCheckout] = useState(false);
   const [activeCat, setActiveCat] = useState('');
+  const [search, setSearch] = useState('');
   const [last] = useState(() => {
     const l = ls.get<{ t: string; n: number; at: number } | null>(`dpstore:${slug}:last`, null);
     return l && Date.now() - l.at < 1000 * 60 * 60 * 12 ? l : null;
@@ -142,93 +143,107 @@ function Menu({ slug, onOrdered }: { slug: string; onOrdered: (t: string) => voi
   };
   const setQty = (key: string, qty: number) => setCart((c) => (qty <= 0 ? c.filter((x) => x.key !== key) : c.map((x) => (x.key === key ? { ...x, qty } : x))));
 
+  const q = search.trim().toLowerCase();
+  const shown = q ? sections.map((s) => ({ ...s, items: s.items.filter((p) => (p.name + ' ' + p.description).toLowerCase().includes(q)) })).filter((s) => s.items.length) : sections;
+  const totalItems = sections.reduce((a, s) => a + s.items.length, 0);
+  const qtyOf = (id: string) => validCart.filter((l) => l.id === id).reduce((a, l) => a + l.qty, 0);
+
   return (
     <div className="min-h-screen bg-[#F6F5F1] text-carbon-900" style={{ ['--brand' as any]: brand }}>
-      <div className="mx-auto max-w-3xl bg-white min-h-screen shadow-[0_0_0_1px_rgba(13,16,14,0.06)] pb-28">
-        {/* Portada */}
-        <header className="relative">
-          <div className="h-44 sm:h-56 w-full overflow-hidden" style={{ background: store.cover ? undefined : `linear-gradient(135deg, ${brand}, ${brand}cc 55%, #0d100e)` }}>
-            {store.cover && <img src={store.cover} alt="" className="h-full w-full object-cover" />}
-          </div>
-          <div className="px-5 -mt-10 relative">
-            <div className="flex items-end gap-4">
-              <div className="h-20 w-20 shrink-0 rounded-2xl bg-white p-1 shadow-lg ring-1 ring-black/5 overflow-hidden">
-                {store.logo ? <img src={store.logo} alt={store.name} className="h-full w-full rounded-xl object-cover" /> : <div className="h-full w-full rounded-xl grid place-items-center text-2xl font-black text-white" style={{ background: brand }}>{store.name.slice(0, 1)}</div>}
+      <div className="mx-auto max-w-6xl px-3 pb-28 pt-3 sm:px-6 sm:pt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-x-8 lg:px-8 lg:pb-16 xl:grid-cols-[minmax(0,1fr)_380px]">
+        {/* Portada: completa (nunca recorta el flyer del restaurante), con relleno difuminado de la misma imagen */}
+        <div className="relative overflow-hidden rounded-3xl bg-carbon-900 ring-1 ring-black/5 lg:col-span-2">
+          {store.cover ? (
+            <>
+              <img src={store.cover} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-125 object-cover opacity-70 blur-2xl" />
+              <img src={store.cover} alt={store.name} className="relative mx-auto block h-auto max-h-[400px] w-full object-contain" />
+            </>
+          ) : (
+            <div className="h-36 sm:h-52" style={{ background: `linear-gradient(135deg, ${brand}, ${brand}cc 55%, #0d100e)` }} />
+          )}
+        </div>
+
+        <div className="min-w-0">
+          {/* Restaurante */}
+          <header className="mt-3 rounded-3xl bg-white p-5 shadow-[0_12px_40px_-18px_rgba(13,16,14,0.25)] ring-1 ring-black/5 sm:mt-6 sm:p-7">
+            <div className="flex items-center gap-4 sm:gap-5">
+              <div className="h-[72px] w-[72px] shrink-0 overflow-hidden rounded-2xl bg-white p-1 shadow-md ring-1 ring-black/5 sm:h-24 sm:w-24">
+                {store.logo ? <img src={store.logo} alt={store.name} className="h-full w-full rounded-xl object-contain" /> : <div className="grid h-full w-full place-items-center rounded-xl text-2xl font-black text-white" style={{ background: brand }}>{store.name.slice(0, 1)}</div>}
               </div>
-              <span className={`mb-1 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${store.open ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-carbon-100 text-carbon-600 ring-1 ring-carbon-200'}`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${store.open ? 'bg-emerald-500' : 'bg-carbon-400'}`} />{store.open ? 'Recibiendo pedidos' : 'Cerrado por ahora'}
-              </span>
+              <div className="min-w-0">
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${store.open ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-carbon-100 text-carbon-600 ring-1 ring-carbon-200'}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${store.open ? 'animate-pulse bg-emerald-500' : 'bg-carbon-400'}`} />{store.open ? 'Recibiendo pedidos' : 'Cerrado por ahora'}
+                </span>
+                <h1 className="mt-1.5 font-display text-[26px] font-extrabold leading-tight tracking-tight sm:text-[34px]">{store.name}</h1>
+                {store.tagline && <p className="text-[14px] font-medium uppercase tracking-[0.14em] text-carbon-500 sm:text-[13px]">{store.tagline}</p>}
+              </div>
             </div>
-            <h1 className="mt-3 font-display text-[28px] leading-tight font-extrabold tracking-tight">{store.name}</h1>
-            {store.tagline && <p className="mt-1 text-[15px] text-carbon-600">{store.tagline}</p>}
-            <div className="mt-3 flex flex-col gap-1.5 text-[13px] text-carbon-600">
-              {store.hours && <span className="flex items-center gap-2"><Clock className="w-4 h-4 text-carbon-400" />{store.hours}</span>}
-              {store.address && <a className="flex items-center gap-2 hover:underline" target="_blank" rel="noreferrer" href={`https://maps.google.com/?q=${encodeURIComponent(store.address)}`}><MapPin className="w-4 h-4 text-carbon-400" />{store.address}</a>}
-              {store.phone && <a className="flex items-center gap-2 hover:underline" href={`tel:${store.phone.replace(/\s/g, '')}`}><Phone className="w-4 h-4 text-carbon-400" />{store.phone}</a>}
-            </div>
+            {(store.hours || store.address || store.phone) && (
+              <div className="mt-5 grid gap-px overflow-hidden rounded-2xl bg-carbon-100 ring-1 ring-carbon-100 sm:grid-cols-2">
+                {store.hours && <Info Icon={Clock} label="Horario" className="sm:col-span-2">{hoursLines(store.hours).map((h, i) => <span key={i} className="block">{h}</span>)}</Info>}
+                {store.address && <Info Icon={MapPin} label="Dirección" href={`https://maps.google.com/?q=${encodeURIComponent(store.address)}`}>{store.address}</Info>}
+                {store.phone && <Info Icon={Phone} label="Teléfono" href={`tel:${store.phone.replace(/\s/g, '')}`}>{fmtPhone(store.phone)}</Info>}
+              </div>
+            )}
             {last && (
-              <button onClick={() => onOrdered(last.t)} className="mt-4 w-full rounded-2xl border border-carbon-200 bg-carbon-50 px-4 py-3 text-left text-sm font-semibold flex items-center justify-between">
+              <button onClick={() => onOrdered(last.t)} className="mt-4 flex w-full items-center justify-between rounded-2xl border border-carbon-200 bg-carbon-50 px-4 py-3 text-left text-sm font-semibold">
                 <span>Ver mi pedido #{last.n}</span><span style={{ color: brand }}>Seguimiento →</span>
               </button>
             )}
-            {(store.pickup || store.delivery) && (
-              <ModeSwitch store={store} mode={mode} setMode={setMode} />
-            )}
-          </div>
-        </header>
+            {(store.pickup || store.delivery) && <div className="lg:hidden"><ModeSwitch store={store} mode={mode} setMode={setMode} /></div>}
+          </header>
 
-        {/* Categorías */}
-        {sections.length > 1 && (
-          <nav className="sticky top-0 z-20 mt-5 bg-white/95 backdrop-blur border-y border-carbon-100">
-            <div className="flex gap-2 overflow-x-auto px-5 py-3 no-scrollbar">
-              {sections.map((s) => (
-                <button key={s.id} onClick={() => { const el = document.getElementById('cat-' + s.id); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 64, behavior: 'smooth' }); }}
-                  className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-semibold transition-colors ${activeCat === s.id ? 'text-white' : 'bg-carbon-100 text-carbon-700'}`}
-                  style={activeCat === s.id ? { background: brand } : undefined}>{s.name}</button>
-              ))}
+          {/* Buscador + categorías */}
+          <nav className="sticky top-0 z-20 -mx-3 mt-4 bg-[#F6F5F1]/95 px-3 pb-3 pt-3 backdrop-blur sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-400" />
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={`Buscar en el menú${totalItems > 8 ? ` (${totalItems} platillos)` : ''}`}
+                className="w-full rounded-2xl border border-carbon-200 bg-white py-3 pl-11 pr-10 text-[15px] outline-none transition-colors focus:border-carbon-400" />
+              {search && <button onClick={() => setSearch('')} aria-label="Limpiar" className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-carbon-500 hover:bg-carbon-100"><X className="h-4 w-4" /></button>}
             </div>
-          </nav>
-        )}
-
-        {/* Platillos */}
-        <main className="px-5">
-          {sections.length === 0 && <p className="py-16 text-center text-carbon-500">Este restaurante aún no publica su menú.</p>}
-          {sections.map((s) => (
-            <section key={s.id} id={'cat-' + s.id} className="pt-6">
-              <h2 className="font-display text-xl font-extrabold tracking-tight">{s.name}</h2>
-              <div className="mt-2 grid md:grid-cols-2 md:gap-x-8">
-                {s.items.map((p) => {
-                  const inCart = validCart.filter((l) => l.id === p.id).reduce((a, l) => a + l.qty, 0);
-                  return (
-                    <button key={p.id} disabled={p.soldOut} onClick={() => setPicked(p)} className="group flex w-full gap-4 border-b border-carbon-100 py-4 text-left disabled:opacity-50">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start gap-2">
-                          {inCart > 0 && <span className="mt-0.5 grid h-5 min-w-5 place-items-center rounded-md px-1 text-[11px] font-black text-white" style={{ background: brand }}>{inCart}</span>}
-                          <h3 className="font-semibold leading-snug">{p.name}</h3>
-                        </div>
-                        {p.description && <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-carbon-500">{p.description}</p>}
-                        <p className="mt-2 text-[15px] font-bold">{p.soldOut ? <span className="text-carbon-500">Agotado hoy</span> : money(p.price)}</p>
-                      </div>
-                      <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-carbon-100">
-                        {p.photo ? <img src={p.photo} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" /> : <div className="grid h-full w-full place-items-center text-carbon-300"><ImageOff className="w-6 h-6" /></div>}
-                        {!p.soldOut && store.open && <span className="absolute bottom-1.5 right-1.5 grid h-7 w-7 place-items-center rounded-full bg-white shadow-md"><Plus className="w-4 h-4" style={{ color: brand }} /></span>}
-                      </div>
-                    </button>
-                  );
-                })}
+            {sections.length > 1 && !q && (
+              <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto">
+                {sections.map((s) => (
+                  <button key={s.id} onClick={() => { const el = document.getElementById('cat-' + s.id); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 140, behavior: 'smooth' }); }}
+                    className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-semibold transition-colors ${activeCat === s.id ? 'text-white' : 'bg-white text-carbon-700 ring-1 ring-carbon-200 hover:bg-carbon-50'}`}
+                    style={activeCat === s.id ? { background: brand } : undefined}>{s.name}</button>
+                ))}
               </div>
-            </section>
-          ))}
-          <footer className="mt-12 border-t border-carbon-100 py-8 text-center text-[12px] text-carbon-400">
-            Pedidos en línea con <a href="https://donpunto.com" className="font-semibold text-carbon-600 hover:underline">Don Punto</a>
-          </footer>
-        </main>
+            )}
+          </nav>
+
+          {/* Platillos */}
+          <main>
+            {sections.length === 0 && <p className="py-16 text-center text-carbon-500">Este restaurante aún no publica su menú.</p>}
+            {sections.length > 0 && shown.length === 0 && <p className="py-16 text-center text-carbon-500">No encontramos “{search}” en el menú.</p>}
+            {shown.map((s) => (
+              <section key={s.id} id={'cat-' + s.id} className="pt-3 first:pt-1">
+                <div className="flex items-baseline justify-between px-1">
+                  <h2 className="font-display text-xl font-extrabold tracking-tight sm:text-2xl">{s.name}</h2>
+                  <span className="text-[12px] font-semibold text-carbon-400">{s.items.length} {s.items.length === 1 ? 'platillo' : 'platillos'}</span>
+                </div>
+                <div className="mt-3 grid gap-2.5 sm:grid-cols-2 sm:gap-3">
+                  {s.items.map((p) => <ProductCard key={p.id} p={p} brand={brand} qty={qtyOf(p.id)} canAdd={store.open} onClick={() => setPicked(p)} />)}
+                </div>
+              </section>
+            ))}
+            <footer className="mt-12 border-t border-carbon-200 py-8 text-center text-[12px] text-carbon-400">
+              Pedidos en línea con <a href="https://donpunto.com" className="font-semibold text-carbon-600 hover:underline">Don Punto</a>
+            </footer>
+          </main>
+        </div>
+
+        {/* Carrito lateral (escritorio) */}
+        <aside className="hidden lg:sticky lg:top-6 lg:mt-6 lg:block">
+          <CartPanel store={store} mode={mode} setMode={setMode} cart={validCart} prodMap={prodMap} groupMap={groupMap} lineUnit={lineUnit}
+            subtotal={subtotal} count={count} setQty={setQty} onCheckout={() => setCheckout(true)} />
+        </aside>
       </div>
 
-      {/* Barra del carrito */}
+      {/* Barra del carrito (celular / tablet) */}
       {count > 0 && !checkout && (
-        <div className="fixed inset-x-0 bottom-0 z-30 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          <button onClick={() => setCheckout(true)} className="mx-auto flex w-full max-w-xl items-center justify-between rounded-2xl px-5 py-4 text-white shadow-[0_18px_40px_-12px_rgba(0,0,0,0.45)] active:scale-[0.99] transition-transform" style={{ background: brand }}>
+        <div className="fixed inset-x-0 bottom-0 z-30 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] lg:hidden">
+          <button onClick={() => setCheckout(true)} className="mx-auto flex w-full max-w-xl items-center justify-between rounded-2xl px-5 py-4 text-white shadow-[0_18px_40px_-12px_rgba(0,0,0,0.45)] transition-transform active:scale-[0.99]" style={{ background: brand }}>
             <span className="flex items-center gap-3 font-bold"><span className="grid h-7 min-w-7 place-items-center rounded-lg bg-white/20 px-1.5 text-sm">{count}</span>Ver mi pedido</span>
             <span className="font-black">{money(subtotal)}</span>
           </button>
@@ -241,6 +256,115 @@ function Menu({ slug, onOrdered }: { slug: string; onOrdered: (t: string) => voi
           setQty={setQty} onClose={() => setCheckout(false)}
           onDone={(t, n) => { setCart([]); ls.set(`dpstore:${slug}:last`, { t, n, at: Date.now() }); onOrdered(t); }} />
       )}
+    </div>
+  );
+}
+
+/** "Lunes a Viernes 9 a 6, Sábado 9 a 2" → una línea por día (corta antes de cada día en mayúscula). */
+function hoursLines(h: string) {
+  return h.replace(/\s+/g, ' ').split(/[,.;]\s+(?=[A-ZÁÉÍÓÚ])/).map((x) => x.trim()).filter(Boolean);
+}
+
+function fmtPhone(p: string) {
+  const d = p.replace(/\D/g, '');
+  return d.length === 10 ? `${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}` : p;
+}
+
+function Info({ Icon, label, href, className = '', children }: { Icon: typeof Clock; label: string; href?: string; className?: string; children: React.ReactNode }) {
+  const body = (
+    <>
+      <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-carbon-50 text-carbon-500"><Icon className="h-4 w-4" /></span>
+      <span className="min-w-0">
+        <span className="block text-[11px] font-bold uppercase tracking-wider text-carbon-400">{label}</span>
+        <span className="block text-[13.5px] leading-snug text-carbon-700">{children}</span>
+      </span>
+    </>
+  );
+  const cls = `flex items-start gap-3 bg-white px-4 py-3 ${className}`;
+  return href
+    ? <a href={href} target={href.startsWith('http') ? '_blank' : undefined} rel="noreferrer" className={cls + ' transition-colors hover:bg-carbon-50'}>{body}</a>
+    : <div className={cls}>{body}</div>;
+}
+
+function ProductCard({ p, brand, qty, canAdd, onClick }: { p: PProduct; brand: string; qty: number; canAdd: boolean; onClick: () => void }) {
+  return (
+    <button disabled={p.soldOut} onClick={onClick}
+      className="group flex w-full items-center gap-4 rounded-2xl bg-white p-4 text-left ring-1 ring-carbon-100 transition-all hover:-translate-y-px hover:shadow-[0_10px_30px_-16px_rgba(13,16,14,0.35)] hover:ring-carbon-200 disabled:pointer-events-none disabled:opacity-50"
+      style={qty > 0 ? { boxShadow: `inset 0 0 0 2px ${brand}` } : undefined}>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start gap-2">
+          {qty > 0 && <span className="mt-0.5 grid h-5 min-w-5 place-items-center rounded-md px-1 text-[11px] font-black text-white" style={{ background: brand }}>{qty}</span>}
+          <h3 className="font-semibold leading-snug text-carbon-900">{p.name}</h3>
+        </div>
+        {p.description && <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-carbon-500">{p.description}</p>}
+        <p className="mt-1.5 text-[15px] font-bold">{p.soldOut ? <span className="text-carbon-500">Agotado hoy</span> : money(p.price)}</p>
+      </div>
+      {p.photo ? (
+        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-carbon-100">
+          <img src={p.photo} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+          {!p.soldOut && canAdd && <span className="absolute bottom-1.5 right-1.5 grid h-7 w-7 place-items-center rounded-full bg-white shadow-md"><Plus className="h-4 w-4" style={{ color: brand }} /></span>}
+        </div>
+      ) : (!p.soldOut && canAdd && (
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[color-mix(in_srgb,var(--brand)_9%,white)] text-[var(--brand)] transition-colors group-hover:bg-[var(--brand)] group-hover:text-white">
+          <Plus className="h-[18px] w-[18px]" />
+        </span>
+      ))}
+    </button>
+  );
+}
+
+function CartPanel(props: {
+  store: PStore; mode: 'pickup' | 'delivery'; setMode: (m: 'pickup' | 'delivery') => void; cart: CartLine[]; prodMap: Map<string, PProduct>; groupMap: Map<string, PGroup>;
+  lineUnit: (l: CartLine) => number; subtotal: number; count: number; setQty: (k: string, q: number) => void; onCheckout: () => void;
+}) {
+  const { store, mode, setMode, cart, prodMap, groupMap, lineUnit, subtotal, count, setQty, onCheckout } = props;
+  const fee = mode === 'delivery' ? store.deliveryFee : 0;
+  const belowMin = mode === 'delivery' && store.minOrder > 0 && subtotal < store.minOrder;
+  return (
+    <div className="overflow-hidden rounded-3xl bg-white shadow-[0_12px_40px_-18px_rgba(13,16,14,0.35)] ring-1 ring-black/5">
+      <div className="flex items-center justify-between border-b border-carbon-100 px-5 py-4">
+        <h2 className="font-display text-lg font-extrabold">Tu pedido</h2>
+        {count > 0 && <span className="rounded-full bg-carbon-100 px-2.5 py-0.5 text-[12px] font-bold text-carbon-600">{count} {count === 1 ? 'artículo' : 'artículos'}</span>}
+      </div>
+      {(store.pickup || store.delivery) && <div className="px-5 pb-1"><ModeSwitch store={store} mode={mode} setMode={setMode} /></div>}
+      {cart.length === 0 ? (
+        <div className="flex flex-col items-center px-6 pb-6 pt-7 text-center">
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-carbon-50 text-carbon-400"><ShoppingBag className="h-6 w-6" /></span>
+          <p className="mt-3 font-semibold text-carbon-700">Tu pedido está vacío</p>
+          <p className="mt-1 text-[13px] text-carbon-500">Elige platillos del menú para empezar.</p>
+        </div>
+      ) : (
+        <>
+          <div className="max-h-[42vh] divide-y divide-carbon-100 overflow-y-auto px-5 py-2">
+            {cart.map((l) => {
+              const p = prodMap.get(l.id)!;
+              const mods = p.groups.flatMap((g) => groupMap.get(g)?.options.filter((o) => l.mods[g]?.includes(o.id)).map((o) => o.name) || []);
+              return (
+                <div key={l.key} className="flex items-start gap-3 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[14px] font-semibold leading-snug">{p.name}</p>
+                    {mods.length > 0 && <p className="text-[12px] text-carbon-500">{mods.join(', ')}</p>}
+                    {l.note && <p className="text-[12px] italic text-carbon-500">“{l.note}”</p>}
+                    <p className="mt-0.5 text-[13px] font-bold">{money(lineUnit(l) * l.qty)}</p>
+                  </div>
+                  <Stepper qty={l.qty} setQty={(n) => setQty(l.key, n)} small />
+                </div>
+              );
+            })}
+          </div>
+          <div className="space-y-1.5 border-t border-carbon-100 px-5 py-4 text-[14px]">
+            <Row k="Subtotal" v={money(subtotal)} />
+            {mode === 'delivery' && <Row k="Envío" v={fee ? money(fee) : 'Gratis'} />}
+            <div className="flex justify-between pt-1 text-base font-black"><span>Total</span><span>{money(subtotal + fee)}</span></div>
+            {belowMin && <p className="pt-1 text-[12px] font-semibold text-amber-700">Pedido mínimo a domicilio: {money(store.minOrder)}</p>}
+          </div>
+        </>
+      )}
+      <div className="px-5 pb-5">
+        <button disabled={!cart.length || !store.open} onClick={onCheckout} className="flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 font-bold text-white transition-opacity hover:opacity-95 disabled:bg-carbon-100 disabled:text-carbon-400" style={cart.length && store.open ? { background: store.color } : undefined}>
+          {!store.open ? 'Cerrado por ahora' : cart.length ? <>Continuar · {money(subtotal + fee)}</> : 'Agrega algo para continuar'}
+        </button>
+      </div>
     </div>
   );
 }
