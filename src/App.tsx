@@ -94,6 +94,12 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
 
   useEffect(() => { setProfitsPage(1); }, [profitsSearch]);
   useEffect(() => { setPricingPage(1); }, [pricingSearch]);
+  // Agregar producto: queda primero en la lista → limpiar búsqueda y volver a la página 1 para verlo.
+  const addRowVisible = () => {
+    addRow();
+    setProfitsSearch(''); setPricingSearch('');
+    setProfitsPage(1); setPricingPage(1);
+  };
 
   const [activeTab, setActiveTab] = useState<Tab>(() => {
     const saved = (storeGet('donPuntoActiveTab') || '').replace(/"/g, '');
@@ -668,7 +674,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                     </button>
                     {(shownTab === 'profits' || shownTab === 'pricing') && (
                         <button
-                          onClick={addRow}
+                          onClick={addRowVisible}
                           className="bg-indigo-500 hover:bg-indigo-400 text-white px-6 py-3 rounded-2xl font-black text-sm transition-all shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20 active:scale-95 flex items-center gap-2"
                         >
                           <Plus size={18} strokeWidth={3} /> AGREGAR PRODUCTO
@@ -702,7 +708,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                             results={results}
                             updateRow={updateRow}
                             removeRow={removeRow}
-                            addRow={addRow}
+                            addRow={addRowVisible}
                         />
                         {totalProfitsPages > 1 && (
                             <div className="flex items-center justify-center gap-3 mt-4">
@@ -748,7 +754,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                         pricingResults={pricingResults}
                         updateRow={updateRow}
                         removeRow={removeRow}
-                        addRow={addRow}
+                        addRow={addRowVisible}
                         syncWithStorePrices={syncWithStorePrices}
                     />
                     {totalPricingPages > 1 && (

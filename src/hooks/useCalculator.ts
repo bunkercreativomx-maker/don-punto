@@ -96,14 +96,15 @@ export function useCalculator(
     };
 
     const addRow = () => {
+        // Al inicio de la lista: las tablas paginan de 10 en 10 y al final no se veía.
         setRows((prev) => [
-            ...prev,
             {
                 id: crypto.randomUUID(),
-                name: `Product ${prev.length + 1}`,
+                name: `Producto nuevo ${prev.length + 1}`,
                 costPrice: 0,
                 salePrice: 0,
             },
+            ...prev,
         ]);
     };
 
