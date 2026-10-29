@@ -7,6 +7,7 @@ import { buildCorte, type CorteData } from '../../lib/corte';
 import { currentBranch } from '../../lib/session';
 import { money } from '../../lib/format';
 import { CorteCaja } from './CorteCaja';
+import { CorteZTicket } from './CorteZTicket';
 import { PrintArea } from '../print/PrintArea';
 import { runPrint } from '../../lib/print';
 
@@ -52,10 +53,16 @@ export function CashShiftBar(props: Props) {
   const [decl, setDecl] = useState({ efectivo: '', tarjeta: '', transferencia: '' });
   const [closed, setClosed] = useState<CashShift | null>(null);
   const [printData, setPrintData] = useState<CorteData | null>(null);
+  const [thermalData, setThermalData] = useState<CorteData | null>(null);
 
   const printCorte = (shift: CashShift) => {
     setPrintData(corteForShift(shift, props));
     runPrint('reporte', () => setPrintData(null));
+  };
+  /** Corte Z (o X si el turno sigue abierto) en la impresora de tickets */
+  const printThermal = (shift: CashShift) => {
+    setThermalData(corteForShift(shift, props));
+    runPrint('corte', () => setThermalData(null));
   };
 
   const shiftSales = openShift ? props.transactions.filter((t) => t.shiftId === openShift.id) : [];
@@ -74,7 +81,7 @@ export function CashShiftBar(props: Props) {
               {openShift.openedByName ? ` · ${openShift.openedByName}` : ''} · Fondo ${money(openShift.openingFloat)} · {shiftSales.length} cuentas · ${money(salesTotal)}
             </div>
             <button onClick={() => { setAmount(''); setReason(''); setMoveType('retiro'); setModal('move'); }} className="inline-flex items-center gap-1.5 rounded-xl border border-carbon-950/10 px-3 py-1.5 text-[11px] font-bold text-carbon-700 hover:bg-carbon-50"><ArrowUpCircle size={14} /> Retiro / depósito</button>
-            <button onClick={() => printCorte(openShift)} className="inline-flex items-center gap-1.5 rounded-xl border border-carbon-950/10 px-3 py-1.5 text-[11px] font-bold text-carbon-700 hover:bg-carbon-50" title="Corte parcial sin cerrar la caja"><FileText size={14} /> Corte X</button>
+            <button onClick={() => printThermal(openShift)} className="inline-flex items-center gap-1.5 rounded-xl border border-carbon-950/10 px-3 py-1.5 text-[11px] font-bold text-carbon-700 hover:bg-carbon-50" title="Corte parcial sin cerrar la caja"><FileText size={14} /> Corte X</button>
             <button onClick={() => { setDecl({ efectivo: '', tarjeta: '', transferencia: '' }); setModal('close'); }} className="inline-flex items-center gap-1.5 rounded-xl bg-carbon-900 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-carbon-800"><Lock size={14} /> Cerrar turno</button>
           </>
         ) : (
@@ -168,13 +175,21 @@ export function CashShiftBar(props: Props) {
               <span className="text-2xl font-black tabular-nums">${money(Math.abs(resultData.diferencia))}</span>
             </div>
           </div>
-          <div className="p-6 pt-0 flex gap-4">
-            <button onClick={() => { setModal(null); setClosed(null); }} className={btnGhost}>LISTO</button>
-            <button onClick={() => printCorte(closed)} className={btnPrimary}>IMPRIMIR / PDF</button>
+          <div className="p-6 pt-0 space-y-3">
+            <button onClick={() => printThermal(closed)} className={btnPrimary + ' w-full'}>IMPRIMIR CORTE Z</button>
+            <div className="flex gap-3">
+              <button onClick={() => printCorte(closed)} className="flex-1 py-3 rounded-2xl border border-carbon-950/10 bg-white text-carbon-800 text-xs font-black hover:bg-carbon-50">HOJA CARTA / PDF</button>
+              <button onClick={() => { setModal(null); setClosed(null); }} className="flex-1 py-3 rounded-2xl font-bold text-slate-500 hover:text-carbon-950 text-xs">LISTO</button>
+            </div>
           </div>
         </Modal>
       )}
 
+      {thermalData && (
+        <PrintArea kind="corte" paper={props.settings.paperSize}>
+          <CorteZTicket d={thermalData} />
+        </PrintArea>
+      )}
       {printData && (
         <PrintArea kind="reporte">
           <CorteCaja d={printData} branchName={currentBranch().name} />

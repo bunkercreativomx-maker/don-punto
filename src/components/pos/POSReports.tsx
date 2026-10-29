@@ -10,6 +10,7 @@ import { money } from '../../lib/format';
 import { PrintArea } from '../print/PrintArea';
 import { runPrint } from '../../lib/print';
 import { CorteCaja } from './CorteCaja';
+import { CorteZTicket } from './CorteZTicket';
 import { buildCorte, dayRange, type CorteData } from '../../lib/corte';
 import { useCashShift, getEvents, getCancellations } from '../../lib/cashShift';
 import { useCalculator } from '../../hooks/useCalculator';
@@ -63,9 +64,16 @@ export function POSReports({ onUpgrade }: { onUpgrade?: () => void } = {}) {
 
   const [isPrintingCorte, setIsPrintingCorte] = useState(false);
 
+  const [thermalData, setThermalData] = useState<CorteData | null>(null);
+  const printThermal = (d: CorteData | null) => {
+    if (!d) return;
+    setThermalData(d);
+    runPrint('corte', () => setThermalData(null));
+  };
+  // Corte Z del día elegido (térmica), con el mismo detalle que el corte completo
   const handlePrintCorte = () => {
-    setIsPrintingCorte(true);
-    runPrint('corte', () => setIsPrintingCorte(false));
+    const { from, to } = dayRange(selectedDate);
+    printThermal(buildCorte({ allTxs: transactions, shifts, cancellations: getCancellations(), events: getEvents(), rows, categories, ivaPct: settings.ivaPercentage, businessName: settings.businessName, from, to }));
   };
 
   return (
@@ -149,6 +157,7 @@ export function POSReports({ onUpgrade }: { onUpgrade?: () => void } = {}) {
                     <button onClick={() => setPreview(makeCorte())} disabled={corteMode === 'turno' && !shifts.length} className="py-3 rounded-2xl border border-carbon-950/10 bg-white text-carbon-800 text-xs font-black hover:bg-carbon-50 disabled:opacity-50 flex items-center justify-center gap-2"><FileText size={15} /> VER CORTE</button>
                     <button onClick={() => printCorteCarta(makeCorte())} disabled={corteMode === 'turno' && !shifts.length} className="py-3 rounded-2xl bg-indigo-500 hover:bg-indigo-400 text-white text-xs font-black disabled:opacity-50 flex items-center justify-center gap-2"><Printer size={15} /> IMPRIMIR / PDF</button>
                 </div>
+                <button onClick={() => printThermal(makeCorte())} disabled={corteMode === 'turno' && !shifts.length} className="w-full mt-2 py-3 rounded-2xl border border-carbon-950/10 bg-white text-carbon-800 text-xs font-black hover:bg-carbon-50 disabled:opacity-50 flex items-center justify-center gap-2"><Scissors size={15} /> TICKET TÉRMICO (CORTE Z)</button>
                 <p className="text-[10px] text-slate-500 mt-2">Para PDF: en la ventana de impresión elige “Guardar como PDF”.</p>
             </div>
 
@@ -180,7 +189,7 @@ export function POSReports({ onUpgrade }: { onUpgrade?: () => void } = {}) {
                         className="w-full bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none text-white font-black py-4 rounded-2xl shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20 transition-all active:scale-95 flex items-center justify-center gap-3 mt-4"
                     >
                         <Scissors size={18} />
-                        TICKET DE CORTE (TÉRMICA)
+                        IMPRIMIR CORTE Z
                     </button>
                 </div>
 
@@ -300,6 +309,12 @@ export function POSReports({ onUpgrade }: { onUpgrade?: () => void } = {}) {
       {printData && (
           <PrintArea kind="reporte">
               <CorteCaja d={printData} branchName={currentBranch().name} />
+          </PrintArea>
+      )}
+
+      {thermalData && (
+          <PrintArea kind="corte" paper={settings.paperSize}>
+              <CorteZTicket d={thermalData} />
           </PrintArea>
       )}
 
