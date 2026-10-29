@@ -111,9 +111,24 @@ export function useCalculator(
         setRows(prev => [...prev, ...newProducts]);
     };
 
+    // Campos de la calculadora de plataformas: si cambian, el precio fijo importado
+    // (uberPrice/rappiPrice/didiPrice) ya no aplica y el POS debe usar el precio calculado.
+    const PRICING_KEYS: (keyof ProductRowData)[] = ['targetProfit', 'quantity', 'discountPct', 'subsidyPct', 'shippingCost'];
+
     const updateRow = (id: string, updates: Partial<ProductRowData>) => {
+        const touchesPricing = PRICING_KEYS.some(k => k in updates);
+        const setsOverride = 'uberPrice' in updates || 'rappiPrice' in updates || 'didiPrice' in updates;
         setRows((prev) =>
-            prev.map((r) => (r.id === id ? { ...r, ...updates } : r))
+            prev.map((r) => {
+                if (r.id !== id) return r;
+                const next = { ...r, ...updates };
+                if (touchesPricing && !setsOverride) {
+                    next.uberPrice = undefined;
+                    next.rappiPrice = undefined;
+                    next.didiPrice = undefined;
+                }
+                return next;
+            })
         );
     };
 
@@ -122,7 +137,15 @@ export function useCalculator(
     };
 
     const syncWithStorePrices = () => {
-        setRows((prev) => prev.map(r => ({ ...r, targetProfit: r.salePrice || 0 })));
+        // Copia el precio de tienda a "VAS A RECIBIR" y quita los precios fijos de apps
+        // para que Uber/Rappi/Didi en el punto de venta usen el precio recalculado.
+        setRows((prev) => prev.map(r => ({
+            ...r,
+            targetProfit: r.salePrice || 0,
+            uberPrice: undefined,
+            rappiPrice: undefined,
+            didiPrice: undefined,
+        })));
     };
 
     // Category Management

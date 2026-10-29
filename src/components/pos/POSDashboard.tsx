@@ -192,8 +192,9 @@ export function POSDashboard() {
         const baseForCalc = clientBase;
         
         const commission = baseForCalc * commissionPct;
-        const ivaComm = commission * 0.16;
-        const baseGravable = baseForCalc / 1.16;
+        const ivaRate = calcGlobalSettings.ivaRate ?? 0.16;
+        const ivaComm = commission * ivaRate;
+        const baseGravable = baseForCalc / (1 + ivaRate);
         const ivaRet = baseGravable * (calcGlobalSettings.hasValidRFC ? 0.08 : 0.16);
         const isrRet = baseGravable * (calcGlobalSettings.hasValidRFC ? 0.025 : 0.20);
         
