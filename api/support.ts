@@ -19,7 +19,7 @@ const vtHash = (vt: string) => createHash('sha256').update('dp-support:' + vt).d
 interface TgCfg { token: string; chat_id: string | number; secret: string }
 let cfgCache: { at: number; v: TgCfg | null } | null = null;
 async function tgCfg(): Promise<TgCfg | null> {
-  if (cfgCache && Date.now() - cfgCache.at < 5 * 60 * 1000) return cfgCache.v;
+  if (cfgCache && Date.now() - cfgCache.at < 60 * 1000) return cfgCache.v;
   const it = await kvGet('support_tg');
   const v = it?.value?.token && it?.value?.chat_id ? (it.value as TgCfg) : null;
   cfgCache = { at: Date.now(), v };
