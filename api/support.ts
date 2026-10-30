@@ -162,6 +162,10 @@ async function handleTelegram(req: any, res: any) {
 export default async function handler(req: any, res: any) {
   try {
     if (req.method === 'POST' && req.query?.tg) return await handleTelegram(req, res);
+    if (req.method === 'GET' && req.query?.status) {
+      res.setHeader('Cache-Control', 'public, max-age=60');
+      return res.status(200).json({ enabled: !!(await tgCfg()) });
+    }
     if (req.method === 'GET') {
       const vt = str(req.query?.vt, 64).toLowerCase();
       if (!VT_RE.test(vt)) throw new HttpError(400, 'Sesión de chat inválida.');

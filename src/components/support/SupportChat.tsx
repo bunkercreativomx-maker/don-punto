@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
-import { subscribeSupport, getSupport, openSupport, closeSupport, sendSupport, savedName, startSupportPolling } from '../../lib/support';
+import { subscribeSupport, getSupport, openSupport, closeSupport, sendSupport, savedName, startSupportPolling, checkSupportEnabled } from '../../lib/support';
 
 /** Chat de soporte de Don Punto. Burbuja flotante (si `bubble`) + panel. Pako contesta desde Telegram. */
 export function SupportChat({ email }: { email: string | null }) {
@@ -13,14 +13,14 @@ export function SupportChat({ email }: { email: string | null }) {
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => subscribeSupport(setS), []);
-  useEffect(() => { startSupportPolling(); }, []);
+  useEffect(() => { checkSupportEnabled().then(() => { if (getSupport().enabled) startSupportPolling(); }); }, []);
   useEffect(() => {
     // Push de respuesta: donpunto.com/?soporte=1 abre el chat
     const p = new URLSearchParams(location.search);
     if (p.get('soporte') === '1') {
       p.delete('soporte');
       history.replaceState({}, '', location.pathname + (p.toString() ? `?${p}` : ''));
-      openSupport();
+      checkSupportEnabled().then(() => { if (getSupport().enabled) openSupport(); });
     }
   }, []);
   useEffect(() => {
@@ -48,6 +48,7 @@ export function SupportChat({ email }: { email: string | null }) {
     }
   };
 
+  if (!s.enabled) return null;
   if (!s.open) {
     if (!s.bubble) return null;
     return (

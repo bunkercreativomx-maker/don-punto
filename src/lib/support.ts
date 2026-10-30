@@ -18,8 +18,8 @@ export function visitorToken(): string {
   return vt;
 }
 
-type State = { open: boolean; bubble: boolean; messages: SupportMsg[]; unread: number };
-let state: State = { open: false, bubble: true, messages: [], unread: 0 };
+type State = { open: boolean; bubble: boolean; messages: SupportMsg[]; unread: number; enabled: boolean };
+let state: State = { open: false, bubble: true, messages: [], unread: 0, enabled: false };
 const subs = new Set<(s: State) => void>();
 function set(p: Partial<State>) {
   state = { ...state, ...p };
@@ -39,7 +39,23 @@ function recount(messages: SupportMsg[]) {
   return messages.filter((m) => m.from === 'agent' && m.at > s).length;
 }
 
+// El chat solo aparece cuando el bot de Telegram de soporte está conectado
+let checking: Promise<void> | null = null;
+export function checkSupportEnabled() {
+  checking ||= (async () => {
+    try {
+      const r = await fetch('/api/support?status=1');
+      if (r.ok) set({ enabled: !!(await r.json()).enabled });
+    } catch { /* sin internet */ }
+  })();
+  return checking;
+}
+
 export function openSupport() {
+  if (!state.enabled) {
+    location.href = `mailto:soporte@donpunto.com?subject=${encodeURIComponent('Ayuda Don Punto')}`;
+    return;
+  }
   set({ open: true, unread: 0 });
   recount(state.messages);
   poll();
