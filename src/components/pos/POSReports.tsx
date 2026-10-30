@@ -227,18 +227,18 @@ export function POSReports({ onUpgrade }: { onUpgrade?: () => void } = {}) {
                         </div>
                     ) : (
                         filteredTransactions.map(tx => (
-                            <div key={tx.id} className="bg-slate-950/50 border border-carbon-950/10 p-4 rounded-2xl flex items-center justify-between group hover:border-carbon-950/10 transition-all">
-                                <div className="flex items-center gap-4">
+                            <div key={tx.id} className="bg-slate-950/50 border border-carbon-950/10 p-3 sm:p-4 rounded-2xl flex items-center justify-between gap-2 group hover:border-carbon-950/10 transition-all">
+                                <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                                     <div className={cn(
-                                        "w-10 h-10 rounded-xl flex items-center justify-center font-black text-[10px]",
+                                        "w-10 h-10 shrink-0 rounded-xl flex items-center justify-center font-black text-[10px]",
                                         tx.destination === 'Tienda' ? "bg-indigo-500/10 text-indigo-400" : "bg-amber-500/10 text-amber-500"
                                     )}>
                                         {tx.destination === 'Tienda' ? <Store size={16}/> : <Bike size={16}/>}
                                     </div>
-                                    <div>
-                                        <div className="text-sm font-bold text-carbon-950 leading-tight">{tx.customerName || (tx.destination === 'Tienda' ? 'Venta en mostrador' : `Pedido ${tx.destination === 'Didi' ? 'DiDi' : tx.destination}`)}</div>
+                                    <div className="min-w-0">
+                                        <div className="text-sm font-bold text-carbon-950 leading-tight truncate">{tx.customerName || (tx.destination === 'Tienda' ? 'Venta en mostrador' : `Pedido ${tx.destination === 'Didi' ? 'DiDi' : tx.destination}`)}</div>
                                         <div className="text-[10px] text-slate-500 mt-0.5 italic line-clamp-1">{tx.notes}</div>
-                                        <div className="flex items-center gap-2 text-[10px] font-medium mt-1">
+                                        <div className="flex flex-wrap items-center gap-x-2 text-[10px] font-medium mt-1">
                                             <span className="text-slate-500">{new Date(tx.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                             <span className="text-carbon-950/20">•</span>
                                             <span className={cn(
@@ -258,9 +258,9 @@ export function POSReports({ onUpgrade }: { onUpgrade?: () => void } = {}) {
                                         </div>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-6">
+                                <div className="flex items-center gap-2 sm:gap-6 shrink-0">
                                     <div className="text-right">
-                                        <div className="text-sm font-black text-carbon-950">${money(tx.amount)}</div>
+                                        <div className="text-sm font-black text-carbon-950 whitespace-nowrap">${money(tx.amount)}</div>
                                         <div className="text-[9px] text-slate-600 font-bold uppercase tracking-tight">Neto</div>
                                     </div>
                                     <button 

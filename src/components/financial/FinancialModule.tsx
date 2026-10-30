@@ -252,7 +252,7 @@ export function FinancialModule() {
           </div>
         </div>
         <div className="bg-slate-900 border border-carbon-950/10 rounded-2xl p-5">
-          <div className="text-xs text-slate-500 font-bold uppercase tracking-widest">Transacciones</div>
+          <div className="text-[10px] sm:text-xs text-slate-500 font-bold uppercase tracking-wider sm:tracking-widest truncate">Transacciones</div>
           <div className="text-xl sm:text-3xl font-black text-carbon-950 mt-1 tabular-nums break-all">{filteredTxs.length}</div>
           <div className="text-[10px] text-slate-600 mt-1 font-medium">{filteredTxs.filter(tx => tx.amount > 0).length} con monto</div>
         </div>
