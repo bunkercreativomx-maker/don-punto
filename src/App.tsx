@@ -25,6 +25,7 @@ import { FinancialModule } from './components/financial/FinancialModule';
 import { storeGet, storeSet } from './lib/cloudStore';
 import { money } from './lib/format';
 import { openSupport } from './lib/support';
+import { WelcomeTour, shouldAutoStartTour } from './components/onboarding/WelcomeTour';
 import { PinPad } from './components/access/PinPad';
 import { useSession, findOperatorByPin, ROLE_LABEL, signIn, canAccess as canAccessAs, lockSession, requiresCashierLogin, currentBranch, getBranches, isPro, TAB_LABEL, CAJA_CONFIGURABLE, getCajaTabs, setCajaTabs, type Tab } from './lib/session';
 import { setActiveBranch } from './lib/cloudStore';
@@ -398,6 +399,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
   const { operator, canAccess } = useSession();
   const [pinFor, setPinFor] = useState<Tab | 'switch' | null>(null);
   const [branchMenu, setBranchMenu] = useState(false);
+  const [tourOpen, setTourOpen] = useState(() => shouldAutoStartTour());
   const branch = currentBranch();
   const branches = getBranches();
   const needCashier = requiresCashierLogin() && !operator;
@@ -469,6 +471,16 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
         </div>
       )}
 
+      {/* --- Tour de bienvenida (cuenta nueva o desde Ajustes) --- */}
+      {tourOpen && !needCashier && !pinFor && (
+          <WelcomeTour
+              ownerPin={posSettings.adminPin}
+              onSavePin={(pin) => updatePosSettings({ adminPin: pin })}
+              onClose={() => setTourOpen(false)}
+              onFinish={() => { setTourOpen(false); setActiveTab('pos'); }}
+          />
+      )}
+
       {/* --- PIN: desbloquear pantallas / cambiar de cajero --- */}
       {(pinFor || needCashier) && (
           <PinPad
@@ -534,7 +546,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
               )}
             </div>
           )}
-          <div className="flex items-center gap-2 rounded-xl px-2 lg:px-3 py-1.5">
+          <div data-tour="session" className="flex items-center gap-2 rounded-xl px-2 lg:px-3 py-1.5">
             {/* En pantalla chica el candado es el botón: bloquear / entrar con PIN */}
             <button type="button" onClick={() => (operator ? (lockSession(), setActiveTab('pos')) : setPinFor('switch'))} title={operator ? 'Bloquear / cambiar de persona' : 'Entrar con PIN'} className="shrink-0">
               {operator ? <LockOpen size={16} className="text-agave-600" /> : <Lock size={16} className="text-carbon-400" />}
@@ -561,7 +573,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
             return (
               <div key={tab} className="contents">
                 {sep && <div className="w-full my-1"><div className="h-px bg-carbon-950/5 w-full" /></div>}
-                <button onClick={() => goTo(tab)} title={label} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === tab ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
+                <button data-tour={tab} onClick={() => goTo(tab)} title={label} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === tab ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
                   <Icon size={20} className="shrink-0" />
                   <span className="hidden lg:block text-xs font-bold whitespace-nowrap flex-1 text-left">{label}</span>
                   {tab === 'online' && incoming.pending > 0 && <span className="absolute -right-1 -top-1 lg:static grid h-5 min-w-5 place-items-center rounded-full bg-maiz-400 px-1 text-[10px] font-black text-carbon-950 animate-pulse">{incoming.pending}</span>}
@@ -579,13 +591,14 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
         </div>
 
         <div className="flex flex-col gap-1 shrink-0 w-full px-2 lg:px-3">
-          <button onClick={handleSettingsClick} className={cn("p-3 lg:px-3 rounded-xl transition-all flex items-center gap-3", activeTab === 'settings' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-600 hover:text-slate-400 hover:bg-carbon-950/5 border border-transparent")}>
+          <button data-tour="settings" onClick={handleSettingsClick} className={cn("p-3 lg:px-3 rounded-xl transition-all flex items-center gap-3", activeTab === 'settings' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-600 hover:text-slate-400 hover:bg-carbon-950/5 border border-transparent")}>
             <Settings size={20} className="shrink-0" />
             <span className="hidden lg:block text-xs font-bold whitespace-nowrap flex-1 text-left">Ajustes</span>
             {!canAccess('settings') && <Lock size={12} className="hidden lg:block text-carbon-400" />}
           </button>
           <InstallAppButton compact label="Instalar app" className="p-3 lg:px-3 rounded-xl transition-all text-maiz-400 hover:bg-maiz-500/10 gap-3 border border-transparent" />
           <button
+            data-tour="help"
             onClick={openSupport}
             className="p-3 lg:px-3 rounded-xl transition-all text-slate-500 hover:text-agave-700 hover:bg-agave-50 flex items-center gap-3 border border-transparent"
             title="Ayuda · chat con soporte"
@@ -594,6 +607,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
             <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Ayuda</span>
           </button>
           <button
+            data-tour="plan"
             onClick={onBilling}
             className="p-3 lg:px-3 rounded-xl transition-all text-slate-500 hover:text-indigo-300 hover:bg-indigo-500/10 flex items-center gap-3 border border-transparent"
             title="Mi plan y facturación"
@@ -903,6 +917,9 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                                   )}
                               </div>
                           </div>
+                          <button onClick={() => setTourOpen(true)} className="w-full rounded-2xl border border-agave-200 bg-agave-50 px-4 py-3 text-left text-sm font-bold text-agave-800 hover:bg-agave-100">
+                              Ver tour de bienvenida <span className="block text-[11px] font-medium text-agave-700">Te enseña tu PIN y para qué sirve cada sección del menú.</span>
+                          </button>
                           <CajaAccessEditor />
                       </div>
 
