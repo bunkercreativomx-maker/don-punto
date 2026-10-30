@@ -527,14 +527,39 @@ function Checkout(props: {
     }
   };
 
+  const submitBtn = (
+    <button disabled={busy || !store.open || belowMin || !cart.length || outOfZone || !opts.length} onClick={submit} className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 font-bold text-white transition-opacity hover:opacity-95 disabled:opacity-40" style={{ background: store.color }}>
+      {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShoppingBag className="w-5 h-5" />}
+      {!store.open ? 'El restaurante está cerrado' : `Enviar pedido · ${money(total)}`}
+    </button>
+  );
+  const totals = (
+    <div className="space-y-1.5 rounded-2xl bg-carbon-50 p-4 text-[14px]">
+      <Row k="Subtotal" v={money(subtotal)} />
+      {mode === 'delivery' && <Row k="Envío" v={fee ? money(fee) : 'Gratis'} />}
+      <div className="flex justify-between border-t border-carbon-200 pt-2 text-base font-black"><span>Total</span><span>{money(total)}</span></div>
+    </div>
+  );
+  const alerts = (
+    <>
+      {belowMin && <p className="text-[13px] font-semibold text-amber-700">El pedido mínimo a domicilio es de {money(store.minOrder)}.</p>}
+      {err && <p className="rounded-xl bg-red-50 px-4 py-3 text-[13px] font-semibold text-red-700">{err}</p>}
+    </>
+  );
+
   return (
-    <Sheet onClose={onClose} full>
-      <div className="flex items-center gap-2 border-b border-carbon-100 px-3 py-3">
-        <button onClick={onClose} className="grid h-10 w-10 place-items-center rounded-full hover:bg-carbon-100"><ChevronLeft className="w-5 h-5" /></button>
-        <h3 className="font-display text-lg font-extrabold">Tu pedido</h3>
+    <Sheet onClose={onClose} full wide>
+      <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-carbon-100 bg-white px-3 py-3 lg:px-6 lg:py-4">
+        <button onClick={onClose} className="grid h-10 w-10 place-items-center rounded-full hover:bg-carbon-100" aria-label="Volver"><ChevronLeft className="w-5 h-5" /></button>
+        <h3 className="font-display text-lg font-extrabold lg:text-xl">Tu pedido</h3>
+        <span className="ml-auto hidden text-[13px] font-semibold text-carbon-500 lg:block">{store.name}</span>
+        <button onClick={onClose} aria-label="Cerrar" className="hidden h-10 w-10 place-items-center rounded-full hover:bg-carbon-100 lg:grid"><X className="w-5 h-5" /></button>
       </div>
-      <div className="space-y-6 p-5">
-        <div className="divide-y divide-carbon-100">
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
+        {/* Columna izquierda: entrega, datos y pago */}
+        <div className="space-y-6 p-5 lg:space-y-7 lg:p-8">
+          {/* Platillos (solo celular; en escritorio van a la derecha) */}
+          <div className="divide-y divide-carbon-100 lg:hidden">
           {cart.map((l) => {
             const p = prodMap.get(l.id)!;
             const mods = p.groups.flatMap((g) => groupMap.get(g)?.options.filter((o) => l.mods[g]?.includes(o.id)).map((o) => o.name) || []);
@@ -550,78 +575,102 @@ function Checkout(props: {
               </div>
             );
           })}
-        </div>
+          </div>
 
-        {(store.pickup && store.delivery) && <ModeSwitch store={store} mode={mode} setMode={props.setMode} />}
+          {(store.pickup && store.delivery) && <div><h4 className="hidden font-bold lg:block">¿Cómo lo quieres?</h4><div className="lg:-mt-2"><ModeSwitch store={store} mode={mode} setMode={props.setMode} /></div></div>}
 
-        <div className="space-y-3">
-          <h4 className="font-bold">Tus datos</h4>
-          <Field label="Nombre" value={name} onChange={setName} autoComplete="name" />
-          <Field label="Teléfono (10 dígitos)" value={phone} onChange={setPhone} type="tel" autoComplete="tel" />
-          {mode === 'delivery' && (
-            <div className="space-y-3 rounded-2xl border border-carbon-200 p-4">
-              <p className="text-[13px] font-semibold text-carbon-600">¿Dónde te lo llevamos? <span className="font-normal text-carbon-500">(entregan hasta {store.radiusKm} km)</span></p>
-              <button type="button" onClick={useGPS} disabled={locBusy} className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-[14px] font-bold text-white disabled:opacity-60" style={{ background: store.color }}>
-                {locBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <LocateFixed className="w-4 h-4" />}Usar mi ubicación actual
-              </button>
-              <div className="flex gap-2">
-                <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), search())} placeholder="o busca: calle, número y colonia" className="min-w-0 flex-1 rounded-xl border border-carbon-200 px-3 py-2.5 text-[14px] outline-none focus:border-carbon-500" />
-                <button type="button" onClick={search} disabled={locBusy} className="grid w-11 place-items-center rounded-xl border border-carbon-200" aria-label="Buscar"><Search className="w-4 h-4" /></button>
-              </div>
-              {results.length > 0 && (
-                <div className="divide-y divide-carbon-100 rounded-xl border border-carbon-200">
-                  {results.map((r, i) => {
-                    const d = store.lat != null && store.lng != null ? distKm(store.lat, store.lng, r.lat, r.lng) : 0;
-                    return (
-                      <button type="button" key={i} onClick={() => { pickLoc({ lat: r.lat, lng: r.lng }); if (!address.trim()) setAddress(r.label); }} className="flex w-full items-start gap-2 px-3 py-2.5 text-left text-[13px]">
-                        <MapPin className="mt-0.5 w-4 h-4 shrink-0 text-carbon-400" />
-                        <span className="flex-1">{r.label}<span className={`block text-[11px] ${d > store.radiusKm ? 'text-red-600' : 'text-carbon-500'}`}>{d.toFixed(1)} km{d > store.radiusKm ? ' · fuera de zona' : ''}</span></span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-              {locErr && <p className="text-[12px] font-semibold text-amber-700">{locErr}</p>}
-              {loc && dist != null && (
-                <p className={`flex items-center gap-2 rounded-xl px-3 py-2 text-[13px] font-semibold ${outOfZone ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}>
-                  {outOfZone ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
-                  {outOfZone ? `Estás a ${dist.toFixed(1)} km: fuera de su zona (máx. ${store.radiusKm} km).${store.pickup ? ' Puedes pedir para recoger.' : ''}` : `Ubicación confirmada · estás a ${dist.toFixed(1)} km`}
-                </p>
-              )}
-              <Field label="Dirección y referencias (calle, número, colonia, color de la casa)" value={address} onChange={setAddress} textarea autoComplete="street-address" />
+          <div className="space-y-3">
+            <h4 className="font-bold">Tus datos</h4>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Nombre" value={name} onChange={setName} autoComplete="name" />
+              <Field label="Teléfono (10 dígitos)" value={phone} onChange={setPhone} type="tel" autoComplete="tel" />
             </div>
-          )}
-          <Field label="Comentarios para el restaurante (opcional)" value={notes} onChange={setNotes} />
-          <input ref={hp} name="website" tabIndex={-1} autoComplete="off" className="absolute -left-[9999px] h-0 w-0 opacity-0" aria-hidden />
+            {mode === 'delivery' && (
+              <div className="space-y-3 rounded-2xl border border-carbon-200 p-4">
+                <p className="text-[13px] font-semibold text-carbon-600">¿Dónde te lo llevamos? <span className="font-normal text-carbon-500">(entregan hasta {store.radiusKm} km)</span></p>
+                <button type="button" onClick={useGPS} disabled={locBusy} className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-[14px] font-bold text-white disabled:opacity-60" style={{ background: store.color }}>
+                  {locBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <LocateFixed className="w-4 h-4" />}Usar mi ubicación actual
+                </button>
+                <div className="flex gap-2">
+                  <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), search())} placeholder="o busca: calle, número y colonia" className="min-w-0 flex-1 rounded-xl border border-carbon-200 px-3 py-2.5 text-[14px] outline-none focus:border-carbon-500" />
+                  <button type="button" onClick={search} disabled={locBusy} className="grid w-11 place-items-center rounded-xl border border-carbon-200" aria-label="Buscar"><Search className="w-4 h-4" /></button>
+                </div>
+                {results.length > 0 && (
+                  <div className="divide-y divide-carbon-100 rounded-xl border border-carbon-200">
+                    {results.map((r, i) => {
+                      const d = store.lat != null && store.lng != null ? distKm(store.lat, store.lng, r.lat, r.lng) : 0;
+                      return (
+                        <button type="button" key={i} onClick={() => { pickLoc({ lat: r.lat, lng: r.lng }); if (!address.trim()) setAddress(r.label); }} className="flex w-full items-start gap-2 px-3 py-2.5 text-left text-[13px]">
+                          <MapPin className="mt-0.5 w-4 h-4 shrink-0 text-carbon-400" />
+                          <span className="flex-1">{r.label}<span className={`block text-[11px] ${d > store.radiusKm ? 'text-red-600' : 'text-carbon-500'}`}>{d.toFixed(1)} km{d > store.radiusKm ? ' · fuera de zona' : ''}</span></span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {locErr && <p className="text-[12px] font-semibold text-amber-700">{locErr}</p>}
+                {loc && dist != null && (
+                  <p className={`flex items-center gap-2 rounded-xl px-3 py-2 text-[13px] font-semibold ${outOfZone ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}>
+                    {outOfZone ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+                    {outOfZone ? `Estás a ${dist.toFixed(1)} km: fuera de su zona (máx. ${store.radiusKm} km).${store.pickup ? ' Puedes pedir para recoger.' : ''}` : `Ubicación confirmada · estás a ${dist.toFixed(1)} km`}
+                  </p>
+                )}
+                <Field label="Dirección y referencias (calle, número, colonia, color de la casa)" value={address} onChange={setAddress} textarea autoComplete="street-address" />
+              </div>
+            )}
+            <Field label="Comentarios para el restaurante (opcional)" value={notes} onChange={setNotes} />
+            <input ref={hp} name="website" tabIndex={-1} autoComplete="off" className="absolute -left-[9999px] h-0 w-0 opacity-0" aria-hidden />
+          </div>
+
+          <div className="space-y-2">
+            <h4 className="font-bold">¿Cómo vas a pagar?</h4>
+            {opts.includes('codi') && (
+              <PayOpt on={payment === 'codi'} brand={store.color} onClick={() => setPayment('codi')} Icon={QrCode}
+                title="CoDi / transferencia" sub="Pagas desde la app de tu banco con el QR o la CLABE" />
+            )}
+            {opts.includes('cash') && (
+              <PayOpt on={payment === 'cash'} brand={store.color} onClick={() => setPayment('cash')} Icon={Banknote}
+                title={mode === 'delivery' ? 'Efectivo al recibir (solicitud)' : 'Al recoger en tienda'}
+                sub={mode === 'delivery' ? 'El restaurante debe aprobarlo; si no, te pedirá pagar con CoDi' : 'Efectivo o tarjeta en el momento'} />
+            )}
+            {opts.length === 0 && <p className="text-[13px] text-amber-700">Esta forma de entrega no tiene pago disponible.</p>}
+          </div>
+
+
+          {/* Totales y botón (solo celular) */}
+          <div className="space-y-3 lg:hidden">{totals}{alerts}</div>
         </div>
 
-        <div className="space-y-2">
-          <h4 className="font-bold">¿Cómo vas a pagar?</h4>
-          {opts.includes('codi') && (
-            <PayOpt on={payment === 'codi'} brand={store.color} onClick={() => setPayment('codi')} Icon={QrCode}
-              title="CoDi / transferencia" sub="Pagas desde la app de tu banco con el QR o la CLABE" />
-          )}
-          {opts.includes('cash') && (
-            <PayOpt on={payment === 'cash'} brand={store.color} onClick={() => setPayment('cash')} Icon={Banknote}
-              title={mode === 'delivery' ? 'Efectivo al recibir (solicitud)' : 'Al recoger en tienda'}
-              sub={mode === 'delivery' ? 'El restaurante debe aprobarlo; si no, te pedirá pagar con CoDi' : 'Efectivo o tarjeta en el momento'} />
-          )}
-          {opts.length === 0 && <p className="text-[13px] text-amber-700">Esta forma de entrega no tiene pago disponible.</p>}
-        </div>
-
-        <div className="space-y-1.5 rounded-2xl bg-carbon-50 p-4 text-[14px]">
-          <Row k="Subtotal" v={money(subtotal)} />
-          {mode === 'delivery' && <Row k="Envío" v={fee ? money(fee) : 'Gratis'} />}
-          <div className="flex justify-between border-t border-carbon-200 pt-2 text-base font-black"><span>Total</span><span>{money(total)}</span></div>
-        </div>
-        {belowMin && <p className="text-[13px] font-semibold text-amber-700">El pedido mínimo a domicilio es de {money(store.minOrder)}.</p>}
-        {err && <p className="rounded-xl bg-red-50 px-4 py-3 text-[13px] font-semibold text-red-700">{err}</p>}
+        {/* Columna derecha (escritorio): resumen fijo */}
+        <aside className="hidden border-l border-carbon-100 bg-carbon-50/50 lg:sticky lg:top-[73px] lg:block">
+          <div className="space-y-4 p-6">
+            <h4 className="font-bold">Resumen <span className="font-normal text-carbon-500">· {cart.reduce((a, l) => a + l.qty, 0)} artículos</span></h4>
+            <div className="max-h-[38vh] divide-y divide-carbon-100 overflow-y-auto rounded-2xl bg-white px-4 ring-1 ring-carbon-100">
+              {cart.map((l) => {
+                const p = prodMap.get(l.id)!;
+                const mods = p.groups.flatMap((g) => groupMap.get(g)?.options.filter((o) => l.mods[g]?.includes(o.id)).map((o) => o.name) || []);
+                return (
+                  <div key={l.key} className="flex items-start gap-3 py-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold leading-snug">{p.name}</p>
+                      {mods.length > 0 && <p className="text-[12px] text-carbon-500">{mods.join(', ')}</p>}
+                      {l.note && <p className="text-[12px] italic text-carbon-500">“{l.note}”</p>}
+                      <p className="mt-1 text-[14px] font-bold">{money(lineUnit(l) * l.qty)}</p>
+                    </div>
+                    <Stepper qty={l.qty} setQty={(n) => setQty(l.key, n)} small />
+                  </div>
+                );
+              })}
+            </div>
+            <div className="rounded-2xl bg-white ring-1 ring-carbon-100">{totals}</div>
+            {alerts}
+            {submitBtn}
+            <p className="text-center text-[12px] text-carbon-400">El restaurante confirma tu pedido y te avisa aquí mismo.</p>
+          </div>
+        </aside>
       </div>
-      <div className="sticky bottom-0 border-t border-carbon-100 bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <button disabled={busy || !store.open || belowMin || !cart.length || outOfZone || !opts.length} onClick={submit} className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 font-bold text-white disabled:opacity-40" style={{ background: store.color }}>
-          {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShoppingBag className="w-5 h-5" />}
-          {!store.open ? 'El restaurante está cerrado' : `Enviar pedido · ${money(total)}`}
-        </button>
+      <div className="sticky bottom-0 border-t border-carbon-100 bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] lg:hidden">
+        {submitBtn}
       </div>
     </Sheet>
   );
@@ -672,16 +721,17 @@ function Tracking({ slug, token, onBack }: { slug: string; token: string; onBack
 
   return (
     <div className="min-h-screen bg-[#F6F5F1] text-carbon-900">
-      <div className="mx-auto max-w-2xl bg-white min-h-screen shadow-[0_0_0_1px_rgba(13,16,14,0.06)]">
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-carbon-100">
+      <div className="mx-auto min-h-screen max-w-2xl bg-white shadow-[0_0_0_1px_rgba(13,16,14,0.06)] lg:my-8 lg:min-h-0 lg:max-w-5xl lg:overflow-hidden lg:rounded-3xl lg:shadow-[0_12px_40px_-18px_rgba(13,16,14,0.3)]">
+        <div className="flex items-center gap-3 border-b border-carbon-100 px-4 py-3 lg:px-6 lg:py-4">
           <button onClick={onBack} className="grid h-10 w-10 place-items-center rounded-full hover:bg-carbon-100"><ChevronLeft className="w-5 h-5" /></button>
           {o.store.logo && <img src={o.store.logo} alt="" className="h-9 w-9 rounded-xl object-cover" />}
           <span className="font-bold">{o.store.name}</span>
         </div>
-        <div className="p-5 space-y-6">
+        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="space-y-6 p-5 lg:p-8">
           <div>
             <p className="text-[12px] font-bold uppercase tracking-widest text-carbon-500">Pedido #{o.number} · {o.type === 'delivery' ? 'A domicilio' : 'Para recoger'}</p>
-            <h1 className="mt-1 font-display text-[26px] leading-tight font-extrabold tracking-tight">{headline}</h1>
+            <h1 className="mt-1 font-display text-[26px] font-extrabold leading-tight tracking-tight lg:text-[34px]">{headline}</h1>
             {rejected && o.reason && <p className="mt-2 text-carbon-600">Motivo: {o.reason}</p>}
             {!rejected && o.status === 'accepted' && o.store.prepMinutes > 0 && <p className="mt-1 text-carbon-600">Tiempo aproximado: {o.store.prepMinutes} min</p>}
           </div>
@@ -692,7 +742,7 @@ function Tracking({ slug, token, onBack }: { slug: string; token: string; onBack
                 return (
                   <li key={s} className="text-center">
                     <div className="h-1.5 rounded-full transition-colors duration-500" style={{ background: done ? brand : '#e6e8e5' }} />
-                    <p className={`mt-2 text-[11px] font-semibold ${done ? 'text-carbon-900' : 'text-carbon-400'}`}>{stepLabel(s)}</p>
+                    <p className={`mt-2 text-[11px] font-semibold lg:text-[13px] ${done ? 'text-carbon-900' : 'text-carbon-400'}`}>{stepLabel(s)}</p>
                   </li>
                 );
               })}
@@ -733,6 +783,8 @@ function Tracking({ slug, token, onBack }: { slug: string; token: string; onBack
             </div>
           )}
 
+        </div>
+        <div className="space-y-4 border-carbon-100 p-5 pt-0 lg:border-l lg:bg-carbon-50/50 lg:p-6">
           <div>
             <h3 className="font-bold">Resumen</h3>
             <div className="mt-2 divide-y divide-carbon-100 text-[14px]">
@@ -753,6 +805,7 @@ function Tracking({ slug, token, onBack }: { slug: string; token: string; onBack
           {o.type === 'pickup' && o.store.address && <a target="_blank" rel="noreferrer" href={`https://maps.google.com/?q=${encodeURIComponent(o.store.address)}`} className="flex w-full items-center justify-center gap-2 rounded-2xl border border-carbon-200 py-3.5 font-bold"><MapPin className="w-4 h-4" />Cómo llegar</a>}
           <p className="text-center text-[12px] text-carbon-400">Guarda esta página para ver cómo va tu pedido · {STATUS_LABEL[o.status]} <br /><a href={`/${slug}`} className="underline">Volver al menú</a></p>
         </div>
+        </div>
       </div>
     </div>
   );
@@ -762,7 +815,7 @@ function Tracking({ slug, token, onBack }: { slug: string; token: string; onBack
 function Centered({ children }: { children: React.ReactNode }) {
   return <div className="min-h-screen grid place-items-center bg-[#F6F5F1] p-8 text-center"><div className="flex flex-col items-center">{children}</div></div>;
 }
-function Sheet({ children, onClose, full }: { children: React.ReactNode; onClose: () => void; full?: boolean }) {
+function Sheet({ children, onClose, full, wide }: { children: React.ReactNode; onClose: () => void; full?: boolean; wide?: boolean }) {
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -773,7 +826,7 @@ function Sheet({ children, onClose, full }: { children: React.ReactNode; onClose
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <div className="absolute inset-0 bg-black/45 animate-[fadeIn_.2s_ease-out]" onClick={onClose} />
-      <div className={`relative w-full max-w-lg overflow-y-auto bg-white shadow-2xl animate-[sheetUp_.28s_cubic-bezier(.2,.8,.2,1)] ${full ? 'h-[100dvh] sm:h-[90vh] sm:rounded-3xl' : 'max-h-[92dvh] rounded-t-3xl sm:rounded-3xl'}`}>
+      <div className={`relative w-full ${wide ? 'max-w-lg lg:max-w-5xl' : 'max-w-lg'} overflow-y-auto bg-white shadow-2xl animate-[sheetUp_.28s_cubic-bezier(.2,.8,.2,1)] ${full ? `h-[100dvh] sm:h-[90vh] sm:rounded-3xl ${wide ? 'lg:h-auto lg:max-h-[90vh]' : ''}` : 'max-h-[92dvh] rounded-t-3xl sm:rounded-3xl'}`}>
         {!full && <button onClick={onClose} aria-label="Cerrar" className="absolute right-3 top-3 z-10 grid h-9 w-9 place-items-center rounded-full bg-white/90 shadow"><X className="w-4 h-4" /></button>}
         {children}
       </div>
