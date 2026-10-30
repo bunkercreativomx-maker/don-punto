@@ -150,22 +150,23 @@ function Menu({ slug, onOrdered }: { slug: string; onOrdered: (t: string) => voi
 
   return (
     <div className="min-h-screen bg-[#F6F5F1] text-carbon-900" style={{ ['--brand' as any]: brand }}>
-      <div className="mx-auto max-w-6xl px-3 pb-28 pt-3 sm:px-6 sm:pt-6 lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-x-8 lg:px-8 lg:pb-16 xl:grid-cols-[minmax(0,1fr)_380px]">
-        {/* Portada: completa (nunca recorta el flyer del restaurante), con relleno difuminado de la misma imagen */}
-        <div className="relative overflow-hidden rounded-3xl bg-carbon-900 ring-1 ring-black/5 lg:col-span-2">
-          {store.cover ? (
-            <>
-              <img src={store.cover} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-125 object-cover opacity-70 blur-2xl" />
-              <img src={store.cover} alt={store.name} className="relative mx-auto block h-auto max-h-[400px] w-full object-contain" />
-            </>
-          ) : (
-            <div className="h-36 sm:h-52" style={{ background: `linear-gradient(135deg, ${brand}, ${brand}cc 55%, #0d100e)` }} />
-          )}
-        </div>
+      {/* Portada a todo lo ancho: el flyer completo (nunca recortado) sobre un fondo difuminado de la misma imagen */}
+      <div className="relative w-full overflow-hidden bg-carbon-900">
+        {store.cover ? (
+          <>
+            <img src={store.cover} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-125 object-cover opacity-70 blur-2xl" />
+            <div className="absolute inset-0 bg-black/10" />
+            <img src={store.cover} alt={store.name} className="relative mx-auto block h-auto max-h-[560px] w-full object-contain" />
+          </>
+        ) : (
+          <div className="h-36 sm:h-56" style={{ background: `linear-gradient(135deg, ${brand}, ${brand}cc 55%, #0d100e)` }} />
+        )}
+      </div>
 
+      <div className="w-full px-3 pb-28 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-x-8 lg:px-10 lg:pb-16 xl:grid-cols-[minmax(0,1fr)_400px] 2xl:px-14">
         <div className="min-w-0">
           {/* Restaurante */}
-          <header className="mt-3 rounded-3xl bg-white p-5 shadow-[0_12px_40px_-18px_rgba(13,16,14,0.25)] ring-1 ring-black/5 sm:mt-6 sm:p-7">
+          <header className="relative z-10 mt-4 rounded-3xl bg-white p-5 shadow-[0_12px_40px_-18px_rgba(13,16,14,0.3)] ring-1 ring-black/5 sm:mt-6 sm:p-7">
             <div className="flex items-center gap-4 sm:gap-5">
               <div className="h-[72px] w-[72px] shrink-0 overflow-hidden rounded-2xl bg-white p-1 shadow-md ring-1 ring-black/5 sm:h-24 sm:w-24">
                 {store.logo ? <img src={store.logo} alt={store.name} className="h-full w-full rounded-xl object-contain" /> : <div className="grid h-full w-full place-items-center rounded-xl text-2xl font-black text-white" style={{ background: brand }}>{store.name.slice(0, 1)}</div>}
@@ -179,8 +180,8 @@ function Menu({ slug, onOrdered }: { slug: string; onOrdered: (t: string) => voi
               </div>
             </div>
             {(store.hours || store.address || store.phone) && (
-              <div className="mt-5 grid gap-px overflow-hidden rounded-2xl bg-carbon-100 ring-1 ring-carbon-100 sm:grid-cols-2">
-                {store.hours && <Info Icon={Clock} label="Horario" className="sm:col-span-2">{hoursLines(store.hours).map((h, i) => <span key={i} className="block">{h}</span>)}</Info>}
+              <div className="mt-5 grid gap-px overflow-hidden rounded-2xl bg-carbon-100 ring-1 ring-carbon-100 sm:grid-cols-2 xl:grid-cols-[1.4fr_1fr_0.7fr]">
+                {store.hours && <Info Icon={Clock} label="Horario" className="sm:col-span-2 xl:col-span-1">{hoursLines(store.hours).map((h, i) => <span key={i} className="block">{h}</span>)}</Info>}
                 {store.address && <Info Icon={MapPin} label="Dirección" href={`https://maps.google.com/?q=${encodeURIComponent(store.address)}`}>{store.address}</Info>}
                 {store.phone && <Info Icon={Phone} label="Teléfono" href={`tel:${store.phone.replace(/\s/g, '')}`}>{fmtPhone(store.phone)}</Info>}
               </div>
@@ -194,7 +195,7 @@ function Menu({ slug, onOrdered }: { slug: string; onOrdered: (t: string) => voi
           </header>
 
           {/* Buscador + categorías */}
-          <nav className="sticky top-0 z-20 -mx-3 mt-4 bg-[#F6F5F1]/95 px-3 pb-3 pt-3 backdrop-blur sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
+          <nav className="sticky top-0 z-20 -mx-3 mt-4 bg-[#F6F5F1]/95 px-3 pb-3 pt-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-0 lg:px-0">
             <div className="relative">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-400" />
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={`Buscar en el menú${totalItems > 8 ? ` (${totalItems} platillos)` : ''}`}
@@ -222,7 +223,7 @@ function Menu({ slug, onOrdered }: { slug: string; onOrdered: (t: string) => voi
                   <h2 className="font-display text-xl font-extrabold tracking-tight sm:text-2xl">{s.name}</h2>
                   <span className="text-[12px] font-semibold text-carbon-400">{s.items.length} {s.items.length === 1 ? 'platillo' : 'platillos'}</span>
                 </div>
-                <div className="mt-3 grid gap-2.5 sm:grid-cols-2 sm:gap-3">
+                <div className="mt-3 grid gap-2.5 sm:grid-cols-2 sm:gap-3 xl:grid-cols-3">
                   {s.items.map((p) => <ProductCard key={p.id} p={p} brand={brand} qty={qtyOf(p.id)} canAdd={store.open} onClick={() => setPicked(p)} />)}
                 </div>
               </section>
@@ -234,7 +235,7 @@ function Menu({ slug, onOrdered }: { slug: string; onOrdered: (t: string) => voi
         </div>
 
         {/* Carrito lateral (escritorio) */}
-        <aside className="hidden lg:sticky lg:top-6 lg:mt-6 lg:block">
+        <aside className="relative z-10 hidden lg:sticky lg:top-6 lg:mt-6 lg:block">
           <CartPanel store={store} mode={mode} setMode={setMode} cart={validCart} prodMap={prodMap} groupMap={groupMap} lineUnit={lineUnit}
             subtotal={subtotal} count={count} setQty={setQty} onCheckout={() => setCheckout(true)} />
         </aside>
