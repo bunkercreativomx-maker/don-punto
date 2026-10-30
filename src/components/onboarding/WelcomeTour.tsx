@@ -1,19 +1,13 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { KeyRound, ArrowRight, ArrowLeft, X, Sparkles, CheckCircle2 } from 'lucide-react';
 import { storeGet, storeSet } from '../../lib/cloudStore';
-import { pb } from '../../lib/pocketbase';
 import { isPro } from '../../lib/session';
 
 // Tour de bienvenida: cuenta nueva → PIN de dueño → recorrido por cada sección del menú lateral.
 // Se marca como visto por usuario (sincronizado), y se puede repetir desde Ajustes.
-const DONE_KEY = 'donPuntoTourDone';
-// Solo arranca solo en cuentas creadas desde que existe el tour (las de antes lo abren desde Ajustes)
-const TOUR_SINCE = '2026-10-30';
-
+const DONE_KEY = 'donPuntoTourDone2'; // v2: se muestra una vez a todas las cuentas, también las que ya existían
 export function shouldAutoStartTour(): boolean {
-  if (storeGet(DONE_KEY) === '1') return false;
-  const created = String((pb.authStore.record as any)?.created || '');
-  return created >= TOUR_SINCE;
+  return storeGet(DONE_KEY) !== '1';
 }
 export function markTourDone() { storeSet(DONE_KEY, '1'); }
 
