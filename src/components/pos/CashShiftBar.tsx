@@ -1,8 +1,8 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Wallet, ArrowDownCircle, ArrowUpCircle, Lock, FileText, X, Trash2 } from 'lucide-react';
 import type { POSTransaction, POSSettings, CashShift, CashDeclaration } from '../../types/pos';
 import type { ProductRowData, Category } from '../../types/calculator';
-import { useCashShift, openShift as doOpen, addMovement, removeMovement, closeShift, getShifts, getEvents, getCancellations } from '../../lib/cashShift';
+import { useCashShift, openShift as doOpen, addMovement, removeMovement, closeShift, getShifts, getEvents, getCancellations, onOpenShiftRequest } from '../../lib/cashShift';
 import { buildCorte, type CorteData } from '../../lib/corte';
 import { currentBranch } from '../../lib/session';
 import { money } from '../../lib/format';
@@ -55,6 +55,8 @@ export function CashShiftBar(props: Props) {
   const [printData, setPrintData] = useState<CorteData | null>(null);
   const [thermalData, setThermalData] = useState<CorteData | null>(null);
 
+  useEffect(() => onOpenShiftRequest(() => { setAmount(''); setModal('open'); }), []);
+
   const printCorte = (shift: CashShift) => {
     setPrintData(corteForShift(shift, props));
     runPrint('reporte', () => setPrintData(null));
@@ -86,7 +88,7 @@ export function CashShiftBar(props: Props) {
           </>
         ) : (
           <>
-            <div className="text-xs text-carbon-600 mr-auto"><b className="text-carbon-900">Caja sin turno.</b> Abre el turno con tu fondo para que el corte cuadre al peso.</div>
+            <div className="text-xs text-carbon-600 mr-auto"><b className="text-carbon-900">Caja sin turno.</b> Abre el turno para empezar a vender; así todas las ventas entran a tu corte.</div>
             <button onClick={() => { setAmount(''); setModal('open'); }} className="inline-flex items-center gap-1.5 rounded-xl bg-agave-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-agave-700"><Wallet size={14} /> Abrir turno</button>
           </>
         )}
@@ -95,6 +97,7 @@ export function CashShiftBar(props: Props) {
       {modal === 'open' && (
         <Modal kicker="Apertura de caja" title="Abrir turno" onClose={() => setModal(null)}>
           <div className="p-6 space-y-3">
+            <p className="text-xs font-semibold text-carbon-700">Para vender necesitas un turno abierto: así cada venta (tienda y apps) entra a tu corte.</p>
             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Fondo inicial en efectivo</label>
             <input autoFocus type="number" min="0" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className={inputCls} />
             <p className="text-xs text-carbon-500">Lo que hay en el cajón al empezar (para dar cambio).</p>

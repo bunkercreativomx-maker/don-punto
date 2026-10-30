@@ -78,6 +78,11 @@ export function logEvent(type: SecurityEvent['type'], txId: string, amount: numb
   emit();
 }
 
+// El Punto de Venta pide abrir turno antes de vender: la barra de turno escucha y abre su ventana
+const openRequests = new Set<() => void>();
+export function onOpenShiftRequest(f: () => void) { openRequests.add(f); return () => { openRequests.delete(f); }; }
+export function requestOpenShift() { openRequests.forEach((f) => f()); }
+
 /** Re-render cuando cambian turnos o eventos */
 export function useCashShift() {
   useSyncExternalStore(subscribe, () => version);

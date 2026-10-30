@@ -9,7 +9,7 @@ import { applySaleToInventory, type StockAlert } from '../../lib/inventoryAuto';
 import { apiPost } from '../../lib/api';
 import { POSTicket } from './POSTicket';
 import { CashShiftBar } from './CashShiftBar';
-import { getOpenShift } from '../../lib/cashShift';
+import { getOpenShift, useCashShift, requestOpenShift } from '../../lib/cashShift';
 import { PrintArea } from '../print/PrintArea';
 import { runPrint } from '../../lib/print';
 import clsx from 'clsx';
@@ -23,6 +23,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 
 export function POSDashboard() {
   const { addTransaction, openTickets, saveTicket, deleteOpenTicket, settings, updateSettings, transactions } = usePOS();
+  useCashShift(); // re-render al abrir/cerrar turno
   const { rows, settings: calcGlobalSettings, categories, modifierGroups } = useCalculator();
 
   const [paymentMethod, setPaymentMethod] = useState<POSPaymentMethod>('Efectivo');
@@ -227,7 +228,16 @@ export function POSDashboard() {
     }
   };
 
+  /** Sin turno abierto no se vende: el cajero lo abre ahí mismo; el mesero pide que lo abran */
+  const needsShift = () => {
+    if (getOpenShift()) return false;
+    if (waiterMode) showToast('La caja no tiene turno abierto. Pide al cajero que lo abra.');
+    else requestOpenShift();
+    return true;
+  };
+
   const handleProductClick = (product: ProductRowData) => {
+    if (needsShift()) return;
     setSelectedProduct(product);
     setPendingModifiers([]);
     setCustomerNote('');
@@ -280,6 +290,7 @@ export function POSDashboard() {
   const handleCheckout = () => {
     if (waiterMode) return; // el mesero no cobra
     if (cart.length === 0) return;
+    if (needsShift()) return;
     
     // If it's cash, show calculator first
     if (paymentMethod === 'Efectivo' || paymentMethod === 'Didi Efectivo') {
@@ -309,7 +320,7 @@ export function POSDashboard() {
     const courtesyStr = courtesy ? ' (Cortesía)' : '';
     const shift = getOpenShift();
     const nGuests = Math.max(0, Math.round(Number(guests) || 0));
-    addTransaction(finalTotal, paymentMethod, orderDestination, detail + (courtesyStr || rewardStr || discountStr), customerName, undefined, [...cart], discountAmount,
+    addTransaction(Math.round(finalTotal * 100) / 100, paymentMethod, orderDestination, detail + (courtesyStr || rewardStr || discountStr), customerName, undefined, [...cart], discountAmount,
       { ...(selectedClient ? { clientId: selectedClient.id, rewardApplied: rewardOn } : {}), ...(resumedWaiter ? { waiterId: resumedWaiter.id, waiterName: resumedWaiter.name } : {}),
         ...(tipAmount > 0 ? { tip: Math.round(tipAmount * 100) / 100 } : {}), ...(nGuests ? { guests: nGuests } : {}), ...(courtesy ? { courtesy: true } : {}), ...(shift ? { shiftId: shift.id } : {}) });
     setResumedWaiter(null);
@@ -351,6 +362,7 @@ export function POSDashboard() {
 
   const handleSaveTicket = () => {
       if (cart.length === 0) return;
+      if (needsShift()) return;
       const customerName = orderCustomerName.trim() || cart.find(i => i.customerNote)?.customerNote || 'Sin Nombre';
       saveTicket(customerName, orderDestination, cart, finalTotal, resumedWaiter || undefined, Math.max(0, Math.round(Number(guests) || 0)) || undefined);
       const items = [...cart];

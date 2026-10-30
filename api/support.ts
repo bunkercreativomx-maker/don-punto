@@ -251,6 +251,14 @@ async function handleTelegram(req: any, res: any) {
   const th = await pbFetch(`/api/collections/support_threads/records/${threadId}`, { token });
   if (!th.ok) { await reply('⚠️ No encontré ese chat.'); return res.status(200).json({ ok: true }); }
   const now = Date.now();
+
+  // /bot (respondiendo al mensaje del cliente) → el chat regresa al asistente IA
+  if (/^\/bot(@\w+)?\b/i.test(text)) {
+    await saveBot(token, threadId, '🤖 Te regreso con el asistente de Don Punto. Si tienes otra duda, pregúntame aquí; si hace falta, te vuelvo a pasar con el equipo.');
+    await pbFetch(`/api/collections/support_threads/records/${threadId}`, { method: 'PATCH', token, body: { mode: 'bot', last_at: now } });
+    await reply(`🤖 Listo, el asistente vuelve a contestar en este chat · #c${threadId}`);
+    return res.status(200).json({ ok: true });
+  }
   const saved = await pbFetch('/api/collections/support_messages/records', { method: 'POST', token, body: { thread: threadId, from: 'agent', text, at: now, tg_msg_id: m.message_id } });
   await pbFetch(`/api/collections/support_threads/records/${threadId}`, { method: 'PATCH', token, body: { last_at: now } });
 
