@@ -168,7 +168,7 @@ export function CorteCaja({ d, branchName, logoUrl }: { d: CorteData; branchName
       <div className="cd-grid4">
         <Box title="FORMAS DE PAGO · VENTAS" tone="green"><Lines lines={d.pagosVentas} /></Box>
         <Box title="FORMAS DE PAGO · PROPINAS" tone="green"><Lines lines={d.pagosPropinas} empty="Sin propinas" /></Box>
-        <Box title="VENTAS POR ÁREA" tone="green"><Lines lines={d.porArea.filter((l) => l.amount > 0)} /></Box>
+        <Box title="VENTAS POR ÁREA" tone="green"><Lines lines={d.porArea} /></Box>
         <Box title="MOVIMIENTOS DE EFECTIVO" tone="green">
           {d.movimientos.length ? d.movimientos.map((m, i) => (
             <div key={i} className="cd-row"><span>{ft(m.date)} {m.type.toUpperCase()}{m.reason ? ` · ${m.reason}` : ''}</span><span>{$(m.amount)}</span></div>

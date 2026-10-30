@@ -16,6 +16,7 @@ export const CASH_METHODS: POSPaymentMethod[] = ['Efectivo', 'Didi Efectivo'];
 export const APP_METHODS: POSPaymentMethod[] = ['Uber', 'Didi', 'Rappi'];
 export const ALL_METHODS: POSPaymentMethod[] = ['Efectivo', 'Tarjeta', 'Transferencia', 'Didi Efectivo', 'Uber', 'Didi', 'Rappi'];
 export const DEST_LABEL: Record<OrderDestination, string> = { Tienda: 'En tienda', Uber: 'Uber', Didi: 'DiDi', Rappi: 'Rappi' };
+export const METHOD_LABEL: Record<POSPaymentMethod, string> = { Efectivo: 'Efectivo', Tarjeta: 'Tarjeta', Transferencia: 'Transferencia', 'Didi Efectivo': 'DiDi Efectivo', Uber: 'Uber', Didi: 'DiDi', Rappi: 'Rappi' };
 
 export interface Line { label: string; amount: number; count?: number; pct?: number }
 
@@ -163,8 +164,7 @@ export function buildCorte(a: BuildArgs): CorteData {
     .map((d) => {
       const amt = sum(txs.filter((t) => (t.destination || 'Tienda') === d).map((t) => t.amount));
       return { label: DEST_LABEL[d], amount: amt, count: txs.filter((t) => (t.destination || 'Tienda') === d).length, pct: total ? (amt / total) * 100 : 0 };
-    })
-    .filter((l) => l.label === DEST_LABEL.Tienda || l.amount > 0);
+    });
 
   // Caja
   const fondo = sum(shifts.map((s) => s.openingFloat || 0));
@@ -190,8 +190,9 @@ export function buildCorte(a: BuildArgs): CorteData {
   const declaradoTotal = declaracion ? declaracion.efectivo + declaracion.tarjeta + declaracion.transferencia + declaracion.otros : 0;
   const diferencia = declaracion ? r2(declaradoTotal - saldoFinal) : 0;
 
-  const pagosVentas: Line[] = ALL_METHODS.map((m) => ({ label: m, amount: byMethod(m), count: txs.filter((t) => t.paymentMethod === m).length })).filter((l) => l.amount > 0 || l.count);
-  const pagosPropinas: Line[] = ALL_METHODS.map((m) => ({ label: m, amount: tipsBy(m) })).filter((l) => l.amount > 0);
+  // Siempre todas las formas de pago (aunque estén en 0) para que el cajero vea cada plataforma
+  const pagosVentas: Line[] = ALL_METHODS.map((m) => ({ label: METHOD_LABEL[m] || m, amount: byMethod(m), count: txs.filter((t) => t.paymentMethod === m).length }));
+  const pagosPropinas: Line[] = ALL_METHODS.map((m) => ({ label: METHOD_LABEL[m] || m, amount: tipsBy(m) })).filter((l) => l.amount > 0);
 
   // Meseros / quién atendió
   const mes = new Map<string, { amount: number; count: number }>();

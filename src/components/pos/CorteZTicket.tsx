@@ -36,8 +36,11 @@ export function CorteZTicket({ d }: { d: CorteData }) {
       <R l="VENTA TOTAL:" v={$(d.total)} b />
 
       <H t="Formas de pago" />
-      {d.pagosVentas.map((l) => <R key={l.label} l={`${l.label}:`} v={$(l.amount)} />)}
+      {d.pagosVentas.map((l) => <R key={l.label} l={`${l.label} (${l.count || 0}):`} v={$(l.amount)} />)}
       {d.propinas > 0 && <R l="Propinas:" v={$(d.propinas)} />}
+
+      <H t="Por area" />
+      {d.porArea.map((l) => <R key={l.label} l={`${l.label} (${l.count || 0}):`} v={$(l.amount)} />)}
 
       <H t="Caja" />
       <R l="+Fondo:" v={$(d.fondo)} />

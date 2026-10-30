@@ -171,6 +171,13 @@ export function CashShiftBar(props: Props) {
         <Modal kicker={`Turno ${closed.number} cerrado`} title="Resultado del corte" onClose={() => { setModal(null); setClosed(null); }}>
           <div className="p-6 space-y-2 text-sm">
             <div className="flex justify-between"><span>Venta total</span><b className="tabular-nums">${money(resultData.total)}</b></div>
+            <div className="rounded-xl border border-carbon-950/10 divide-y divide-carbon-950/5 my-2">
+              {resultData.pagosVentas.map((l) => (
+                <div key={l.label} className={`flex justify-between px-3 py-1.5 text-xs ${l.amount ? 'text-carbon-900' : 'text-carbon-400'}`}>
+                  <span>{l.label} <span className="text-carbon-400">· {l.count || 0}</span></span><b className="tabular-nums">${money(l.amount)}</b>
+                </div>
+              ))}
+            </div>
             <div className="flex justify-between"><span>Esperado en caja</span><b className="tabular-nums">${money(resultData.saldoFinal)}</b></div>
             <div className="flex justify-between"><span>Declarado</span><b className="tabular-nums">${money(resultData.declaradoTotal)}</b></div>
             <div className={`mt-3 rounded-2xl p-4 flex justify-between items-center ${Math.abs(resultData.diferencia) < 0.5 ? 'bg-emerald-500/10 text-emerald-700' : resultData.diferencia > 0 ? 'bg-maiz-50 text-maiz-800' : 'bg-rose-50 text-rose-700'}`}>
