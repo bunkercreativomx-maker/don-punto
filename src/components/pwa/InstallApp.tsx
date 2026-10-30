@@ -4,7 +4,7 @@ import clsx from 'clsx';
 import { canPromptInstall, isIOS, isStandalone, onInstallChange, promptInstall } from '../../lib/pwa';
 
 /** Botón "Instalar app": usa el aviso nativo (Android/Chrome/Edge) o muestra pasos para iPhone/iPad. */
-export function InstallAppButton({ className, label = 'Instalar app', compact = false }: { className?: string; label?: string; compact?: boolean }) {
+export function InstallAppButton({ className, label = 'Instalar app', compact = false, tourId }: { className?: string; label?: string; compact?: boolean; tourId?: string }) {
   const [, force] = useState(0);
   const [iosHelp, setIosHelp] = useState(false);
   useEffect(() => {
@@ -20,6 +20,7 @@ export function InstallAppButton({ className, label = 'Instalar app', compact = 
     <>
       <button
         onClick={() => (ios ? setIosHelp(true) : promptInstall())}
+        data-tour={tourId}
         className={clsx('inline-flex items-center gap-2', className)}
         title="Instalar Don Punto en este dispositivo"
       >

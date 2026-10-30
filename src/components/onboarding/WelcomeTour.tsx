@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { KeyRound, ArrowRight, ArrowLeft, X, Sparkles, CheckCircle2 } from 'lucide-react';
 import { storeGet, storeSet } from '../../lib/cloudStore';
 import { isPro } from '../../lib/session';
@@ -37,6 +37,7 @@ function buildSteps(): Step[] {
     { kind: 'spot', id: 'branches', target: 'branches', title: 'Sucursales', pro: true, body: 'Si tienes más de un local: cada uno con sus ventas, corte e inventario, y un reporte de todos juntos.' },
     { kind: 'spot', id: 'team', target: 'team', title: 'Equipo', pro: true, body: 'Da de alta a tus meseros, cajeros y gerentes, cada uno con **su propio PIN**, y ve cuánto vendió cada quien.' },
     { kind: 'spot', id: 'settings', target: 'settings', title: 'Ajustes', body: 'Nombre, teléfono y dirección del negocio (salen en el ticket), tu impresora (58 mm, 80 mm o carta), tu PIN, qué puede ver la caja sin PIN y las **notificaciones** al celular.' },
+    { kind: 'spot', id: 'install', target: 'install', title: 'Instala Don Punto como app', body: 'Úsalo como app en tu **computadora, laptop, tablet o celular**, abre más rápido y sigue cobrando aunque se vaya el internet.\n• **Computadora o laptop:** toca **Instalar app** aquí, o el ícono de instalar en la barra de direcciones (Chrome o Edge).\n• **Celular o tablet (Chrome):** toca **Instalar app**, o menú ⋮ → **Instalar app** / **Agregar a pantalla principal**.\n• **iPhone o iPad:** ábrelo en **Safari** → **Compartir** → **Agregar a inicio**.\nInstálala en cada equipo para recibir **notificaciones** (actívalas en **Ajustes**).' },
     { kind: 'spot', id: 'help', target: 'help', title: 'Ayuda', body: '¿Dudas? Aquí te contesta el asistente al instante y, si hace falta, una persona del equipo de Don Punto. Puedes repetir este tour desde **Ajustes**.' },
     { kind: 'spot', id: 'plan', target: 'plan', title: 'Mi plan', body: 'Cambia de plan, actualiza tu tarjeta o revisa tus pagos.' },
     { kind: 'center', id: 'fin', title: '¡Listo! 🎉', body: 'Tu primer paso: sube tus productos en **Tienda Física** (con **ESCANEAR MENÚ** lo haces con una foto de tu menú). Luego pon el nombre de tu negocio en **Ajustes** y abre tu primer turno en el **Punto de Venta**.' },
@@ -65,6 +66,9 @@ export function WelcomeTour({ ownerPin, onSavePin, onClose, onFinish }: Props) {
   const [pinSaved, setPinSaved] = useState((ownerPin || '1234') !== '1234');
   const [vw, setVw] = useState(window.innerWidth);
   const step = steps[i];
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [cardH, setCardH] = useState(260);
+  useLayoutEffect(() => { if (cardRef.current) setCardH(cardRef.current.offsetHeight); }, [i, rect, vw]);
 
   const close = () => { markTourDone(); onClose(); };
   const next = () => (i < steps.length - 1 ? setI(i + 1) : (markTourDone(), onFinish()));
@@ -127,7 +131,7 @@ export function WelcomeTour({ ownerPin, onSavePin, onClose, onFinish }: Props) {
   if (step.kind === 'spot' && rect) {
     const w = Math.min(340, vw - rect.right - 24);
     if (w >= 240) {
-      const top = Math.min(Math.max(12, rect.top + rect.height / 2 - 120), window.innerHeight - 300);
+      const top = Math.max(12, Math.min(rect.top + rect.height / 2 - cardH / 2, window.innerHeight - cardH - 12));
       cardStyle = { left: rect.right + 14, top, width: w };
     } else {
       cardStyle = { left: 12, right: 12, bottom: 12 };
@@ -149,13 +153,13 @@ export function WelcomeTour({ ownerPin, onSavePin, onClose, onFinish }: Props) {
       <div className="fixed inset-0" onClick={(e) => e.stopPropagation()} />
 
       {step.kind === 'spot' && (
-        <div className="fixed bg-white rounded-2xl shadow-2xl border border-carbon-950/10 p-4 space-y-2.5" style={rect ? cardStyle : { left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 'min(360px, calc(100vw - 24px))' }}>
+        <div ref={cardRef} className="fixed bg-white rounded-2xl shadow-2xl border border-carbon-950/10 p-4 space-y-2.5 max-h-[calc(100dvh-24px)] overflow-y-auto" style={rect ? cardStyle : { left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 'min(360px, calc(100vw - 24px))' }}>
           {progress}
           <div className="flex items-center gap-2">
             <h3 className="text-base font-black text-carbon-950">{step.title}</h3>
             {step.pro && <span className="text-[9px] font-black uppercase tracking-wider rounded-full bg-maiz-100 text-maiz-800 px-1.5 py-0.5">Plan Pro</span>}
           </div>
-          <p className="text-sm text-carbon-600 leading-relaxed">{rich(step.body)}</p>
+          <p className="text-sm text-carbon-600 leading-relaxed whitespace-pre-line">{rich(step.body)}</p>
           {nav()}
         </div>
       )}

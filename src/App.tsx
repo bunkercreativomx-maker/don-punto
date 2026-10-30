@@ -596,7 +596,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
             <span className="hidden lg:block text-xs font-bold whitespace-nowrap flex-1 text-left">Ajustes</span>
             {!canAccess('settings') && <Lock size={12} className="hidden lg:block text-carbon-400" />}
           </button>
-          <InstallAppButton compact label="Instalar app" className="p-3 lg:px-3 rounded-xl transition-all text-maiz-400 hover:bg-maiz-500/10 gap-3 border border-transparent" />
+          <InstallAppButton compact tourId="install" label="Instalar app" className="p-3 lg:px-3 rounded-xl transition-all text-maiz-400 hover:bg-maiz-500/10 gap-3 border border-transparent" />
           <button
             data-tour="help"
             onClick={openSupport}
