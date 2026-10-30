@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { useCalculator } from './hooks/useCalculator';
 import type { Platform, PaymentMethod } from './types/calculator';
-import { CreditCard, BarChart3, ShoppingBasket, Calculator, Layers, User, LineChart, Settings, Plus, Lock, Key, Sparkles, Receipt, LogOut, FileSpreadsheet, TrendingUp, Package, Target, BookOpen, Wallet, Search, Users, Store, UserCog, LockOpen, ChevronDown, Bike } from 'lucide-react';
+import { CreditCard, BarChart3, ShoppingBasket, Calculator, Layers, User, LineChart, Settings, Plus, Lock, Key, Sparkles, Receipt, LogOut, FileSpreadsheet, TrendingUp, Package, Target, BookOpen, Wallet, Search, Users, Store, UserCog, LockOpen, ChevronDown, Bike, MessageCircle } from 'lucide-react';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { ProfitGrid } from './components/ProfitGrid';
@@ -24,6 +24,8 @@ import { RecipesModule } from './components/recipes/RecipesModule';
 import { FinancialModule } from './components/financial/FinancialModule';
 import { storeGet, storeSet } from './lib/cloudStore';
 import { money } from './lib/format';
+import { openTawk } from './lib/tawk';
+import { supportLink } from './config';
 import { PinPad } from './components/access/PinPad';
 import { useSession, findOperatorByPin, ROLE_LABEL, signIn, canAccess as canAccessAs, lockSession, requiresCashierLogin, currentBranch, getBranches, isPro, TAB_LABEL, CAJA_CONFIGURABLE, getCajaTabs, setCajaTabs, type Tab } from './lib/session';
 import { setActiveBranch } from './lib/cloudStore';
@@ -584,6 +586,18 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
             {!canAccess('settings') && <Lock size={12} className="hidden lg:block text-carbon-400" />}
           </button>
           <InstallAppButton compact label="Instalar app" className="p-3 lg:px-3 rounded-xl transition-all text-maiz-400 hover:bg-maiz-500/10 gap-3 border border-transparent" />
+          <button
+            onClick={() => {
+              if (openTawk()) return;
+              const link = supportLink(`Hola, necesito ayuda con Don Punto (${userEmail ?? ''}).`);
+              if (link) window.open(link, '_blank');
+            }}
+            className="p-3 lg:px-3 rounded-xl transition-all text-slate-500 hover:text-agave-700 hover:bg-agave-50 flex items-center gap-3 border border-transparent"
+            title="Ayuda · chat con soporte"
+          >
+            <MessageCircle size={20} className="shrink-0" />
+            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Ayuda</span>
+          </button>
           <button
             onClick={onBilling}
             className="p-3 lg:px-3 rounded-xl transition-all text-slate-500 hover:text-indigo-300 hover:bg-indigo-500/10 flex items-center gap-3 border border-transparent"

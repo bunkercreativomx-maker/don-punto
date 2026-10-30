@@ -9,6 +9,7 @@ import { supportLink } from './config';
 import { Mark } from './components/brand/Logo';
 import { setPlan, type Plan } from './lib/session';
 import { storeSlugFromPath } from './lib/onlineStore';
+import { loadTawk, setTawkBubble, setTawkUser } from './lib/tawk';
 
 const App = lazy(() => import('./App'));
 const StorePage = lazy(() => import('./components/online/StorePage'));
@@ -114,6 +115,13 @@ function RootApp() {
     }
     setPhase('ready');
   }, []);
+
+  // Chat de soporte: burbuja en landing/login/membresía; dentro del POS solo con el botón "Ayuda"
+  useEffect(() => {
+    loadTawk();
+    setTawkBubble(phase !== 'ready' || sub.status !== 'active');
+  }, [phase, sub.status]);
+  useEffect(() => { setTawkUser(email); }, [email]);
 
   // Color de la barra del navegador: claro en la página de ventas, oscuro dentro de la app
   useEffect(() => {
