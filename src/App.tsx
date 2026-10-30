@@ -904,13 +904,9 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                               <Key size={16} className="text-rose-400 shrink-0" />
                               <div className="flex-1">
                                   <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">PIN de Administrador</div>
-                                  <input
-                                      type="password"
-                                      maxLength={4}
+                                  <AdminPinInput
                                       value={posSettings.adminPin || '1234'}
-                                      onChange={(e) => updatePosSettings({ adminPin: e.target.value })}
-                                      placeholder="1234"
-                                      className="w-full bg-transparent text-carbon-950 text-sm font-bold outline-none placeholder:text-slate-500 tracking-[0.5em]"
+                                      onSave={(pin) => updatePosSettings({ adminPin: pin })}
                                   />
                                   {(posSettings.adminPin || '1234') === '1234' && (
                                       <p className="text-[11px] font-bold text-amber-400 mt-2">⚠ Estás usando el PIN de fábrica. Cámbialo para proteger tu caja.</p>
@@ -974,3 +970,37 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
 }
 
 export default App;
+
+/** PIN del dueño: se edita en borrador y solo se guarda con 4 números (antes, al borrar regresaba solo a 1234) */
+function AdminPinInput({ value, onSave }: { value: string; onSave: (pin: string) => void }) {
+  const [draft, setDraft] = useState(value);
+  const [msg, setMsg] = useState('');
+  useEffect(() => { setDraft(value); }, [value]);
+  const save = () => {
+    if (!/^\d{4}$/.test(draft)) { setMsg('El PIN debe tener 4 números.'); return; }
+    if (draft === value) { setMsg(''); return; }
+    onSave(draft);
+    setMsg('✓ PIN guardado');
+  };
+  const dirty = draft !== value;
+  return (
+    <div>
+      <div className="flex items-center gap-2">
+        <input
+          type="password"
+          inputMode="numeric"
+          maxLength={4}
+          value={draft}
+          onChange={(e) => { setDraft(e.target.value.replace(/\D/g, '').slice(0, 4)); setMsg(''); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') save(); }}
+          placeholder="4 números"
+          className="flex-1 min-w-0 bg-transparent text-carbon-950 text-sm font-bold outline-none placeholder:text-slate-500 placeholder:tracking-normal tracking-[0.5em]"
+        />
+        {dirty && (
+          <button onClick={save} className="rounded-lg bg-agave-600 px-3 py-1.5 text-[11px] font-black text-white hover:bg-agave-700">GUARDAR</button>
+        )}
+      </div>
+      {msg && <p className={`text-[11px] font-bold mt-1 ${msg.startsWith('✓') ? 'text-emerald-600' : 'text-rose-500'}`}>{msg}</p>}
+    </div>
+  );
+}
