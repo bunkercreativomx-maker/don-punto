@@ -192,9 +192,9 @@ export function POSTicketsHistory() {
                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500 rounded-r" />
                   )}
 
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                     <div className={cn(
-                      "w-12 h-12 rounded-xl flex flex-col items-center justify-center font-black",
+                      "w-12 h-12 shrink-0 rounded-xl flex flex-col items-center justify-center font-black",
                       tx.destination === 'Tienda' 
                         ? "bg-indigo-500/10 text-indigo-400" 
                         : "bg-amber-500/10 text-amber-500"
@@ -203,10 +203,10 @@ export function POSTicketsHistory() {
                       <span className="text-[10px] uppercase font-black tracking-widest mt-0.5">{tx.destination}</span>
                     </div>
                     
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-black text-indigo-400 tracking-wider bg-indigo-950/40 border border-indigo-500/10 px-1.5 py-0.5 rounded-md">{tx.folio}</span>
-                        <span className="text-sm font-black text-carbon-950">{tx.customerName || 'Venta Mostrador'}</span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="shrink-0 text-xs font-black text-indigo-400 tracking-wider bg-indigo-950/40 border border-indigo-500/10 px-1.5 py-0.5 rounded-md">{tx.folio}</span>
+                        <span className="text-sm font-black text-carbon-950 truncate">{tx.customerName || 'Venta Mostrador'}</span>
                       </div>
                       
                       <p className="text-[10px] text-slate-500 mt-1 italic line-clamp-1 w-full max-w-[200px] sm:max-w-[280px]">{tx.notes}</p>

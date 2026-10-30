@@ -19,13 +19,13 @@ function Delta({ v }: { v: number | null }) {
 function Bars({ data, labels, highlight }: { data: number[]; labels: string[]; highlight?: number }) {
   const max = Math.max(1, ...data);
   return (
-    <div className="flex items-end gap-1 h-36">
+    <div className="flex items-end gap-0.5 sm:gap-1 h-36">
       {data.map((v, i) => (
         <div key={i} className="flex-1 h-full flex flex-col items-center gap-1 min-w-0" title={`${labels[i]}: $${money(v)}`}>
           <div className="w-full flex-1 flex items-end">
             <div className={`w-full rounded-t-md ${i === highlight ? 'bg-maiz-400' : 'bg-agave-400'}`} style={{ height: `${Math.max(2, (v / max) * 100)}%` }} />
           </div>
-          <div className="text-[10px] font-medium text-carbon-600 truncate w-full text-center">{labels[i]}</div>
+          <div className={`text-[10px] font-medium text-carbon-600 truncate w-full text-center ${data.length > 12 && i % 3 !== 0 ? 'invisible sm:visible' : ''}`}>{labels[i]}</div>
         </div>
       ))}
     </div>

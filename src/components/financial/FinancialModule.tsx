@@ -232,18 +232,18 @@ export function FinancialModule() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-5">
           <div className="text-xs text-emerald-400 font-bold uppercase tracking-widest">Ventas</div>
-          <div className="text-3xl font-black text-emerald-400 mt-1">${F(salesSummary.total)}</div>
+          <div className="text-xl sm:text-3xl font-black text-emerald-400 mt-1 tabular-nums break-all">${F(salesSummary.total)}</div>
           <div className="text-[10px] text-slate-500 mt-1 font-medium">{filteredTxs.length} transacciones</div>
         </div>
         <div className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-5">
           <div className="text-xs text-rose-400 font-bold uppercase tracking-widest">Gastos</div>
-          <div className="text-3xl font-black text-rose-400 mt-1">${F(totalExpenses)}</div>
+          <div className="text-xl sm:text-3xl font-black text-rose-400 mt-1 tabular-nums break-all">${F(totalExpenses)}</div>
         </div>
         <div className={clsx('rounded-2xl p-5 border', utilidad >= 0 ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-rose-500/10 border-rose-500/20')}>
           <div className={clsx('text-xs font-bold uppercase tracking-widest', utilidad >= 0 ? 'text-emerald-400' : 'text-rose-400')}>
             Utilidad
           </div>
-          <div className={clsx('text-3xl font-black mt-1', utilidad >= 0 ? 'text-emerald-400' : 'text-rose-400')}>
+          <div className={clsx('text-xl sm:text-3xl font-black mt-1 tabular-nums break-all', utilidad >= 0 ? 'text-emerald-400' : 'text-rose-400')}>
             ${F(utilidad)}
           </div>
           <div className={clsx('text-xs font-bold mt-1 flex items-center gap-1', utilidad >= 0 ? 'text-emerald-400' : 'text-rose-400')}>
@@ -253,7 +253,7 @@ export function FinancialModule() {
         </div>
         <div className="bg-slate-900 border border-carbon-950/10 rounded-2xl p-5">
           <div className="text-xs text-slate-500 font-bold uppercase tracking-widest">Transacciones</div>
-          <div className="text-3xl font-black text-carbon-950 mt-1">{filteredTxs.length}</div>
+          <div className="text-xl sm:text-3xl font-black text-carbon-950 mt-1 tabular-nums break-all">{filteredTxs.length}</div>
           <div className="text-[10px] text-slate-600 mt-1 font-medium">{filteredTxs.filter(tx => tx.amount > 0).length} con monto</div>
         </div>
       </div>

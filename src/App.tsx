@@ -626,7 +626,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
         </div>
       </nav>
 
-      <div className="flex-grow relative flex overflow-hidden">
+      <div className="flex-grow min-w-0 relative flex overflow-hidden">
         <div className={cn(
             "absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1000px] h-[500px] opacity-[0.06] blur-[120px] pointer-events-none transition-colors duration-1000 no-print",
             settings.platform === 'Uber' && "bg-green-600",
@@ -634,11 +634,11 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
             settings.platform === 'Rappi' && "bg-pink-600"
         )} />
 
-        <div className="flex-grow px-6 py-6 overflow-auto relative z-10 no-scrollbar">
+        <div className="flex-grow min-w-0 px-3 py-4 sm:px-6 sm:py-6 overflow-auto relative z-40 no-scrollbar">
           <div className="w-full">
             <header className="mb-6 flex flex-col sm:flex-row items-baseline sm:items-center justify-between gap-4 no-print">
               <div>
-                <h1 className="font-display text-3xl font-bold text-carbon-950 tracking-[-0.02em]">
+                <h1 className="font-display text-2xl sm:text-3xl font-bold text-carbon-950 tracking-[-0.02em]">
                   {shownTab === 'profits' && 'Análisis de Ganancias de Tienda Física'}
                   {shownTab === 'pricing' && 'Estrategia de Precios'}
                   {shownTab === 'pos' && 'Punto de venta'}
@@ -681,24 +681,24 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                 </div>
               )}
               {(shownTab === 'profits' || shownTab === 'pricing' || shownTab === 'menu') && (
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
                     <button
                         onClick={() => setIsImportModalOpen(true)}
-                        className="bg-slate-900 border border-emerald-500/30 hover:bg-slate-800 text-emerald-400 px-6 py-3 rounded-2xl font-black text-sm transition-all shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-emerald-500/10 active:scale-95 flex items-center gap-2"
+                        className="bg-slate-900 border border-emerald-500/30 hover:bg-slate-800 text-emerald-400 px-4 py-2.5 sm:px-6 sm:py-3 rounded-2xl font-black text-xs sm:text-sm transition-all shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-emerald-500/10 active:scale-95 flex items-center gap-2"
                     >
                         <FileSpreadsheet size={18} />
                         IMPORTAR MENÚ
                     </button>
                     <button
                         onClick={() => setIsScannerOpen(true)}
-                        className="bg-slate-900 border border-indigo-500/30 hover:bg-slate-800 text-indigo-400 px-6 py-3 rounded-2xl font-black text-sm transition-all shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/10 active:scale-95 flex items-center gap-2"
+                        className="bg-slate-900 border border-indigo-500/30 hover:bg-slate-800 text-indigo-400 px-4 py-2.5 sm:px-6 sm:py-3 rounded-2xl font-black text-xs sm:text-sm transition-all shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/10 active:scale-95 flex items-center gap-2"
                     >
                         <Sparkles size={18} /> ESCANEAR MENÚ
                     </button>
                     {(shownTab === 'profits' || shownTab === 'pricing') && (
                         <button
                           onClick={addRowVisible}
-                          className="bg-indigo-500 hover:bg-indigo-400 text-white px-6 py-3 rounded-2xl font-black text-sm transition-all shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20 active:scale-95 flex items-center gap-2"
+                          className="bg-indigo-500 hover:bg-indigo-400 text-white px-4 py-2.5 sm:px-6 sm:py-3 rounded-2xl font-black text-xs sm:text-sm transition-all shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20 active:scale-95 flex items-center gap-2"
                         >
                           <Plus size={18} strokeWidth={3} /> AGREGAR PRODUCTO
                         </button>

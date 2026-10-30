@@ -357,3 +357,8 @@ input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer
 .cd-sign { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; margin-top: 30px; text-align: center; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; }
 .cd-sign span { display: block; border-top: 1px solid var(--cd-ink); margin-bottom: 3px; }
 .cd-foot { margin-top: 8px; text-align: center; font-size: 9px; color: #4f5d56; }
+
+/* Móvil: los hijos de grid no deben ensanchar la pantalla por su contenido mínimo */
+@layer base {
+  .grid > * { min-width: 0; }
+}

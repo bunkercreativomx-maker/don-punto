@@ -455,7 +455,7 @@ export function POSDashboard() {
                             <ShoppingCart size={20} className="text-indigo-400"/> Menú
                         </h2>
                         <div className="h-4 w-px bg-carbon-950/10 hidden sm:block"></div>
-                        <div className="flex bg-slate-950 p-1 rounded-xl border border-carbon-950/10">
+                        <div className="grid grid-cols-4 w-full sm:w-auto sm:flex bg-slate-950 p-1 rounded-xl border border-carbon-950/10">
                             {(['Tienda', 'Uber', 'Didi', 'Rappi'] as OrderDestination[]).map(d => {
                                 const activeColors: Record<string, string> = {
                                     Tienda: 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20',
@@ -468,7 +468,7 @@ export function POSDashboard() {
                                         key={d}
                                         onClick={() => setOrderDestination(d)}
                                         className={cn(
-                                            "px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center gap-1.5",
+                                            "px-1.5 sm:px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-1 sm:gap-1.5",
                                             orderDestination === d ? activeColors[d] : "text-slate-500 hover:text-slate-300"
                                         )}
                                     >
@@ -681,9 +681,9 @@ export function POSDashboard() {
                             </div>
                         )}
                         {/* Descuento: el mesero no puede */}
-                        {!waiterMode && <div className="flex items-center gap-2 bg-slate-950/50 border border-carbon-950/10 rounded-xl px-3 py-1.5">
+                        {!waiterMode && <div className="flex flex-wrap items-center gap-2 bg-slate-950/50 border border-carbon-950/10 rounded-xl px-3 py-1.5">
                             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Descuento:</span>
-                            <div className="flex items-center gap-2 flex-grow justify-end">
+                            <div className="flex items-center gap-2 flex-grow justify-end min-w-0">
                                 <input
                                     type="number"
                                     min="0"
