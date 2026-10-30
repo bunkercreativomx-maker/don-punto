@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { adminToken, pbFetch, HttpError, sendError, rateLimit, readJsonBody } from './_lib/server.js';
-import { kvGet, sendToUser } from './_lib/push.js';
+import { kvGet, kvSet, sendToUser } from './_lib/push.js';
 import { SUPPORT_KB } from './_lib/support-kb.js';
 
 // Chat de soporte propio de Don Punto (sin terceros).
@@ -35,6 +35,14 @@ async function tg(method: string, body: unknown) {
     body: JSON.stringify(body),
   });
   const data: any = await r.json().catch(() => null);
+  // El grupo se convirtió en supergrupo (pasa al cambiar ajustes/foto): nuevo chat_id, se guarda y se reintenta
+  const moved = data?.parameters?.migrate_to_chat_id;
+  if (!data?.ok && moved && (body as any)?.chat_id !== undefined && String((body as any).chat_id) === String(cfg.chat_id)) {
+    const next = { ...cfg, chat_id: String(moved) };
+    await kvSet('support_tg', next);
+    cfgCache = { at: Date.now(), v: next };
+    return tg(method, { ...(body as any), chat_id: next.chat_id });
+  }
   if (!data?.ok) console.error('telegram', method, data?.description);
   return data?.result ?? null;
 }
@@ -207,6 +215,12 @@ async function handleTelegram(req: any, res: any) {
   const update = await readJsonBody(req);
   const m = update?.message;
   // Solo el chat de soporte configurado puede responder
+  if (m?.migrate_to_chat_id && String(m.chat?.id) === String(cfg.chat_id)) {
+    const next = { ...cfg, chat_id: String(m.migrate_to_chat_id) };
+    await kvSet('support_tg', next);
+    cfgCache = { at: Date.now(), v: next };
+    return res.status(200).json({ ok: true });
+  }
   if (!m || String(m.chat?.id) !== String(cfg.chat_id)) return res.status(200).json({ ok: true });
 
   const reply = (text: string) => tg('sendMessage', { chat_id: cfg.chat_id, text, reply_to_message_id: m.message_id });
