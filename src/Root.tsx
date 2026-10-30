@@ -9,7 +9,8 @@ import { supportLink } from './config';
 import { Mark } from './components/brand/Logo';
 import { setPlan, type Plan } from './lib/session';
 import { storeSlugFromPath } from './lib/onlineStore';
-import { loadTawk, setTawkBubble, setTawkUser } from './lib/tawk';
+import { setSupportBubble } from './lib/support';
+import { SupportChat } from './components/support/SupportChat';
 
 const App = lazy(() => import('./App'));
 const StorePage = lazy(() => import('./components/online/StorePage'));
@@ -118,10 +119,9 @@ function RootApp() {
 
   // Chat de soporte: burbuja en landing/login/membresía; dentro del POS solo con el botón "Ayuda"
   useEffect(() => {
-    loadTawk();
-    setTawkBubble(phase !== 'ready' || sub.status !== 'active');
+    setSupportBubble(phase !== 'ready' || sub.status !== 'active');
   }, [phase, sub.status]);
-  useEffect(() => { setTawkUser(email); }, [email]);
+  const withChat = (node: React.ReactNode) => <>{node}<SupportChat email={email} /></>;
 
   // Color de la barra del navegador: claro en la página de ventas, oscuro dentro de la app
   useEffect(() => {
@@ -203,7 +203,7 @@ function RootApp() {
   }
 
   if (phase === 'landing') {
-    return (
+    return withChat(
       <Suspense fallback={<Splash />}>
         <LandingPage onLogin={() => setPhase('auth')} onSubscribe={() => setPhase('auth')} />
       </Suspense>
@@ -211,7 +211,7 @@ function RootApp() {
   }
 
   if (phase === 'auth') {
-    return (
+    return withChat(
       <AuthPage
         onBack={() => setPhase('landing')}
         onAuthSuccess={() => {
@@ -223,7 +223,7 @@ function RootApp() {
   }
 
   if (sub.status !== 'active' || verifying) {
-    return (
+    return withChat(
       <SubscriptionGate
         status={sub.status}
         email={email}
@@ -235,7 +235,7 @@ function RootApp() {
   }
 
   setPlan(sub.plan || 'cortesia');
-  return (
+  return withChat(
     <>
       <Suspense fallback={<Splash text="Cargando tus datos…" />}>
         <App key={uid} userEmail={email} onLogout={logout} onBilling={billing} />

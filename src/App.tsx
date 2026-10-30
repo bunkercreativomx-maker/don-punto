@@ -24,8 +24,7 @@ import { RecipesModule } from './components/recipes/RecipesModule';
 import { FinancialModule } from './components/financial/FinancialModule';
 import { storeGet, storeSet } from './lib/cloudStore';
 import { money } from './lib/format';
-import { openTawk } from './lib/tawk';
-import { supportLink } from './config';
+import { openSupport } from './lib/support';
 import { PinPad } from './components/access/PinPad';
 import { useSession, findOperatorByPin, ROLE_LABEL, signIn, canAccess as canAccessAs, lockSession, requiresCashierLogin, currentBranch, getBranches, isPro, TAB_LABEL, CAJA_CONFIGURABLE, getCajaTabs, setCajaTabs, type Tab } from './lib/session';
 import { setActiveBranch } from './lib/cloudStore';
@@ -587,11 +586,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
           </button>
           <InstallAppButton compact label="Instalar app" className="p-3 lg:px-3 rounded-xl transition-all text-maiz-400 hover:bg-maiz-500/10 gap-3 border border-transparent" />
           <button
-            onClick={() => {
-              if (openTawk()) return;
-              const link = supportLink(`Hola, necesito ayuda con Don Punto (${userEmail ?? ''}).`);
-              if (link) window.open(link, '_blank');
-            }}
+            onClick={openSupport}
             className="p-3 lg:px-3 rounded-xl transition-all text-slate-500 hover:text-agave-700 hover:bg-agave-50 flex items-center gap-3 border border-transparent"
             title="Ayuda · chat con soporte"
           >
