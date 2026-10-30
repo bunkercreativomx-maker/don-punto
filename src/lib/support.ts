@@ -1,7 +1,7 @@
 // Estado del chat de soporte propio (sin terceros). Los mensajes van a /api/support → Telegram de Pako.
 import { pb } from './pocketbase';
 
-export interface SupportMsg { id: string; from: 'user' | 'agent'; text: string; at: number; pending?: boolean }
+export interface SupportMsg { id: string; from: 'user' | 'agent'; text: string; at: number; bot?: boolean; pending?: boolean }
 
 const VT_KEY = 'dp:support:vt';
 const SEEN_KEY = 'dp:support:seen';
@@ -18,8 +18,8 @@ export function visitorToken(): string {
   return vt;
 }
 
-type State = { open: boolean; bubble: boolean; messages: SupportMsg[]; unread: number; enabled: boolean };
-let state: State = { open: false, bubble: true, messages: [], unread: 0, enabled: false };
+type State = { open: boolean; bubble: boolean; messages: SupportMsg[]; unread: number; enabled: boolean; typing: boolean };
+let state: State = { open: false, bubble: true, messages: [], unread: 0, enabled: false, typing: false };
 const subs = new Set<(s: State) => void>();
 function set(p: Partial<State>) {
   state = { ...state, ...p };
@@ -80,25 +80,25 @@ export async function poll() {
 
 export function savedName() { return localStorage.getItem(NAME_KEY) || ''; }
 
-export async function sendSupport(text: string, contact?: { name?: string; email?: string }) {
+export async function sendSupport(text: string, contact?: { name?: string; email?: string }, human = false) {
   const t = text.trim();
   if (!t) return;
   if (contact?.name) localStorage.setItem(NAME_KEY, contact.name);
   const tmp: SupportMsg = { id: 'tmp' + Date.now(), from: 'user', text: t, at: Date.now(), pending: true };
-  set({ messages: [...state.messages, tmp] });
+  set({ messages: [...state.messages, tmp], typing: true });
   try {
     const r = await fetch('/api/support', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(pb.authStore.isValid ? { Authorization: pb.authStore.token } : {}) },
-      body: JSON.stringify({ action: 'send', vt: visitorToken(), text: t, name: contact?.name || savedName(), email: contact?.email, page: location.pathname }),
+      body: JSON.stringify({ action: 'send', vt: visitorToken(), text: t, name: contact?.name || savedName(), email: contact?.email, page: location.pathname, human }),
     });
     const data = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(data?.error || 'No se pudo enviar.');
     localStorage.setItem('dp:support:active', '1');
-    set({ messages: state.messages.filter((m) => m.id !== tmp.id) });
     await poll();
+    set({ messages: state.messages.filter((m) => m.id !== tmp.id), typing: false });
   } catch (e) {
-    set({ messages: state.messages.filter((m) => m.id !== tmp.id) });
+    set({ messages: state.messages.filter((m) => m.id !== tmp.id), typing: false });
     throw e;
   }
 }

@@ -2,6 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
 import { subscribeSupport, getSupport, openSupport, closeSupport, sendSupport, savedName, startSupportPolling, checkSupportEnabled } from '../../lib/support';
 
+/** **negritas** del asistente → <strong> (sin HTML crudo) */
+function rich(t: string) {
+  return t.split(/(\*\*[^*]+\*\*)/g).map((part, i) => part.startsWith('**') && part.endsWith('**') ? <strong key={i}>{part.slice(2, -2)}</strong> : part);
+}
+
 /** Chat de soporte de Don Punto. Burbuja flotante (si `bubble`) + panel. Pako contesta desde Telegram. */
 export function SupportChat({ email }: { email: string | null }) {
   const [s, setS] = useState(getSupport());
@@ -30,16 +35,16 @@ export function SupportChat({ email }: { email: string | null }) {
   const first = s.messages.length === 0;
   const needsContact = first && !email;
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!text.trim() || sending) return;
+  const submit = async (e: React.FormEvent | null, human = false) => {
+    e?.preventDefault();
+    const t = human ? (text.trim() || 'Quiero hablar con una persona.') : text;
+    if (!t.trim() || sending) return;
     if (needsContact && !name.trim()) { setError('Escribe tu nombre.'); return; }
     setSending(true);
     setError('');
-    const t = text;
     setText('');
     try {
-      await sendSupport(t, needsContact ? { name: name.trim(), email: mail.trim() } : undefined);
+      await sendSupport(t, needsContact ? { name: name.trim(), email: mail.trim() } : undefined, human);
     } catch (err: any) {
       setText(t);
       setError(err?.message || 'No se pudo enviar. Revisa tu internet.');
@@ -73,14 +78,14 @@ export function SupportChat({ email }: { email: string | null }) {
         <div className="h-9 w-9 rounded-full bg-white/15 flex items-center justify-center"><MessageCircle size={18} /></div>
         <div className="flex-1 min-w-0">
           <div className="font-bold text-sm leading-tight">Soporte Don Punto</div>
-          <div className="text-[11px] text-white/80">Te contestamos aquí mismo</div>
+          <div className="text-[11px] text-white/80">Asistente al instante · o habla con una persona</div>
         </div>
         <button onClick={closeSupport} className="p-1.5 rounded-lg hover:bg-white/15" aria-label="Cerrar chat"><X size={18} /></button>
       </div>
 
       <div ref={listRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-2 bg-[#F6F5F1]">
         <div className="max-w-[85%] rounded-2xl rounded-tl-md bg-white border border-carbon-950/5 px-3 py-2 text-sm text-carbon-800">
-          ¡Hola! 👋 ¿En qué te ayudamos? Escribe tu duda y te respondemos en este chat.
+          ¡Hola! 👋 Soy el asistente de Don Punto. Pregúntame cómo usar la app o lo que necesites. Si hace falta, te paso con una persona del equipo.
         </div>
         {s.messages.map((m) => (
           <div key={m.id} className={m.from === 'user' ? 'flex justify-end' : 'flex'}>
@@ -89,15 +94,16 @@ export function SupportChat({ email }: { email: string | null }) {
                 ? 'max-w-[85%] rounded-2xl rounded-tr-md bg-agave-600 text-white px-3 py-2 text-sm whitespace-pre-wrap break-words'
                 : 'max-w-[85%] rounded-2xl rounded-tl-md bg-white border border-carbon-950/5 px-3 py-2 text-sm text-carbon-800 whitespace-pre-wrap break-words'
             }>
-              {m.text}
+              {m.from === 'agent' && <div className="text-[10px] font-bold text-agave-700 mb-0.5">{m.bot ? 'Asistente' : 'Equipo Don Punto'}</div>}
+              {rich(m.text)}
               <div className={m.from === 'user' ? 'text-[10px] text-white/70 text-right mt-0.5' : 'text-[10px] text-carbon-400 mt-0.5'}>
                 {m.pending ? 'Enviando…' : time(m.at)}
               </div>
             </div>
           </div>
         ))}
-        {s.messages.length > 0 && s.messages[s.messages.length - 1].from === 'user' && !s.messages[s.messages.length - 1].pending && (
-          <div className="text-center text-[11px] text-carbon-400 pt-1">Recibido ✓ En un momento te contestamos.</div>
+        {s.typing && (
+          <div className="flex"><div className="rounded-2xl rounded-tl-md bg-white border border-carbon-950/5 px-3 py-2 text-sm text-carbon-400">Escribiendo…</div></div>
         )}
       </div>
 
@@ -107,6 +113,9 @@ export function SupportChat({ email }: { email: string | null }) {
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Tu nombre" maxLength={80} className="rounded-xl border border-carbon-950/10 px-3 py-2 text-sm outline-none focus:border-agave-500" />
             <input value={mail} onChange={(e) => setMail(e.target.value)} placeholder="Correo (opcional)" type="email" maxLength={120} className="rounded-xl border border-carbon-950/10 px-3 py-2 text-sm outline-none focus:border-agave-500" />
           </div>
+        )}
+        {!needsContact && !s.typing && (
+          <button type="button" onClick={() => submit(null, true)} disabled={sending} className="text-[11px] font-semibold text-agave-700 underline underline-offset-2 px-1">Hablar con una persona</button>
         )}
         {error && <div className="text-xs text-rose-600 px-1">{error}</div>}
         <div className="flex gap-2 items-end">

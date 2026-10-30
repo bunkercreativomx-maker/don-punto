@@ -1,6 +1,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { adminToken, pbFetch, HttpError, sendError, rateLimit, readJsonBody } from './_lib/server.js';
 import { kvGet, sendToUser } from './_lib/push.js';
+import { SUPPORT_KB } from './_lib/support-kb.js';
 
 // Chat de soporte propio de Don Punto (sin terceros).
 //  GET  ?vt=<token visitante>&after=<ms>   → mensajes del hilo
@@ -46,7 +47,7 @@ async function threadByVt(token: string, vt: string) {
 async function messages(token: string, threadId: string, after = 0) {
   const filter = `thread = "${threadId}"` + (after > 0 ? ` && at > ${Math.floor(after)}` : '');
   const r = await pbFetch(`/api/collections/support_messages/records?perPage=200&sort=at&filter=${q(filter)}`, { token });
-  return (r.data?.items || []).map((m: any) => ({ id: m.id, from: m.from, text: m.text, at: m.at }));
+  return (r.data?.items || []).map((m: any) => ({ id: m.id, from: m.from, text: m.text, at: m.at, bot: !!m.bot }));
 }
 
 /** Usuario con sesión (opcional): solo para mostrar su correo en Telegram y mandarle push */
@@ -77,6 +78,7 @@ async function handleSend(req: any, res: any) {
 
   let thread = await threadByVt(token, vt);
   const isNew = !thread;
+  const prevLast = Number(thread?.last_at || 0);
   if (!thread) {
     const r = await pbFetch('/api/collections/support_threads/records', { method: 'POST', token, body: { vt: vtHash(vt), user: user?.id || '', name, email, last_at: now } });
     if (!r.ok) throw new HttpError(500, 'No se pudo abrir el chat. Intenta de nuevo.');
@@ -93,16 +95,107 @@ async function handleSend(req: any, res: any) {
   const msg = await pbFetch('/api/collections/support_messages/records', { method: 'POST', token, body: { thread: thread.id, from: 'user', text, at: now } });
   if (!msg.ok) throw new HttpError(500, 'No se pudo enviar. Intenta de nuevo.');
 
-  // Aviso a Telegram (Pako responde con "Responder" a este mensaje)
-  const who = [thread.name, thread.email].filter(Boolean).join(' · ') || 'Visitante';
-  const where = str(body.page, 60);
-  const head = `💬 <b>${htmlEsc(who)}</b>${thread.user ? ' (cliente con cuenta)' : ''}${isNew ? ' · <i>chat nuevo</i>' : ''}${where ? `\n📍 ${htmlEsc(where)}` : ''}`;
-  const sent = await tg('sendMessage', { chat_id: (await tgCfg())?.chat_id, parse_mode: 'HTML', text: `${head}\n\n${htmlEsc(text)}\n\n<i>↩️ Responde a este mensaje para contestarle · #c${thread.id}</i>` });
-  if (sent?.message_id) {
-    await pbFetch(`/api/collections/support_messages/records/${msg.data.id}`, { method: 'PATCH', token, body: { tg_msg_id: sent.message_id } });
+  // ¿Quién contesta? Asistente IA, salvo que el chat ya esté con una persona (se regresa al asistente tras 12 h sin actividad)
+  const humanActive = thread.mode === 'human' && now - prevLast < HUMAN_TTL;
+  const wantsHuman = body.human === true;
+
+  if (!humanActive && !wantsHuman) {
+    const history = await messages(token, thread.id);
+    const ai = await askAssistant(history, { name: thread.name, hasAccount: !!thread.user, page: str(body.page, 60) });
+    if (ai && !ai.escalate) {
+      await saveBot(token, thread.id, ai.reply);
+      if (thread.mode !== 'bot') await setMode(token, thread.id, 'bot');
+      return res.status(200).json({ ok: true, at: now, by: 'bot' });
+    }
+    // No supo, falló la IA o pidió una persona → pasa al equipo con el contexto
+    await saveBot(token, thread.id, (ai?.reply ? ai.reply + '\n\n' : '') + HANDOFF);
+    const sent = await notifyTeam(token, thread, history, { isNew, page: str(body.page, 60), reason: ai?.reason || 'El asistente no pudo responder' });
+    await setMode(token, thread.id, 'human');
+    return res.status(200).json({ ok: true, at: now, by: 'human', delivered: !!sent });
   }
 
-  return res.status(200).json({ ok: true, at: now, delivered: !!sent });
+  if (wantsHuman && thread.mode !== 'human') {
+    const history = await messages(token, thread.id);
+    await saveBot(token, thread.id, HANDOFF);
+    const sent = await notifyTeam(token, thread, history, { isNew, page: str(body.page, 60), reason: 'El cliente pidió hablar con una persona' });
+    await setMode(token, thread.id, 'human');
+    return res.status(200).json({ ok: true, at: now, by: 'human', delivered: !!sent });
+  }
+
+  // Ya está con una persona: el mensaje va directo a Telegram
+  const sent = await notifyTeam(token, thread, [{ from: 'user', text }], { isNew: false, page: str(body.page, 60), msgId: msg.data.id });
+  return res.status(200).json({ ok: true, at: now, by: 'human', delivered: !!sent });
+}
+
+const HUMAN_TTL = 12 * 3600 * 1000;
+const HANDOFF = '👋 Te comunico con una persona del equipo de Don Punto. Te contestamos aquí mismo en cuanto podamos; puedes cerrar esta ventana, tu chat se queda guardado.';
+
+async function setMode(token: string, id: string, mode: 'bot' | 'human') {
+  await pbFetch(`/api/collections/support_threads/records/${id}`, { method: 'PATCH', token, body: { mode } });
+}
+async function saveBot(token: string, thread: string, text: string) {
+  await pbFetch('/api/collections/support_messages/records', { method: 'POST', token, body: { thread, from: 'agent', bot: true, text: text.slice(0, 2000), at: Date.now() } });
+}
+
+/** Manda a Telegram: si es escalamiento, la conversación completa; si no, solo el mensaje nuevo */
+async function notifyTeam(token: string, thread: any, history: { from: string; text: string; bot?: boolean }[], o: { isNew: boolean; page?: string; reason?: string; msgId?: string }) {
+  const cfg = await tgCfg();
+  if (!cfg) return null;
+  const who = [thread.name, thread.email].filter(Boolean).join(' · ') || 'Visitante';
+  const head = `${o.reason ? '🙋 <b>Necesita a una persona</b>\n' : '💬 '}<b>${htmlEsc(who)}</b>${thread.user ? ' (cliente con cuenta)' : ''}${o.page ? `\n📍 ${htmlEsc(o.page)}` : ''}${o.reason ? `\n<i>${htmlEsc(o.reason)}</i>` : ''}`;
+  const convo = history.slice(-10).map((m) => `${m.from === 'user' ? '👤' : m.bot ? '🤖' : '🧑‍💼'} ${htmlEsc(m.text.slice(0, 500))}`).join('\n\n');
+  const text = `${head}\n\n${convo}\n\n<i>↩️ Responde a este mensaje para contestarle · #c${thread.id}</i>`.slice(0, 4000);
+  const sent = await tg('sendMessage', { chat_id: cfg.chat_id, parse_mode: 'HTML', text });
+  if (sent?.message_id) {
+    let id = o.msgId;
+    if (!id) {
+      const last = await pbFetch(`/api/collections/support_messages/records?perPage=1&sort=-at&filter=${q(`thread = "${thread.id}" && from = "user"`)}`, { token });
+      id = last.data?.items?.[0]?.id;
+    }
+    if (id) await pbFetch(`/api/collections/support_messages/records/${id}`, { method: 'PATCH', token, body: { tg_msg_id: sent.message_id } });
+  }
+  return sent;
+}
+
+// ---------------------------------------------------------------- asistente IA (Gemini)
+async function askAssistant(history: { from: string; text: string; bot?: boolean }[], ctx: { name?: string; hasAccount: boolean; page?: string }): Promise<{ reply: string; escalate: boolean; reason?: string } | null> {
+  const key = (process.env.GEMINI_API_KEY || '').trim();
+  if (!key) return null;
+  const system = `Eres el asistente de soporte de Don Punto, un punto de venta para restaurantes y negocios de comida en México.
+Contestas en español mexicano, amable, claro y CORTO (máximo ~120 palabras), con pasos numerados cuando aplique y los nombres de botones en **negritas** tal como aparecen en la app.
+Usa SOLO la información de la GUÍA de abajo. Si la respuesta no está en la guía, no la inventes: escala a una persona.
+Reglas de marca: no menciones marcas de terceros (nada de Uber, DiDi, Rappi, WhatsApp, Excel, Android); di "apps de comida a domicilio", "hoja de cálculo", "tu celular". Nada es gratis salvo la prueba de 15 días. Marca "(plan Pro)" en funciones Pro.
+ESCALA (escalate=true) cuando: pide hablar con una persona; es un problema de cobro, cargo, reembolso, cancelación con problema o cuenta bloqueada; reporta un error/falla que la guía no resuelve; pide algo que Don Punto no hace y quiere que se lo hagan; está molesto; o no estás seguro. Al escalar, reply = una frase breve de empatía (sin prometer tiempos).
+Contexto: ${ctx.hasAccount ? 'el usuario YA tiene cuenta y está dentro de la app' : 'visitante (puede no tener cuenta)'}${ctx.name ? `, se llama ${ctx.name}` : ''}${ctx.page ? `, está en ${ctx.page}` : ''}.
+Responde SOLO JSON: {"reply": string, "escalate": boolean, "reason": string (por qué escalas, para el equipo; vacío si no)}
+
+=== GUÍA DE DON PUNTO ===
+${SUPPORT_KB}`;
+  const contents = history.slice(-12).map((m) => ({ role: m.from === 'user' ? 'user' : 'model', parts: [{ text: m.text }] }));
+  try {
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 20000);
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: ctrl.signal,
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: system }] },
+        contents,
+        generationConfig: { temperature: 0.2, responseMimeType: 'application/json', maxOutputTokens: 2048, thinkingConfig: { thinkingBudget: 512 } },
+      }),
+    });
+    clearTimeout(to);
+    const data: any = await r.json();
+    const raw = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || '').join('') || '';
+    const out = JSON.parse(raw);
+    const reply = str(out.reply, 1500);
+    if (!reply && !out.escalate) return null;
+    return { reply, escalate: !!out.escalate, reason: str(out.reason, 200) };
+  } catch (e) {
+    console.error('assistant', e);
+    return null;
+  }
 }
 
 async function handleTelegram(req: any, res: any) {
