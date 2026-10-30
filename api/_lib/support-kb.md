@@ -46,6 +46,9 @@ Entra a **Ajustes** con el PIN del dueño. Si nunca lo cambiaste, el PIN de fáb
 5. El **IVA de tus ventas, reportes y cortes** se configura en **Reportes → Configuración de IVA** (un porcentaje, 16 por defecto).
 6. **Notificaciones:** la tarjeta está hasta arriba de Ajustes (ver más abajo).
 
+### Tour de bienvenida
+Las cuentas nuevas ven un tour al entrar por primera vez: cambia el **PIN de dueño** (4 números, distinto de 1234) y muestra para qué sirve cada sección del menú. Para repetirlo: **Ajustes** → **Seguridad Antifraude** → **Ver tour de bienvenida**.
+
 ### Agregar productos, categorías y modificadores
 - **Crear productos:** en **Tienda Física** (o **Plataformas**) toca **AGREGAR PRODUCTO** y llena nombre, **Costo ($)** y **Precio ($)**. Ahí ves cuánto recibes, IVA, ganancia y margen; el bote de basura elimina el producto.
 - **Categorías:** en **Catálogo**, escribe en **Nueva categoría...** y presiona Enter o el botón de agregar.
