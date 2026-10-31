@@ -39,19 +39,25 @@ function recount(messages: SupportMsg[]) {
   return messages.filter((m) => m.from === 'agent' && m.at > s).length;
 }
 
-// El chat solo aparece cuando el bot de Telegram de soporte está conectado
+// El chat solo aparece cuando el bot de Telegram de soporte está conectado.
+// Si la última respuesta fue "apagado" (o falló), se vuelve a preguntar: la app instalada
+// puede pasar días abierta y no debe quedarse pegada en el aviso por correo.
 let checking: Promise<void> | null = null;
-export function checkSupportEnabled() {
-  checking ||= (async () => {
+let checkedAt = 0;
+export function checkSupportEnabled(force = false) {
+  if (checking && !force && (state.enabled || Date.now() - checkedAt < 30 * 1000)) return checking;
+  checkedAt = Date.now();
+  checking = (async () => {
     try {
-      const r = await fetch('/api/support?status=1');
+      const r = await fetch('/api/support?status=1', { cache: 'no-store' });
       if (r.ok) set({ enabled: !!(await r.json()).enabled });
     } catch { /* sin internet */ }
   })();
   return checking;
 }
 
-export function openSupport() {
+export async function openSupport() {
+  if (!state.enabled) await checkSupportEnabled(true);
   if (!state.enabled) {
     location.href = `mailto:soporte@donpunto.com?subject=${encodeURIComponent('Ayuda Don Punto')}`;
     return;
@@ -114,5 +120,5 @@ export function startSupportPolling() {
   };
   if (localStorage.getItem('dp:support:active') === '1') poll();
   timer = setTimeout(tick, 4000);
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && localStorage.getItem('dp:support:active') === '1') poll(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !state.enabled) checkSupportEnabled(); if (document.visibilityState === 'visible' && localStorage.getItem('dp:support:active') === '1') poll(); });
 }
