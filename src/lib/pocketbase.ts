@@ -9,4 +9,7 @@ if (!PB_URL) {
   );
 }
 
-export const pb = new PocketBase(PB_URL || 'https://donpunto-pb.bunkeragent.cloud');
+// En donpunto.com el navegador habla con PocketBase por el MISMO dominio (/pb → rewrite de Vercel).
+// Mandar la contraseña a otro dominio (*.bunkeragent.cloud) hacía que antivirus marcaran el login como phishing.
+const SAME_ORIGIN = typeof location !== 'undefined' && /(^|\.)donpunto\.com$/.test(location.hostname);
+export const pb = new PocketBase(SAME_ORIGIN ? `${location.origin}/pb` : PB_URL || 'https://donpunto-pb.bunkeragent.cloud');

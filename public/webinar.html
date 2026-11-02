@@ -258,7 +258,7 @@ const WEBINAR = {
   minutes: 60,
   title: 'Webinar Don Punto: cuentas claras para tu negocio de comida',
 };
-const PB = 'https://donpunto-pb.bunkeragent.cloud';
+const PB = /(^|\.)donpunto\.com$/.test(location.hostname) ? location.origin + '/pb' : 'https://donpunto-pb.bunkeragent.cloud';
 // ========================================================
 const start = new Date(WEBINAR.start), end = new Date(start.getTime() + WEBINAR.minutes * 60000);
 const tz = 'America/Ciudad_Juarez';
