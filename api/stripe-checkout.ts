@@ -55,7 +55,7 @@ export default async function handler(req: any, res: any) {
       metadata: { uid: m.user.id, plan },
       payment_method_collection: 'always',
       subscription_data: { metadata: { uid: m.user.id, plan }, ...trial },
-      success_url: `${APP_URL}/?pago=ok`,
+      success_url: `${APP_URL}/?pago=ok&plan=${plan}&trial=${firstTime ? 1 : 0}`,
       cancel_url: `${APP_URL}/?pago=cancelado`,
     });
     return res.status(200).json({ url: session.url });

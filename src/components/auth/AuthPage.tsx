@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { track } from '../../lib/pixel';
 import { Mail, Lock, Building2, ChevronRight, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
 import { pb } from '../../lib/pocketbase';
 import { Logo } from '../brand/Logo';
@@ -54,6 +55,7 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
                 await pb.collection('users').authWithPassword(cleanEmail, password);
                 // Crear su restaurante
                 await pb.collection('restaurants').create({ name: restaurantName.trim(), owner: newUser.id });
+                track('CompleteRegistration');
                 onAuthSuccess();
             }
         } catch (err: any) {

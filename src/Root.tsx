@@ -11,6 +11,8 @@ import { setPlan, type Plan } from './lib/session';
 import { storeSlugFromPath } from './lib/onlineStore';
 import { setSupportBubble } from './lib/support';
 import { SupportChat } from './components/support/SupportChat';
+import { track } from './lib/pixel';
+import { PLANS } from './config';
 
 const App = lazy(() => import('./App'));
 const StorePage = lazy(() => import('./components/online/StorePage'));
@@ -129,6 +131,15 @@ function RootApp() {
     meta?.setAttribute('content', phase === 'landing' ? '#FAFAF7' : '#F3F4F0');
   }, [phase]);
 
+  // Meta Pixel: la app cambia de pantalla sin recargar → PageView en cada cambio (el primero lo manda index.html)
+  const lastScreen = useRef<string | null>(null);
+  useEffect(() => {
+    if (phase === 'checking' || phase === 'loading') return;
+    const screen = phase === 'ready' ? (sub.status === 'active' ? 'app' : 'plan') : phase;
+    if (lastScreen.current !== null && lastScreen.current !== screen) track('PageView');
+    lastScreen.current = screen;
+  }, [phase, sub.status]);
+
   // Sesión guardada
   useEffect(() => {
     if (booted.current || initialPhase !== 'checking') return;
@@ -155,6 +166,12 @@ function RootApp() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('pago') !== 'ok') return;
     window.history.replaceState({}, '', '/');
+    const planKey = params.get('plan') === 'basico' ? 'basico' : params.get('plan') === 'pro' ? 'pro' : null;
+    if (planKey) {
+      const price = PLANS[planKey].price;
+      if (params.get('trial') === '1') track('StartTrial', { value: 0, currency: 'MXN', predicted_ltv: price, content_name: PLANS[planKey].name });
+      else track('Subscribe', { value: price, currency: 'MXN', content_name: PLANS[planKey].name });
+    }
     if (sub.status === 'active') return;
     setVerifying(true);
     let tries = 0;
