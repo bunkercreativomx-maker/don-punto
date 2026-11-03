@@ -21,6 +21,7 @@ export function MenuScannerModal({ onClose, onScanSuccess }: MenuScannerModalPro
     const [previewImage, setPreviewImage] = useState<string | null>(null);
     
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const cameraInputRef = useRef<HTMLInputElement>(null);
 
     const [platforms, setPlatforms] = useState({
         tienda: true,
@@ -170,26 +171,45 @@ export function MenuScannerModal({ onClose, onScanSuccess }: MenuScannerModalPro
                 <div className="p-8">
                     {step === 'upload' && (
                         <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4">
-                            <input 
-                                type="file" 
-                                accept="image/*" 
-                                className="hidden" 
-                                ref={fileInputRef} 
+                            {/* Dos inputs: con capture abre la cámara directo (en Android sin capture solo sale la galería) */}
+                            <input
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
+                                className="hidden"
+                                ref={cameraInputRef}
                                 onChange={handleFileSelect}
                             />
-                            <div 
-                                onClick={() => fileInputRef.current?.click()}
-                                className="border-2 border-dashed border-indigo-500/30 bg-indigo-500/5 hover:bg-indigo-500/10 rounded-3xl p-12 flex flex-col items-center justify-center text-center cursor-pointer transition-all group"
-                            >
-                                <div className="bg-slate-900 p-4 rounded-2xl shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] group-hover:scale-110 group-hover:-translate-y-2 transition-all duration-300 mb-6 relative">
+                            <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                ref={fileInputRef}
+                                onChange={handleFileSelect}
+                            />
+                            <div className="border-2 border-dashed border-indigo-500/30 bg-indigo-500/5 rounded-3xl p-8 sm:p-10 flex flex-col items-center justify-center text-center">
+                                <div className="bg-slate-900 p-4 rounded-2xl shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] mb-6 relative">
                                     <div className="absolute inset-0 bg-indigo-500/20 rounded-2xl blur-xl" />
                                     <Camera size={48} className="text-indigo-400 relative z-10" />
                                 </div>
                                 <h4 className="text-lg font-bold text-carbon-950 mb-2">Toma una foto o sube tu menú</h4>
                                 <p className="text-sm text-slate-400 max-w-xs mx-auto">La IA de Google leerá tu menú real en segundos y extraerá todos los platillos.</p>
-                                
-                                <div className="mt-8 flex items-center gap-2 text-xs font-bold text-indigo-400 bg-indigo-500/10 px-4 py-2 rounded-full border border-indigo-500/20">
-                                    <UploadCloud size={16} /> HAZ CLIC PARA SUBIR IMAGEN
+
+                                <div className="mt-8 grid w-full max-w-sm grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => cameraInputRef.current?.click()}
+                                        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-agave-600 hover:bg-agave-700 px-5 py-3.5 text-sm font-bold text-white transition-colors"
+                                    >
+                                        <Camera size={18} /> TOMAR FOTO
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 px-5 py-3.5 text-sm font-bold text-indigo-400 transition-colors"
+                                    >
+                                        <UploadCloud size={18} /> SUBIR DE GALERÍA
+                                    </button>
                                 </div>
                             </div>
                         </div>
