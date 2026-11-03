@@ -192,8 +192,8 @@ const FEATURES: { icon: ReactNode; title: string; text: string }[] = [
 ];
 
 /* ------------------------------------------------------------------ página */
-/** Tutorial de la tienda: autoplay en silencio cuando entra en pantalla (los navegadores solo permiten autoplay sin sonido). */
-function StoreTutorialVideo() {
+/** Video del landing: autoplay en silencio cuando entra en pantalla (los navegadores solo permiten autoplay sin sonido). */
+function AutoplayVideo({ src, poster, label, className }: { src: string; poster: string; label: string; className: string }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
   useEffect(() => {
@@ -218,14 +218,14 @@ function StoreTutorialVideo() {
     <div className="relative">
       <video
         ref={ref}
-        src="/videos/tutorial-tienda.mp4"
-        poster="/videos/tutorial-tienda.webp"
+        src={src}
+        poster={poster}
         muted
         loop
         playsInline
         preload="metadata"
-        aria-label="Tutorial: así funciona la tienda en línea de Don Punto"
-        className="block w-full aspect-[9/16] rounded-[2.1rem] bg-carbon-950 object-cover"
+        aria-label={label}
+        className={`block w-full bg-carbon-950 object-cover ${className}`}
       />
       <button
         type="button"
@@ -236,6 +236,33 @@ function StoreTutorialVideo() {
         {muted ? 'Activar sonido' : 'Silenciar'}
       </button>
     </div>
+  );
+}
+
+/** Tutorial de la tienda en línea. */
+function StoreTutorialVideo() {
+  return (
+    <AutoplayVideo
+      src="/videos/tutorial-tienda.mp4"
+      poster="/videos/tutorial-tienda.webp"
+      label="Tutorial: así funciona la tienda en línea de Don Punto"
+      className="aspect-[9/16] rounded-[2.1rem]"
+    />
+  );
+}
+
+/** Video de introducción: vertical en celular, horizontal desde md. El oculto (display:none) nunca entra en pantalla, así que no se reproduce. */
+function IntroVideo() {
+  const label = 'Video: conoce Don Punto en 40 segundos';
+  return (
+    <>
+      <div className="md:hidden mx-auto max-w-sm">
+        <AutoplayVideo src="/videos/intro-vertical.mp4" poster="/videos/intro-vertical.webp" label={label} className="aspect-[9/16] rounded-[2rem]" />
+      </div>
+      <div className="hidden md:block">
+        <AutoplayVideo src="/videos/intro-horizontal.mp4" poster="/videos/intro-horizontal.webp" label={label} className="aspect-video rounded-[1.6rem]" />
+      </div>
+    </>
   );
 }
 
@@ -315,6 +342,17 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 <p className="text-sm text-carbon-500">Caja cuadrada <Check size={14} className="inline text-agave-500" /></p>
               </div>
             </div>
+          </div>
+        </Section>
+
+        {/* Video de introducción */}
+        <Section id="video" className="pb-20 sm:pb-28">
+          <div className="text-center">
+            <p className="text-sm font-semibold uppercase tracking-wider text-agave-600">Conoce Don Punto</p>
+            <h2 className="mt-3 font-display text-3xl sm:text-5xl font-bold tracking-[-0.03em] text-carbon-950">Míralo en 40 segundos<span className="text-maiz-500">.</span></h2>
+          </div>
+          <div className="mt-10 rounded-[2.2rem] md:rounded-[1.9rem] bg-carbon-900 p-1.5 ring-1 ring-black/10 shadow-[0_40px_80px_-40px_rgba(4,33,26,0.55)] md:p-2 max-w-sm md:max-w-none mx-auto">
+            <IntroVideo />
           </div>
         </Section>
 
