@@ -22,7 +22,7 @@ Don Punto es un punto de venta para restaurantes que funciona en la computadora,
 
 ## 2. Navegación, roles y PIN
 
-**Menú lateral** (en pantallas chicas solo se ven los íconos): **Punto de Venta**, **Pedidos en línea**, **Tickets**, **Reportes**, **Clientes** (plan Pro), **Tienda Física**, **Plataformas**, **Catálogo**, **Inventario**, **Radar de Menú**, **Recetario**, **Financiero**, **Sucursales** (plan Pro), **Equipo** (plan Pro). Abajo: **Ajustes**, **Instalar app**, **Ayuda** (chat con soporte), **Mi plan** y **Cerrar Sesión**. Las secciones con candado piden PIN.
+**Menú lateral** (en celular y tablet se abre con el botón **☰ Menú** de arriba a la izquierda; junto a él siempre dice en qué sección estás): **Punto de Venta**, **Pedidos en línea**, **Tickets**, **Reportes**, **Clientes** (plan Pro), **Tienda Física**, **Plataformas**, **Catálogo**, **Inventario**, **Radar de Menú**, **Recetario**, **Financiero**, **Sucursales** (plan Pro), **Equipo** (plan Pro), y **Escanear menú con IA**. Abajo: **Ajustes**, **Instalar app**, **Ayuda** (chat con soporte), **Mi plan** y **Cerrar Sesión**. Las secciones con candado piden PIN.
 
 **Quién ve qué:**
 - **Modo caja** (nadie identificado): **Punto de Venta** siempre está abierto. Por defecto la caja también ve **Pedidos en línea** y **Clientes**. El dueño decide qué más se abre sin PIN en **Ajustes → Seguridad Antifraude → Qué puede ver la caja sin PIN** (opciones: Pedidos en línea, Tickets, Clientes, Catálogo, Inventario, Recetario). **Reportes, Financiero, Tienda Física, Plataformas, Radar de Menú y Ajustes siempre piden PIN.**
@@ -56,7 +56,7 @@ Las cuentas nuevas ven un tour al entrar por primera vez: cambia el **PIN de due
 - **Asignación de Productos** (en Catálogo): a cada producto le eliges su **Categoría** y sus **Modificadores**.
 
 ### Importar tu menú
-- **Desde una foto (IA):** en **Tienda Física**, **Plataformas** o **Catálogo** toca **ESCANEAR MENÚ** → **HAZ CLIC PARA SUBIR IMAGEN** (toma foto o sube imagen). La IA lee nombres y precios; revisa la lista, elige los **Canales de Destino** (Tienda Física y/o cada app) y toca **IMPORTAR AL SISTEMA**. No borra tus productos: si un platillo ya existe con el mismo nombre, actualiza su precio. No crea categorías; asígnalas después en Catálogo. Usa una foto clara y bien iluminada.
+- **Desde una foto (IA):** en el menú lateral toca **Escanear menú con IA** (o el botón **ESCANEAR MENÚ** en **Tienda Física**, **Plataformas** o **Catálogo**) → **TOMAR FOTO** (abre la cámara) o **SUBIR DE GALERÍA**. La IA lee nombres y precios; revisa la lista, elige los **Canales de Destino** (Tienda Física y/o cada app) y toca **IMPORTAR AL SISTEMA**. No borra tus productos: si un platillo ya existe con el mismo nombre, actualiza su precio. No crea categorías; asígnalas después en Catálogo. Usa una foto clara y bien iluminada.
 - **Desde hoja de cálculo:** **IMPORTAR MENÚ**, elige canales y sube un .xlsx o .xls con columnas Categoría, Platillo/Producto y Precio. Ojo: para Tienda Física el precio se divide entre 1.42 ("Precios desinflados"), pues asume precios de app.
 
 ### Cobrar una venta (Punto de Venta)

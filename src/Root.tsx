@@ -55,7 +55,7 @@ function SyncBadge() {
   useEffect(() => onSyncStatus(setS), []);
   if (s === 'ok') return null;
   return (
-    <div className="fixed top-2 left-1/2 -translate-x-1/2 z-[200] no-print pointer-events-none">
+    <div className="fixed top-16 lg:top-2 left-1/2 -translate-x-1/2 z-[200] no-print pointer-events-none">
       <div className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-lg ${s === 'offline' ? 'bg-maiz-50 text-maiz-800 border-maiz-200' : 'bg-white text-carbon-600 border-carbon-950/10'}`}>
         {s === 'offline' ? 'Sin internet · se guarda en este equipo' : 'Guardando en la nube…'}
       </div>

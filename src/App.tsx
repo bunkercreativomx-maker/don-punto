@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { useCalculator } from './hooks/useCalculator';
 import type { Platform, PaymentMethod } from './types/calculator';
-import { CreditCard, BarChart3, ShoppingBasket, Calculator, Layers, User, LineChart, Settings, Plus, Lock, Key, Sparkles, Receipt, LogOut, FileSpreadsheet, TrendingUp, Package, Target, BookOpen, Wallet, Search, Users, Store, UserCog, LockOpen, ChevronDown, Bike, MessageCircle } from 'lucide-react';
+import { CreditCard, BarChart3, ShoppingBasket, Calculator, Layers, User, LineChart, Settings, Plus, Lock, Key, Sparkles, Receipt, LogOut, FileSpreadsheet, TrendingUp, Package, Target, BookOpen, Wallet, Search, Users, Store, UserCog, LockOpen, ChevronDown, Bike, MessageCircle, Menu as MenuIcon, X } from 'lucide-react';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { ProfitGrid } from './components/ProfitGrid';
@@ -399,6 +399,8 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
   const { operator, canAccess } = useSession();
   const [pinFor, setPinFor] = useState<Tab | 'switch' | null>(null);
   const [branchMenu, setBranchMenu] = useState(false);
+  // Celular/tablet: la barra lateral es un panel que se abre con el botón ☰ (en lg es fija)
+  const [navOpen, setNavOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(() => shouldAutoStartTour());
   const branch = currentBranch();
   const branches = getBranches();
@@ -406,6 +408,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
 
   const incoming = useIncomingOrders();
   const goTo = (tab: Tab) => {
+    setNavOpen(false);
     if (canAccess(tab)) setActiveTab(tab);
     else setPinFor(tab);
   };
@@ -435,6 +438,14 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
     { tab: 'branches', label: 'Sucursales', Icon: Store, pro: true, sep: true },
     { tab: 'team', label: 'Equipo', Icon: UserCog, pro: true },
   ];
+  const current = shownTab === 'settings' ? { label: 'Ajustes', Icon: Settings } : (NAV.find((n) => n.tab === shownTab) ?? NAV[0]);
+  const drawerShown = navOpen || tourOpen;
+  // El escáner agrega productos al catálogo: pide el mismo permiso que Catálogo
+  const openScanner = () => {
+    setNavOpen(false);
+    if (canAccess('menu')) setIsScannerOpen(true);
+    else setPinFor('menu');
+  };
 
   return (
     <>
@@ -507,37 +518,38 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
       )}
 
       {/* --- PREMIUM SIDEBAR --- */}
-      <nav className="w-16 lg:w-56 bg-white border-r border-carbon-950/10 flex flex-col items-center lg:items-stretch py-4 gap-3 relative z-30 backdrop-blur-xl shrink-0 no-print overflow-y-auto no-scrollbar">
-        <div className="flex items-center justify-center lg:justify-start gap-2.5 px-2 lg:px-4 pt-1 pb-2">
-          <Mark size={34} className="lg:hidden" />
-          <Logo size={38} className="hidden lg:block" />
+      {drawerShown && <div className="fixed inset-0 z-[115] bg-carbon-950/40 backdrop-blur-[2px] lg:hidden no-print" onClick={() => setNavOpen(false)} aria-hidden="true" />}
+      <nav className={cn("fixed inset-y-0 left-0 z-[120] w-72 max-w-[85vw] shadow-2xl lg:shadow-none lg:static lg:w-56 lg:max-w-none lg:z-30 bg-white border-r border-carbon-950/10 flex-col items-stretch py-4 gap-3 shrink-0 no-print overflow-y-auto no-scrollbar lg:flex", drawerShown ? "flex" : "hidden")} aria-label="Secciones">
+        <div className="flex items-center justify-start gap-2.5 px-4 pt-1 pb-2">
+          <Logo size={38} />
+          <button type="button" onClick={() => setNavOpen(false)} className="ml-auto lg:hidden rounded-xl p-2 text-carbon-600 hover:bg-carbon-100" aria-label="Cerrar menú"><X size={22} /></button>
         </div>
 
         {/* User Avatar */}
-        <div className="flex items-center gap-3 px-2 lg:px-4 py-1 mb-1 group cursor-default">
+        <div className="flex items-center gap-3 px-4 py-1 mb-1 group cursor-default">
           <div className="w-10 h-10 rounded-full bg-slate-800 border border-carbon-950/10 flex items-center justify-center text-slate-400 shrink-0 hover:border-carbon-950/20 transition-all">
             <User size={20} />
           </div>
           {userEmail && (
-            <span className="hidden lg:block text-[11px] font-bold text-slate-400 truncate leading-tight">{userEmail}</span>
+            <span className="block text-[11px] font-bold text-slate-400 truncate leading-tight">{userEmail}</span>
           )}
         </div>
 
-        <div className="w-full px-2 lg:px-3">
+        <div className="w-full px-3">
           <div className="h-px bg-carbon-950/5 w-full" />
         </div>
 
         {/* Sucursal y quién está usando el equipo */}
-        <div className="w-full px-2 lg:px-3 space-y-1.5">
+        <div className="w-full px-3 space-y-1.5">
           {isPro() && branches.length > 1 && (
             <div className="relative">
-              <button onClick={() => (canAccess('branches') ? setBranchMenu((v) => !v) : setPinFor('branches'))} className="w-full flex items-center gap-2 rounded-xl border border-carbon-950/10 bg-carbon-50 px-2 lg:px-3 py-2 text-left hover:bg-carbon-100" title="Sucursal de este equipo">
+              <button onClick={() => (canAccess('branches') ? setBranchMenu((v) => !v) : setPinFor('branches'))} className="w-full flex items-center gap-2 rounded-xl border border-carbon-950/10 bg-carbon-50 px-3 py-2 text-left hover:bg-carbon-100" title="Sucursal de este equipo">
                 <Store size={16} className="text-agave-700 shrink-0" />
-                <span className="hidden lg:block text-xs font-semibold text-carbon-800 truncate flex-1">{branch.name}</span>
-                <ChevronDown size={14} className="hidden lg:block text-carbon-500" />
+                <span className="block text-xs font-semibold text-carbon-800 truncate flex-1">{branch.name}</span>
+                <ChevronDown size={14} className="block text-carbon-500" />
               </button>
               {branchMenu && (
-                <div className="absolute left-0 right-0 lg:right-auto lg:w-56 top-full mt-1 z-50 rounded-xl border border-carbon-950/10 bg-white shadow-[0_12px_32px_-12px_rgba(13,16,14,0.3)] p-1">
+                <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-xl border border-carbon-950/10 bg-white shadow-[0_12px_32px_-12px_rgba(13,16,14,0.3)] p-1">
                   <div className="px-3 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-carbon-500">Este equipo cobra en</div>
                   {branches.map((b) => (
                     <button key={b.id} onClick={() => { setBranchMenu(false); if (b.id !== branch.id) setActiveBranch(b.id); }} className={cn('w-full text-left rounded-lg px-3 py-2 text-sm', b.id === branch.id ? 'bg-agave-50 text-agave-800 font-semibold' : 'text-carbon-700 hover:bg-carbon-50')}>{b.name}</button>
@@ -546,82 +558,87 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
               )}
             </div>
           )}
-          <div data-tour="session" className="flex items-center gap-2 rounded-xl px-2 lg:px-3 py-1.5">
+          <div data-tour="session" className="flex items-center gap-2 rounded-xl px-3 py-1.5">
             {/* En pantalla chica el candado es el botón: bloquear / entrar con PIN */}
             <button type="button" onClick={() => (operator ? (lockSession(), setActiveTab('pos')) : setPinFor('switch'))} title={operator ? 'Bloquear / cambiar de persona' : 'Entrar con PIN'} className="shrink-0">
               {operator ? <LockOpen size={16} className="text-agave-600" /> : <Lock size={16} className="text-carbon-400" />}
             </button>
-            <div className="hidden lg:block flex-1 min-w-0">
+            <div className="block flex-1 min-w-0">
               <div className="text-[11px] font-semibold text-carbon-800 truncate">{operator ? operator.name : 'Modo caja'}</div>
               <div className="text-[10px] text-carbon-500 truncate">{operator ? ROLE_LABEL[operator.role] : 'Secciones protegidas'}</div>
             </div>
             {operator ? (
-              <button onClick={() => { lockSession(); setActiveTab('pos'); }} className="hidden lg:block text-[11px] font-bold text-carbon-600 hover:text-carbon-900 rounded-lg px-2 py-1 hover:bg-carbon-100" title="Bloquear">Bloquear</button>
+              <button onClick={() => { lockSession(); setActiveTab('pos'); }} className="block text-[11px] font-bold text-carbon-600 hover:text-carbon-900 rounded-lg px-2 py-1 hover:bg-carbon-100" title="Bloquear">Bloquear</button>
             ) : (
-              <button onClick={() => setPinFor('switch')} className="hidden lg:block text-[11px] font-bold text-agave-700 hover:text-agave-800 rounded-lg px-2 py-1 hover:bg-agave-50">Entrar</button>
+              <button onClick={() => setPinFor('switch')} className="block text-[11px] font-bold text-agave-700 hover:text-agave-800 rounded-lg px-2 py-1 hover:bg-agave-50">Entrar</button>
             )}
           </div>
         </div>
 
-        <div className="w-full px-2 lg:px-3">
+        <div className="w-full px-3">
           <div className="h-px bg-carbon-950/5 w-full" />
         </div>
 
-        <div className="flex flex-col gap-1 flex-grow w-full px-2 lg:px-3">
+        <div className="flex flex-col gap-1 flex-grow w-full px-3">
           {NAV.map(({ tab, label, Icon, pro, sep }) => {
             const locked = !canAccess(tab);
             return (
               <div key={tab} className="contents">
                 {sep && <div className="w-full my-1"><div className="h-px bg-carbon-950/5 w-full" /></div>}
-                <button data-tour={tab} onClick={() => goTo(tab)} title={label} className={cn("p-3 lg:px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === tab ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
+                <button data-tour={tab} onClick={() => goTo(tab)} title={label} className={cn("p-3 px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3", activeTab === tab ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-500 hover:text-slate-300 hover:bg-carbon-950/5 border border-transparent")}>
                   <Icon size={20} className="shrink-0" />
-                  <span className="hidden lg:block text-xs font-bold whitespace-nowrap flex-1 text-left">{label}</span>
-                  {tab === 'online' && incoming.pending > 0 && <span className="absolute -right-1 -top-1 lg:static grid h-5 min-w-5 place-items-center rounded-full bg-maiz-400 px-1 text-[10px] font-black text-carbon-950 animate-pulse">{incoming.pending}</span>}
-                  {pro && !isPro() && <span className="hidden lg:block text-[9px] font-black uppercase tracking-wider rounded-full bg-maiz-100 text-maiz-800 px-1.5 py-0.5">Pro</span>}
-                  {locked && <Lock size={12} className="absolute right-1.5 top-1.5 lg:static text-carbon-400" />}
+                  <span className="block text-xs font-bold whitespace-nowrap flex-1 text-left">{label}</span>
+                  {tab === 'online' && incoming.pending > 0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-maiz-400 px-1 text-[10px] font-black text-carbon-950 animate-pulse">{incoming.pending}</span>}
+                  {pro && !isPro() && <span className="block text-[9px] font-black uppercase tracking-wider rounded-full bg-maiz-100 text-maiz-800 px-1.5 py-0.5">Pro</span>}
+                  {locked && <Lock size={12} className="text-carbon-400" />}
                   {activeTab === tab && <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-1 h-5 bg-agave-500 rounded-r-full" />}
                 </button>
               </div>
             );
           })}
+          <div className="w-full my-1"><div className="h-px bg-carbon-950/5 w-full" /></div>
+          <button data-tour="scanner" onClick={openScanner} title="Escanear menú con IA" className="p-3 px-3 rounded-xl transition-all duration-200 relative flex items-center gap-3 text-indigo-500 hover:bg-indigo-500/10 border border-indigo-500/20">
+            <Sparkles size={20} className="shrink-0" />
+            <span className="block text-xs font-bold whitespace-nowrap flex-1 text-left">Escanear menú con IA</span>
+          </button>
         </div>
 
-        <div className="w-full px-2 lg:px-3">
+        <div className="w-full px-3">
           <div className="h-px bg-carbon-950/5 w-full" />
         </div>
 
-        <div className="flex flex-col gap-1 shrink-0 w-full px-2 lg:px-3">
-          <button data-tour="settings" onClick={handleSettingsClick} className={cn("p-3 lg:px-3 rounded-xl transition-all flex items-center gap-3", activeTab === 'settings' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-600 hover:text-slate-400 hover:bg-carbon-950/5 border border-transparent")}>
+        <div className="flex flex-col gap-1 shrink-0 w-full px-3">
+          <button data-tour="settings" onClick={() => { setNavOpen(false); handleSettingsClick(); }} className={cn("p-3 px-3 rounded-xl transition-all flex items-center gap-3", activeTab === 'settings' ? "bg-agave-50 text-agave-700 border border-agave-100 font-semibold" : "text-slate-600 hover:text-slate-400 hover:bg-carbon-950/5 border border-transparent")}>
             <Settings size={20} className="shrink-0" />
-            <span className="hidden lg:block text-xs font-bold whitespace-nowrap flex-1 text-left">Ajustes</span>
-            {!canAccess('settings') && <Lock size={12} className="hidden lg:block text-carbon-400" />}
+            <span className="block text-xs font-bold whitespace-nowrap flex-1 text-left">Ajustes</span>
+            {!canAccess('settings') && <Lock size={12} className="block text-carbon-400" />}
           </button>
-          <InstallAppButton compact tourId="install" label="Instalar app" className="p-3 lg:px-3 rounded-xl transition-all text-maiz-400 hover:bg-maiz-500/10 gap-3 border border-transparent" />
+          <InstallAppButton compact tourId="install" label="Instalar app" className="p-3 px-3 rounded-xl transition-all text-maiz-400 hover:bg-maiz-500/10 gap-3 border border-transparent" />
           <button
             data-tour="help"
-            onClick={openSupport}
-            className="p-3 lg:px-3 rounded-xl transition-all text-slate-500 hover:text-agave-700 hover:bg-agave-50 flex items-center gap-3 border border-transparent"
+            onClick={() => { setNavOpen(false); openSupport(); }}
+            className="p-3 px-3 rounded-xl transition-all text-slate-500 hover:text-agave-700 hover:bg-agave-50 flex items-center gap-3 border border-transparent"
             title="Ayuda · chat con soporte"
           >
             <MessageCircle size={20} className="shrink-0" />
-            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Ayuda</span>
+            <span className="block text-xs font-bold whitespace-nowrap">Ayuda</span>
           </button>
           <button
             data-tour="plan"
-            onClick={onBilling}
-            className="p-3 lg:px-3 rounded-xl transition-all text-slate-500 hover:text-indigo-300 hover:bg-indigo-500/10 flex items-center gap-3 border border-transparent"
+            onClick={() => { setNavOpen(false); onBilling(); }}
+            className="p-3 px-3 rounded-xl transition-all text-slate-500 hover:text-indigo-300 hover:bg-indigo-500/10 flex items-center gap-3 border border-transparent"
             title="Mi plan y facturación"
           >
             <CreditCard size={20} className="shrink-0" />
-            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Mi plan</span>
+            <span className="block text-xs font-bold whitespace-nowrap">Mi plan</span>
           </button>
           <button
             onClick={onLogout}
-            className="p-3 lg:px-3 rounded-xl transition-all text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 flex items-center gap-3 border border-transparent"
+            className="p-3 px-3 rounded-xl transition-all text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 flex items-center gap-3 border border-transparent"
             title="Cerrar Sesión"
           >
             <LogOut size={20} className="shrink-0" />
-            <span className="hidden lg:block text-xs font-bold whitespace-nowrap">Cerrar Sesión</span>
+            <span className="block text-xs font-bold whitespace-nowrap">Cerrar Sesión</span>
           </button>
         </div>
       </nav>
@@ -636,6 +653,17 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
 
         <div className="flex-grow min-w-0 px-3 py-4 sm:px-6 sm:py-6 overflow-auto relative z-40 no-scrollbar">
           <div className="w-full">
+            {/* Celular/tablet: botón ☰ + en qué sección estás */}
+            <div className="lg:hidden sticky -top-4 sm:-top-6 z-50 -mx-3 sm:-mx-6 -mt-4 sm:-mt-6 mb-4 flex items-center gap-3 border-b border-carbon-950/10 bg-white/95 backdrop-blur px-3 sm:px-6 py-2.5 no-print">
+              <button type="button" onClick={() => setNavOpen(true)} className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-carbon-950 px-3 py-2 text-sm font-bold text-white" aria-label="Abrir menú de secciones">
+                <MenuIcon size={18} /> Menú
+              </button>
+              <div className="flex min-w-0 items-center gap-2 text-agave-700">
+                <current.Icon size={20} className="shrink-0" />
+                <span className="truncate font-display text-lg font-bold text-carbon-950">{current.label}</span>
+              </div>
+              {incoming.pending > 0 && shownTab !== 'online' && <span className="ml-auto grid h-6 min-w-6 shrink-0 place-items-center rounded-full bg-maiz-400 px-1.5 text-xs font-black text-carbon-950">{incoming.pending}</span>}
+            </div>
             <header className="mb-6 flex flex-col sm:flex-row items-baseline sm:items-center justify-between gap-4 no-print">
               <div>
                 <h1 className="font-display text-2xl sm:text-3xl font-bold text-carbon-950 tracking-[-0.02em]">

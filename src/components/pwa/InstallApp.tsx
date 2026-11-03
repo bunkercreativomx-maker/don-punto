@@ -25,7 +25,7 @@ export function InstallAppButton({ className, label = 'Instalar app', compact = 
         title="Instalar Don Punto en este dispositivo"
       >
         <Download size={compact ? 20 : 16} className="shrink-0" />
-        <span className={compact ? 'hidden lg:block text-xs font-bold whitespace-nowrap' : ''}>{label}</span>
+        <span className={compact ? 'block text-xs font-bold whitespace-nowrap' : ''}>{label}</span>
       </button>
       {iosHelp && <IOSInstallSheet onClose={() => setIosHelp(false)} />}
     </>
