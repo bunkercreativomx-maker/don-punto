@@ -224,15 +224,17 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
       <main id="inicio">
         {/* Hero */}
         <Section className="pt-12 pb-20 sm:pt-20 sm:pb-28">
-          <div className="grid items-center gap-14 lg:grid-cols-[1fr_1fr]">
+          <div className="hero-in">
+            <p className="inline-flex items-center gap-2 rounded-full bg-agave-50 px-3 py-1 text-sm text-agave-700 ring-1 ring-agave-100">
+              <span className="h-1.5 w-1.5 rounded-full bg-maiz-400" /> Restaurantes, cafeterías y negocios de mostrador
+            </p>
+            <h1 className="mt-6 max-w-5xl font-display text-[3.1rem] leading-[0.98] sm:text-7xl lg:text-[6.4rem] font-bold tracking-[-0.04em] text-carbon-950">
+              Tu punto de venta para restaurantes<span className="text-maiz-500">.</span>
+            </h1>
+          </div>
+          <div className="mt-10 grid items-center gap-14 lg:grid-cols-[1fr_1fr]">
             <div className="hero-in">
-              <p className="inline-flex items-center gap-2 rounded-full bg-agave-50 px-3 py-1 text-sm text-agave-700 ring-1 ring-agave-100">
-                <span className="h-1.5 w-1.5 rounded-full bg-maiz-400" /> Restaurantes, cafeterías y negocios de mostrador
-              </p>
-              <h1 className="mt-6 font-display text-[2.6rem] leading-[1.02] sm:text-6xl lg:text-[4.6rem] font-bold tracking-[-0.035em] text-carbon-950">
-                Tu punto de venta para restaurantes<span className="text-maiz-500">.</span>
-              </h1>
-              <p className="mt-6 max-w-xl text-lg sm:text-xl leading-relaxed text-carbon-600">
+              <p className="max-w-xl text-lg sm:text-xl leading-relaxed text-carbon-600">
                 Cobra en segundos, manda la comanda a cocina, cuadra tu caja y sabe cuánto ganaste hoy. Desde el celular, la tablet o la compu que ya tienes.
               </p>
               <p className="mt-4 max-w-xl text-base leading-relaxed text-carbon-600">
