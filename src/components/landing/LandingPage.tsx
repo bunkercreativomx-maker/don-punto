@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { LockKeyhole, Store, UserCog, PackageCheck, HeartHandshake, BarChart3, FileScan,
   Check, ChevronDown, Receipt, Calculator, Wallet, Boxes, ChefHat, ScanLine, WifiOff, BellRing,
   Smartphone, MessageCircle, Mail, ArrowRight, ShieldCheck, Globe, Bike, Banknote,
+  EyeOff, Ban, TrendingDown, Coffee, Croissant, IceCream, Truck, ShoppingBag,
 } from 'lucide-react';
 import { Logo, Mark, Wordmark } from '../brand/Logo';
 import { InstallAppButton } from '../pwa/InstallApp';
@@ -163,6 +164,24 @@ const FAQS = [
   { q: '¿Cómo pago?', a: 'Con tarjeta de débito o crédito; el cobro lo procesa Stripe. Si prefieres transferencia, escríbenos.' },
 ];
 
+const PAINS: { icon: ReactNode; pain: string; hurt: string; fix: string }[] = [
+  { icon: <Wallet strokeWidth={1.6} />, pain: 'Cierras y la caja no cuadra', hurt: 'Cuentas billetes, falta dinero y nunca sabes en qué momento se fue.', fix: 'Don Punto te dice cuánto efectivo debe haber en el cajón antes de contarlo.' },
+  { icon: <EyeOff strokeWidth={1.6} />, pain: 'Si no estás, no sabes cuánto vendiste', hurt: 'Te enteras hasta el otro día, o cuando alguien te lo cuenta.', fix: 'Cada noche te llega el cierre del día al celular, estés donde estés.' },
+  { icon: <ChefHat strokeWidth={1.6} />, pain: 'La orden se pierde en la cocina', hurt: 'Platillo equivocado, cliente esperando y comida que se tira.', fix: 'Cada orden sale con ticket para el cliente y comanda para cocina.' },
+  { icon: <Ban strokeWidth={1.6} />, pain: 'Descuentos y cancelaciones que nadie autorizó', hurt: 'Un ticket borrado por aquí, un descuento por allá. Al mes es mucho dinero.', fix: 'Borrar o descontar pide tu PIN. En el plan Pro cada empleado tiene el suyo.' },
+  { icon: <PackageCheck strokeWidth={1.6} />, pain: 'Se te acaba un insumo en hora pico', hurt: 'Le dices al cliente "ya no hay" y se va con la competencia.', fix: 'En el plan Pro el inventario se descuenta solo y te avisa antes de que se acabe.' },
+  { icon: <TrendingDown strokeWidth={1.6} />, pain: 'Vendes mucho, pero no sabes qué te deja dinero', hurt: 'Trabajas más horas y al final del mes no ves la ganancia.', fix: 'Ves el costo y el margen de cada producto, y cuál se vende y cuál no.' },
+];
+
+const BUSINESSES: { icon: ReactNode; t: string }[] = [
+  { icon: <ChefHat strokeWidth={1.6} />, t: 'Restaurantes' },
+  { icon: <Coffee strokeWidth={1.6} />, t: 'Cafeterías' },
+  { icon: <Croissant strokeWidth={1.6} />, t: 'Panaderías' },
+  { icon: <IceCream strokeWidth={1.6} />, t: 'Neverías' },
+  { icon: <Truck strokeWidth={1.6} />, t: 'Food trucks' },
+  { icon: <ShoppingBag strokeWidth={1.6} />, t: 'Tiendas' },
+];
+
 const FEATURES: { icon: ReactNode; title: string; text: string }[] = [
   { icon: <Wallet strokeWidth={1.6} />, title: 'Corte de caja que sí cuadra', text: 'Efectivo, tarjeta y apps por separado. Sabes cuánto efectivo debe haber en el cajón antes de contarlo.' },
   { icon: <Receipt strokeWidth={1.6} />, title: 'IVA separado en cada venta', text: 'Ves qué parte es tuya y qué parte es del SAT, en 16% o en 8% de zona fronteriza.' },
@@ -185,8 +204,8 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:px-8">
           <a href="#inicio" aria-label="Don Punto, inicio" className="shrink-0"><Logo size={32} className="sm:hidden" /><Logo size={44} className="hidden sm:block" /></a>
           <nav className="hidden md:flex items-center gap-8 text-sm text-carbon-600">
-            <a href="#tienda-en-linea" className="hover:text-carbon-950">Tienda en línea</a>
             <a href="#como-funciona" className="hover:text-carbon-950">Cómo funciona</a>
+            <a href="#tienda-en-linea" className="hover:text-carbon-950">Tienda en línea</a>
             <a href="#precios" className="hover:text-carbon-950">Precios</a>
             <a href="#preguntas" className="hover:text-carbon-950">Preguntas</a>
             <a href="/blog" className="hover:text-carbon-950">Blog</a>
@@ -205,16 +224,19 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
       <main id="inicio">
         {/* Hero */}
         <Section className="pt-12 pb-20 sm:pt-20 sm:pb-28">
-          <div className="grid items-center gap-14 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="grid items-center gap-14 lg:grid-cols-[1fr_1fr]">
             <div className="hero-in">
               <p className="inline-flex items-center gap-2 rounded-full bg-agave-50 px-3 py-1 text-sm text-agave-700 ring-1 ring-agave-100">
-                <span className="h-1.5 w-1.5 rounded-full bg-maiz-400" /> Punto de venta para restaurantes en México
+                <span className="h-1.5 w-1.5 rounded-full bg-maiz-400" /> Restaurantes, cafeterías y negocios de mostrador
               </p>
-              <h1 className="mt-6 font-display text-[2.35rem] leading-[1.04] sm:text-6xl lg:text-[4.4rem] font-bold tracking-[-0.035em] text-carbon-950">
-                Vende en apps sin regalar tu ganancia<span className="text-maiz-500">.</span>
+              <h1 className="mt-6 font-display text-[2.6rem] leading-[1.02] sm:text-6xl lg:text-[4.6rem] font-bold tracking-[-0.035em] text-carbon-950">
+                Tu punto de venta para restaurantes<span className="text-maiz-500">.</span>
               </h1>
               <p className="mt-6 max-w-xl text-lg sm:text-xl leading-relaxed text-carbon-600">
-                Cobra en mostrador, recibe pedidos en tu propia tienda en línea, cuadra tu caja y pon el precio correcto en cada plataforma de delivery. Todo desde el celular, la tablet o la compu que ya tienes.
+                Cobra en segundos, manda la comanda a cocina, cuadra tu caja y sabe cuánto ganaste hoy. Desde el celular, la tablet o la compu que ya tienes.
+              </p>
+              <p className="mt-4 max-w-xl text-base leading-relaxed text-carbon-600">
+                <b className="font-semibold text-carbon-900">¿No tienes restaurante?</b> También es para negocios pequeños y medianos que quieren llevar el control de sus ventas.
               </p>
               <div className="mt-9 flex flex-col sm:flex-row gap-3">
                 <button onClick={onSubscribe} className="group inline-flex items-center justify-center gap-3 rounded-full bg-agave-600 hover:bg-agave-700 pl-7 pr-2 py-2 text-base font-semibold text-white transition-colors">
@@ -233,69 +255,64 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 ))}
               </ul>
             </div>
-            <div className="hero-in hero-in-late">
-              <TicketCalculator onStart={onSubscribe} />
+            <div className="hero-in hero-in-late relative">
+              <div className="absolute -inset-6 rounded-[2.5rem] bg-agave-500/10 blur-2xl" aria-hidden="true" />
+              <div className="relative rounded-[1.4rem] bg-carbon-900 p-1.5 ring-1 ring-black/10 shadow-[0_40px_80px_-40px_rgba(4,33,26,0.55)]">
+                <img src="/screens/pos.webp" alt="Pantalla de cobro de Don Punto con el menú y la orden actual" decoding="async" fetchPriority="high" className="block w-full rounded-[1.1rem]" />
+              </div>
+              <div className="absolute -bottom-6 left-4 sm:-left-8 w-[15.5rem] rounded-2xl bg-white p-4 shadow-[0_20px_50px_-20px_rgba(4,33,26,0.45)] ring-1 ring-carbon-200/70">
+                <p className="text-xs font-semibold uppercase tracking-wider text-agave-600">Corte de hoy</p>
+                <p className="mt-1 font-semibold text-carbon-950 tabular-nums">$8,940 · 63 ventas</p>
+                <p className="text-sm text-carbon-500">Caja cuadrada <Check size={14} className="inline text-agave-500" /></p>
+              </div>
             </div>
           </div>
         </Section>
 
-        {/* El problema, con números */}
-        <section className="bg-agave-950 text-white">
-          <div className="mx-auto max-w-6xl px-5 sm:px-8 py-20 sm:py-28 grid gap-12 lg:grid-cols-[1fr_1fr] items-end">
-            <h2 className="font-display text-4xl sm:text-5xl font-bold leading-[1.05] tracking-[-0.03em]">
-              Un platillo de $100 en una app de reparto te deja <span className="text-maiz-400">$56</span>.
-            </h2>
-            <div className="space-y-5 text-lg text-agave-100/90 leading-relaxed">
-              <p>
-                La comisión de 30%, el IVA de esa comisión y las retenciones del SAT se llevan casi la mitad. Si pones el mismo precio que en tu mostrador, vendes más y ganas menos.
-              </p>
-              <p>
-                Don Punto calcula el precio exacto de cada platillo en cada app para que te llegue lo que quieres ganar, y te lo vuelve a calcular cuando cambias un costo.
-              </p>
+        {/* El dolor de no tener un buen punto de venta */}
+        <section id="por-que" className="bg-agave-950 text-white">
+          <div className="mx-auto max-w-6xl px-5 sm:px-8 py-20 sm:py-28">
+            <div className="max-w-3xl">
+              <h2 className="font-display text-4xl sm:text-5xl font-bold leading-[1.05] tracking-[-0.03em]">
+                Sin un buen punto de venta, tu dinero se te escapa <span className="text-maiz-400">sin que lo veas</span>.
+              </h2>
+              <p className="mt-5 text-lg text-agave-100/90 leading-relaxed">La libreta, la calculadora y el cajón funcionan… hasta el día que no. Esto le pasa todos los días a los negocios sin control:</p>
             </div>
+            <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {PAINS.map((p) => (
+                <div key={p.pain} className="rounded-[1.4rem] bg-white/[0.06] p-7 ring-1 ring-white/10">
+                  <div className="grid h-11 w-11 place-items-center rounded-xl bg-maiz-400/15 text-maiz-400 [&>svg]:h-5 [&>svg]:w-5">{p.icon}</div>
+                  <h3 className="mt-5 text-lg font-semibold">{p.pain}</h3>
+                  <p className="mt-2 text-agave-100/70 leading-relaxed">{p.hurt}</p>
+                  <p className="mt-4 flex gap-2.5 border-t border-white/10 pt-4 text-white/90 leading-relaxed"><Check size={18} className="mt-0.5 shrink-0 text-maiz-400" /> {p.fix}</p>
+                </div>
+              ))}
+            </div>
+            <p className="mt-12 max-w-3xl text-xl sm:text-2xl font-display font-bold leading-snug">Cada día sin control es dinero que se va. Con Don Punto lo ves todo desde la primera venta.</p>
+            <button onClick={onSubscribe} className="mt-8 rounded-full bg-maiz-400 hover:bg-maiz-300 px-7 py-3.5 font-semibold text-carbon-950 transition-colors">Quiero tener el control</button>
           </div>
         </section>
 
-        {/* Tienda en línea */}
-        <Section id="tienda-en-linea" className="pt-24 sm:pt-32">
-          <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
+        {/* No solo restaurantes */}
+        <Section id="negocios" className="pt-24 sm:pt-32">
+          <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] items-center rounded-[2rem] bg-white p-6 sm:p-14 ring-1 ring-carbon-200/70">
             <div>
-              <p className="inline-flex items-center gap-2 rounded-full bg-maiz-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-maiz-800">Nuevo · incluido en todos los planes</p>
-              <h2 className="mt-5 font-display text-4xl sm:text-5xl font-bold leading-[1.05] tracking-[-0.03em]">
-                Tu propia tienda en línea. <span className="text-agave-600">Cero comisión por pedido.</span>
-              </h2>
-              <p className="mt-5 text-lg text-carbon-600 leading-relaxed">
-                Tus clientes de siempre te piden directo desde <b className="font-semibold text-carbon-900 whitespace-nowrap">donpunto.com/tu-negocio</b>, con tu menú, tus fotos y tus precios. El dinero llega completo a ti, no a una plataforma de reparto.
-              </p>
-              <div className="mt-10 grid gap-x-8 gap-y-8 sm:grid-cols-2">
-                {[
-                  { icon: <Globe strokeWidth={1.6} />, t: 'Lista en minutos', d: 'Se arma sola con el menú que ya tienes en tu caja. Agrega fotos, marca lo agotado y comparte tu enlace.' },
-                  { icon: <Bike strokeWidth={1.6} />, t: 'Para recoger o a domicilio', d: 'Tú decides hasta cuántos kilómetros entregas y cuánto cobras de envío. El cliente confirma su ubicación.' },
-                  { icon: <Banknote strokeWidth={1.6} />, t: 'Cobras directo', d: 'Efectivo al recoger o transferencia CoDi a tu cuenta. Sin intermediarios ni porcentajes por venta.' },
-                  { icon: <BellRing strokeWidth={1.6} />, t: 'Te suena cada pedido', d: 'Aviso en el celular y en la caja. Aceptas, tu cliente ve el avance y la venta cae sola en tu corte.' },
-                ].map((f) => (
-                  <div key={f.t}>
-                    <div className="grid h-11 w-11 place-items-center rounded-xl bg-agave-50 text-agave-600 ring-1 ring-agave-100 [&>svg]:h-5 [&>svg]:w-5">{f.icon}</div>
-                    <h3 className="mt-4 text-lg font-semibold">{f.t}</h3>
-                    <p className="mt-1.5 text-carbon-600 leading-relaxed">{f.d}</p>
-                  </div>
+              <span className="inline-flex rounded-full bg-maiz-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-maiz-800">No solo restaurantes</span>
+              <h2 className="mt-5 font-display text-4xl sm:text-5xl font-bold leading-[1.05] tracking-[-0.03em]">¿Tienes un negocio pequeño o mediano? También es para ti.</h2>
+              <p className="mt-5 text-lg text-carbon-600 leading-relaxed">Si cobras en mostrador y quieres saber cuánto vendes, cuánto te queda y qué se te está acabando, Don Punto te sirve igual. Tú decides qué productos y precios cargar.</p>
+              <ul className="mt-8 space-y-3 text-carbon-700">
+                {['Cobro rápido con ticket impreso', 'Corte de caja diario con IVA separado', 'Reportes de lo que más y lo que menos vendes', 'Tus números protegidos con tu PIN'].map((t) => (
+                  <li key={t} className="flex gap-3"><Check size={18} className="mt-0.5 shrink-0 text-agave-500" /> {t}</li>
                 ))}
-              </div>
-              <div className="mt-10 flex flex-col sm:flex-row gap-3">
-                <button onClick={onSubscribe} className="rounded-full bg-agave-600 hover:bg-agave-700 px-7 py-3.5 font-semibold text-white transition-colors">Quiero mi tienda en línea</button>
-                <a href="/donchuy" target="_blank" rel="noopener" className="inline-flex items-center justify-center gap-2 rounded-full px-7 py-3.5 font-semibold text-carbon-800 ring-1 ring-carbon-300 hover:bg-white">Ver tienda de ejemplo <ArrowRight size={16} /></a>
-              </div>
+              </ul>
             </div>
-            <div className="relative mx-auto w-full max-w-[320px]">
-              <div className="absolute -inset-8 rounded-[3rem] bg-maiz-300/25 blur-2xl" aria-hidden="true" />
-              <div className="relative rounded-[2.6rem] bg-carbon-950 p-2.5 shadow-[0_40px_80px_-30px_rgba(4,33,26,0.6)] ring-1 ring-black/20">
-                <img src="/screens/store.webp" alt="Tienda en línea de una taquería hecha con Don Punto: menú con fotos, recoger o a domicilio" loading="lazy" decoding="async" className="block w-full rounded-[2.1rem]" />
-              </div>
-              <div className="absolute -right-3 sm:-right-12 top-4 w-[15.5rem] rounded-2xl bg-white p-4 shadow-[0_20px_50px_-20px_rgba(4,33,26,0.45)] ring-1 ring-carbon-200/70">
-                <p className="text-xs font-semibold uppercase tracking-wider text-agave-600">Pedido nuevo</p>
-                <p className="mt-1 font-semibold text-carbon-950">3 al pastor + horchata</p>
-                <p className="text-sm text-carbon-500 whitespace-nowrap">A domicilio · $135 · <b className="font-semibold text-agave-600">comisión $0</b></p>
-              </div>
+            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
+              {BUSINESSES.map((b) => (
+                <div key={b.t} className="flex items-center gap-3 rounded-2xl bg-carbon-50 px-3 sm:px-4 py-3 sm:py-4 ring-1 ring-carbon-200/70">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-agave-600 ring-1 ring-carbon-200 [&>svg]:h-5 [&>svg]:w-5">{b.icon}</span>
+                  <span className="min-w-0 font-semibold text-carbon-900">{b.t}</span>
+                </div>
+              ))}
             </div>
           </div>
         </Section>
@@ -349,6 +366,67 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
           </div>
         </Section>
 
+        {/* Si vendes en apps de reparto */}
+        <section id="apps" className="bg-agave-950 text-white">
+          <div className="mx-auto max-w-6xl px-5 sm:px-8 py-20 sm:py-28 grid gap-14 lg:grid-cols-[1.05fr_0.95fr] items-center">
+            <div>
+              <span className="inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-maiz-400">¿También vendes en apps de reparto?</span>
+              <h2 className="mt-5 font-display text-4xl sm:text-5xl font-bold leading-[1.05] tracking-[-0.03em]">
+                Un platillo de $100 en una app de reparto te deja <span className="text-maiz-400">$56</span>.
+              </h2>
+              <div className="mt-6 space-y-5 text-lg text-agave-100/90 leading-relaxed">
+                <p>La comisión de 30%, el IVA de esa comisión y las retenciones del SAT se llevan casi la mitad. Si pones el mismo precio que en tu mostrador, vendes más y ganas menos.</p>
+                <p>Don Punto calcula el precio exacto de cada platillo en cada app para que te llegue lo que quieres ganar, y te lo vuelve a calcular cuando cambias un costo. Pruébalo aquí:</p>
+              </div>
+            </div>
+            <TicketCalculator onStart={onSubscribe} />
+          </div>
+        </section>
+
+        {/* Tienda en línea */}
+        <Section id="tienda-en-linea" className="py-24 sm:py-32">
+          <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
+            <div>
+              <p className="inline-flex items-center gap-2 rounded-full bg-maiz-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-maiz-800">Nuevo · incluido en todos los planes</p>
+              <h2 className="mt-5 font-display text-4xl sm:text-5xl font-bold leading-[1.05] tracking-[-0.03em]">
+                Tu propia tienda en línea. <span className="text-agave-600">Cero comisión por pedido.</span>
+              </h2>
+              <p className="mt-5 text-lg text-carbon-600 leading-relaxed">
+                Tus clientes de siempre te piden directo desde <b className="font-semibold text-carbon-900 whitespace-nowrap">donpunto.com/tu-negocio</b>, con tu menú, tus fotos y tus precios. El dinero llega completo a ti, no a una plataforma de reparto.
+              </p>
+              <div className="mt-10 grid gap-x-8 gap-y-8 sm:grid-cols-2">
+                {[
+                  { icon: <Globe strokeWidth={1.6} />, t: 'Lista en minutos', d: 'Se arma sola con el menú que ya tienes en tu caja. Agrega fotos, marca lo agotado y comparte tu enlace.' },
+                  { icon: <Bike strokeWidth={1.6} />, t: 'Para recoger o a domicilio', d: 'Tú decides hasta cuántos kilómetros entregas y cuánto cobras de envío. El cliente confirma su ubicación.' },
+                  { icon: <Banknote strokeWidth={1.6} />, t: 'Cobras directo', d: 'Efectivo al recoger o transferencia CoDi a tu cuenta. Sin intermediarios ni porcentajes por venta.' },
+                  { icon: <BellRing strokeWidth={1.6} />, t: 'Te suena cada pedido', d: 'Aviso en el celular y en la caja. Aceptas, tu cliente ve el avance y la venta cae sola en tu corte.' },
+                ].map((f) => (
+                  <div key={f.t}>
+                    <div className="grid h-11 w-11 place-items-center rounded-xl bg-agave-50 text-agave-600 ring-1 ring-agave-100 [&>svg]:h-5 [&>svg]:w-5">{f.icon}</div>
+                    <h3 className="mt-4 text-lg font-semibold">{f.t}</h3>
+                    <p className="mt-1.5 text-carbon-600 leading-relaxed">{f.d}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-10 flex flex-col sm:flex-row gap-3">
+                <button onClick={onSubscribe} className="rounded-full bg-agave-600 hover:bg-agave-700 px-7 py-3.5 font-semibold text-white transition-colors">Quiero mi tienda en línea</button>
+                <a href="/donchuy" target="_blank" rel="noopener" className="inline-flex items-center justify-center gap-2 rounded-full px-7 py-3.5 font-semibold text-carbon-800 ring-1 ring-carbon-300 hover:bg-white">Ver tienda de ejemplo <ArrowRight size={16} /></a>
+              </div>
+            </div>
+            <div className="relative mx-auto w-full max-w-[320px]">
+              <div className="absolute -inset-8 rounded-[3rem] bg-maiz-300/25 blur-2xl" aria-hidden="true" />
+              <div className="relative rounded-[2.6rem] bg-carbon-950 p-2.5 shadow-[0_40px_80px_-30px_rgba(4,33,26,0.6)] ring-1 ring-black/20">
+                <img src="/screens/store.webp" alt="Tienda en línea de una taquería hecha con Don Punto: menú con fotos, recoger o a domicilio" loading="lazy" decoding="async" className="block w-full rounded-[2.1rem]" />
+              </div>
+              <div className="absolute -right-3 sm:-right-12 top-4 w-[15.5rem] rounded-2xl bg-white p-4 shadow-[0_20px_50px_-20px_rgba(4,33,26,0.45)] ring-1 ring-carbon-200/70">
+                <p className="text-xs font-semibold uppercase tracking-wider text-agave-600">Pedido nuevo</p>
+                <p className="mt-1 font-semibold text-carbon-950">3 al pastor + horchata</p>
+                <p className="text-sm text-carbon-500 whitespace-nowrap">A domicilio · $135 · <b className="font-semibold text-agave-600">comisión $0</b></p>
+              </div>
+            </div>
+          </div>
+        </Section>
+
         {/* App instalable + notificaciones */}
         <Section className="pb-24 sm:pb-32">
           <div className="grid overflow-hidden rounded-[2rem] bg-carbon-950 text-white lg:grid-cols-2">
@@ -383,7 +461,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 { icon: <Store strokeWidth={1.6} />, t: 'Varias sucursales', d: 'Cada local cobra con su caja, su corte y su inventario. Tú ves todas juntas: cuál vende más y cuál va para abajo.' },
                 { icon: <UserCog strokeWidth={1.6} />, t: 'Cada empleado con su PIN', d: 'Sabes quién cobró, quién hizo descuentos y quién canceló tickets. Cajeros y gerentes con permisos distintos.' },
                 { icon: <PackageCheck strokeWidth={1.6} />, t: 'Inventario que se descuenta solo', d: 'Al vender un platillo se restan los insumos de su receta. Te llega un aviso al celular cuando algo se está acabando.' },
-                { icon: <HeartHandshake strokeWidth={1.6} />, t: 'Clientes que regresan', d: 'Guarda a tus clientes con su WhatsApp, mira lo que compran y prémialos: "tu orden 10 va por la casa".' },
+                { icon: <HeartHandshake strokeWidth={1.6} />, t: 'Clientes que regresan', d: 'Guarda a tus clientes con su teléfono, mira lo que compran y prémialos: "tu orden 10 va por la casa".' },
                 { icon: <BarChart3 strokeWidth={1.6} />, t: 'Reportes avanzados', d: 'Esta semana contra la pasada, horas pico, mejores días y platillos estrella. Descarga en hoja de cálculo o PDF.' },
                 { icon: <FileScan strokeWidth={1.6} />, t: 'Facturas leídas con IA', d: 'Tómale foto a la factura del proveedor y las compras se capturan solas en tu inventario.' },
               ].map((f) => (
@@ -437,7 +515,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 name="Pro"
                 price={799}
                 text="Para negocios con equipo, varias sucursales y ganas de crecer."
-                items={['Todo lo del plan Básico, incluida la tienda en línea', 'Varias sucursales con reporte de todas juntas', 'Empleados con su propio PIN y reporte por cajero', 'Inventario que se descuenta solo y avisos al celular', 'Clientes frecuentes y recompensas por visita', 'Reportes avanzados con hoja de cálculo y PDF', 'Facturas de proveedor leídas con IA', 'Soporte prioritario por WhatsApp']}
+                items={['Todo lo del plan Básico, incluida la tienda en línea', 'Varias sucursales con reporte de todas juntas', 'Empleados con su propio PIN y reporte por cajero', 'Inventario que se descuenta solo y avisos al celular', 'Clientes frecuentes y recompensas por visita', 'Reportes avanzados con hoja de cálculo y PDF', 'Facturas de proveedor leídas con IA', 'Soporte prioritario']}
                 cta="Elegir Pro"
                 onClick={onSubscribe}
               />
@@ -497,7 +575,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
         <div className="mx-auto max-w-6xl px-5 sm:px-8 py-12 flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
           <div className="space-y-3">
             <Logo size={60} tagline />
-            <p className="text-sm text-carbon-500">Punto de venta para restaurantes y negocios de comida.</p>
+            <p className="text-sm text-carbon-500">Punto de venta para restaurantes y negocios pequeños y medianos.</p>
           </div>
           <nav className="flex flex-wrap gap-x-6 gap-y-3 text-sm text-carbon-600">
             <a href="#precios" className="hover:text-carbon-950">Precios</a>
