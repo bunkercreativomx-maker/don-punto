@@ -282,7 +282,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
           <div className="mt-10 grid items-center gap-14 lg:grid-cols-[1fr_1fr]">
             <div className="hero-in">
               <p className="max-w-xl text-lg sm:text-xl leading-relaxed text-carbon-600">
-                Cobra en segundos, manda la comanda a cocina, cuadra tu caja y sabe cuánto ganaste hoy. Desde el celular, la tablet o la compu que ya tienes.
+                Cobra en segundos, manda la comanda a cocina y cuadra tu caja. Don Punto te dice cuánto ganaste hoy, desde el celular, la tablet o la compu que ya tienes.
               </p>
               <p className="mt-4 max-w-xl text-base leading-relaxed text-carbon-600">
                 <b className="font-semibold text-carbon-900">¿No tienes restaurante?</b> También es para negocios pequeños y medianos que quieren llevar el control de sus ventas.
