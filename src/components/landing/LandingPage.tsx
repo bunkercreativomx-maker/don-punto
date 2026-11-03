@@ -1,8 +1,8 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { LockKeyhole, Store, UserCog, PackageCheck, HeartHandshake, BarChart3, FileScan,
   Check, ChevronDown, Receipt, Calculator, Wallet, Boxes, ChefHat, ScanLine, WifiOff, BellRing,
   Smartphone, MessageCircle, Mail, ArrowRight, ShieldCheck, Globe, Bike, Banknote,
-  EyeOff, Ban, TrendingDown, Coffee, Croissant, IceCream, Truck, ShoppingBag,
+  EyeOff, Ban, TrendingDown, Coffee, Croissant, IceCream, Truck, ShoppingBag, Volume2, VolumeX,
 } from 'lucide-react';
 import { Logo, Mark, Wordmark } from '../brand/Logo';
 import { InstallAppButton } from '../pwa/InstallApp';
@@ -192,6 +192,53 @@ const FEATURES: { icon: ReactNode; title: string; text: string }[] = [
 ];
 
 /* ------------------------------------------------------------------ página */
+/** Tutorial de la tienda: autoplay en silencio cuando entra en pantalla (los navegadores solo permiten autoplay sin sonido). */
+function StoreTutorialVideo() {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [muted, setMuted] = useState(true);
+  useEffect(() => {
+    const v = ref.current;
+    if (!v || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) v.play().catch(() => undefined);
+      else v.pause();
+    }, { threshold: 0.35 });
+    io.observe(v);
+    return () => io.disconnect();
+  }, []);
+  const toggleSound = () => {
+    const v = ref.current;
+    if (!v) return;
+    const next = !muted;
+    v.muted = next;
+    if (!next) { v.currentTime = 0; v.play().catch(() => undefined); }
+    setMuted(next);
+  };
+  return (
+    <div className="relative">
+      <video
+        ref={ref}
+        src="/videos/tutorial-tienda.mp4"
+        poster="/videos/tutorial-tienda.webp"
+        muted
+        loop
+        playsInline
+        preload="metadata"
+        aria-label="Tutorial: así funciona la tienda en línea de Don Punto"
+        className="block w-full aspect-[9/16] rounded-[2.1rem] bg-carbon-950 object-cover"
+      />
+      <button
+        type="button"
+        onClick={toggleSound}
+        className="absolute bottom-4 left-1/2 -translate-x-1/2 inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-black/70 px-4 py-2 text-sm font-semibold text-white backdrop-blur hover:bg-black/80"
+      >
+        {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+        {muted ? 'Activar sonido' : 'Silenciar'}
+      </button>
+    </div>
+  );
+}
+
 export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
   const whatsapp = whatsappLink('Hola, quiero información de Don Punto.');
   const contact = supportLink('Hola, quiero información de Don Punto.');
@@ -418,13 +465,9 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
             <div className="relative mx-auto w-full max-w-[320px]">
               <div className="absolute -inset-8 rounded-[3rem] bg-maiz-300/25 blur-2xl" aria-hidden="true" />
               <div className="relative rounded-[2.6rem] bg-carbon-950 p-2.5 shadow-[0_40px_80px_-30px_rgba(4,33,26,0.6)] ring-1 ring-black/20">
-                <img src="/screens/store.webp" alt="Tienda en línea de una taquería hecha con Don Punto: menú con fotos, recoger o a domicilio" loading="lazy" decoding="async" className="block w-full rounded-[2.1rem]" />
+                <StoreTutorialVideo />
               </div>
-              <div className="absolute -right-3 sm:-right-12 top-4 w-[15.5rem] rounded-2xl bg-white p-4 shadow-[0_20px_50px_-20px_rgba(4,33,26,0.45)] ring-1 ring-carbon-200/70">
-                <p className="text-xs font-semibold uppercase tracking-wider text-agave-600">Pedido nuevo</p>
-                <p className="mt-1 font-semibold text-carbon-950">3 al pastor + horchata</p>
-                <p className="text-sm text-carbon-500 whitespace-nowrap">A domicilio · $135 · <b className="font-semibold text-agave-600">comisión $0</b></p>
-              </div>
+              
             </div>
           </div>
         </Section>
