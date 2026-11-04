@@ -1,16 +1,16 @@
 // Notificaciones push (Web Push / VAPID). Las llaves viven en PocketBase (app_kv, solo superusuario).
-import webpush from 'web-push';
+import { sendNotification, type Vapid } from './webpush.js';
 import { adminToken, pbFetch } from './server.js';
 
-let vapidReady = false;
+let vapid: Vapid | null = null;
 
 async function ensureVapid(token: string) {
-  if (vapidReady) return;
+  if (vapid) return vapid;
   const r = await pbFetch(`/api/collections/app_kv/records?perPage=1&filter=${encodeURIComponent('key = "vapid"')}`, { token });
   const v = r.data?.items?.[0]?.value;
   if (!v?.publicKey || !v?.privateKey) throw new Error('VAPID no configurado');
-  webpush.setVapidDetails(v.subject || 'mailto:soporte@donpunto.com', v.publicKey, v.privateKey);
-  vapidReady = true;
+  vapid = { subject: v.subject || 'mailto:soporte@donpunto.com', publicKey: v.publicKey, privateKey: v.privateKey };
+  return vapid;
 }
 
 export interface PushPayload {
@@ -25,7 +25,7 @@ export interface PushPayload {
 /** Envía a todos los dispositivos del usuario; borra suscripciones vencidas (404/410). */
 export async function sendToUser(uid: string, payload: PushPayload, opts: { onlyDailySummary?: boolean } = {}): Promise<number> {
   const token = await adminToken();
-  await ensureVapid(token);
+  const v = await ensureVapid(token);
   let filter = `owner = "${uid}"`;
   if (opts.onlyDailySummary) filter += ' && daily_summary = true';
   const r = await pbFetch(`/api/collections/push_subscriptions/records?perPage=50&filter=${encodeURIComponent(filter)}`, { token });
@@ -34,7 +34,8 @@ export async function sendToUser(uid: string, payload: PushPayload, opts: { only
   await Promise.all(
     subs.map(async (s) => {
       try {
-        await webpush.sendNotification(
+        await sendNotification(
+          v,
           { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
           JSON.stringify(payload),
           { TTL: 60 * 60 * 12, urgency: 'normal' },
