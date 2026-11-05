@@ -16,6 +16,8 @@ import { MenuImportModal, type ImportPlatforms } from './components/pos/MenuImpo
 import { usePOS } from './hooks/usePOS';
 import { Building2, Phone, MapPin, PrinterIcon } from 'lucide-react';
 import { Logo, Mark } from './components/brand/Logo';
+import { BluetoothPrinterCard } from './components/print/BluetoothPrinterCard';
+import { btAutoReconnect } from './lib/btPrinter';
 import { NotificationsCard } from './components/pwa/NotificationsCard';
 import { InstallAppButton } from './components/pwa/InstallApp';
 import { InventoryModule } from './components/inventory/InventoryModule';
@@ -65,6 +67,7 @@ function CajaAccessEditor() {
 }
 
 function App({ userEmail, onLogout, onBilling }: AppProps) {
+  useEffect(() => { btAutoReconnect(); }, []);
   const {
     settings,
     updateSetting,
@@ -919,6 +922,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                                       )}
                                   >🖨️ Normal (A4/Carta)</button>
                               </div>
+                              <BluetoothPrinterCard paper80={posSettings.paperSize === '80mm'} />
                           </div>
                       </div>
 
