@@ -2,3 +2,7 @@ name = "donpunto"
 pages_build_output_dir = "dist"
 compatibility_date = "2026-10-01"
 compatibility_flags = ["nodejs_compat"]
+
+[[kv_namespaces]]
+binding = "BLOG_CACHE"
+id = "91eaab5476984cee82b17a7b451972b7"

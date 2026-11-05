@@ -1,0 +1,7 @@
+name = "donpunto-monitor"
+main = "index.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+kv_namespaces = [{ binding = "KV", id = "d231f58ec2d34086a0d718ac1acb4baa" }]
+[triggers]
+crons = ["*/5 * * * *"]
