@@ -1,7 +1,8 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { usePOS } from '../../hooks/usePOS';
 import { useCalculator } from '../../hooks/useCalculator'; 
-import type { CartItem, POSPaymentMethod, OrderDestination, OpenTicket } from '../../types/pos';
+import type { CartItem, POSPaymentMethod, OrderDestination, OpenTicket, ServiceType, OrderTypeInfo } from '../../types/pos';
+import { orderTypeLines, orderTypeLabel, pickOrderType } from '../../lib/orderType';
 import { Plus, Trash2, ShoppingCart, Minus, CreditCard, Save, History, Bike, Lock, Search, X, CheckCircle, Gift, UserPlus, AlertTriangle } from 'lucide-react';
 import { isPro, authorizeWithPin, useSession, lockSession } from '../../lib/session';
 import { getClients, addClient, recordVisit, rewardReady, rewardDiscount, getLoyalty, type Client } from '../../lib/clients';
@@ -80,6 +81,31 @@ export function POSDashboard() {
   const [isChangeModalOpen, setIsChangeModalOpen] = useState(false);
   const [receivedAmount, setReceivedAmount] = useState<string>('');
   const [orderCustomerName, setOrderCustomerName] = useState(''); // Customer name for the whole order
+  // Tipo de orden: en tienda comer aquí / para llevar (+ mesa); en DiDi el número de pedido; Uber/Rappi el nombre
+  const [service, setService] = useState<ServiceType | ''>('');
+  const [table, setTable] = useState('');
+  const [orderRef, setOrderRef] = useState('');
+  const [orderError, setOrderError] = useState('');
+  // Celular/tablet: botón flotante "Ver orden" cuando la orden (arriba) ya no se ve
+  const cartRef = useRef<HTMLDivElement>(null);
+  const [cartVisible, setCartVisible] = useState(true);
+  useEffect(() => {
+    const el = cartRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(([e]) => setCartVisible(e.isIntersecting), { threshold: 0.05 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  const orderType: OrderTypeInfo = pickOrderType({ service: orderDestination === 'Tienda' ? (service || undefined) : undefined, table: orderDestination === 'Tienda' && service === 'aqui' ? table : undefined, orderRef: orderDestination === 'Didi' ? orderRef : undefined });
+  /** Qué falta para poder cobrar o guardar la orden */
+  const missingOrderInfo = (): string => {
+    if (orderDestination === 'Tienda' && !service) return 'Elige si es para COMER AQUÍ o PARA LLEVAR.';
+    if (orderDestination === 'Didi' && !orderRef.trim().replace(/^#+/, '')) return 'Escribe el número de pedido de DiDi (ej. 12).';
+    if ((orderDestination === 'Uber' || orderDestination === 'Rappi') && !orderCustomerName.trim()) return `Escribe el nombre del cliente de ${orderDestination}.`;
+    return '';
+  };
+  const resetOrderType = () => { setService(''); setTable(''); setOrderRef(''); setOrderError(''); };
+  useEffect(() => { setOrderError(''); }, [orderDestination, service, orderRef, orderCustomerName]);
   // Clientes frecuentes (Pro)
   const pro = isPro();
   const [clients, setClients] = useState<Client[]>(() => (isPro() ? getClients() : []));
@@ -145,6 +171,7 @@ export function POSDashboard() {
     kitchenOnly?: boolean;
     waiterName?: string;
     tip?: number;
+    orderLines?: string[];
     } | null>(null);
 
   // Search query state
@@ -291,6 +318,8 @@ export function POSDashboard() {
     if (waiterMode) return; // el mesero no cobra
     if (cart.length === 0) return;
     if (needsShift()) return;
+    const miss = missingOrderInfo();
+    if (miss) { setOrderError(miss); return; }
     
     // If it's cash, show calculator first
     if (paymentMethod === 'Efectivo' || paymentMethod === 'Didi Efectivo') {
@@ -310,7 +339,7 @@ export function POSDashboard() {
         return `${item.quantity}x ${row?.name}${mods ? ` (${mods})` : ''}${noteStr}`;
     }).join(', ');
     
-    const customerName = orderCustomerName.trim() || cart.find(i => i.customerNote)?.customerNote || (orderDestination === 'Tienda' ? 'Venta Mostrador' : `Pedido ${orderDestination === 'Didi' ? 'DiDi' : orderDestination}`);
+    const customerName = orderCustomerName.trim() || cart.find(i => i.customerNote)?.customerNote || (orderDestination === 'Tienda' ? 'Venta Mostrador' : orderDestination === 'Didi' ? `Pedido DiDi #${orderType.orderRef}` : `Pedido ${orderDestination}`);
     
     // Include discount details in transactions table for reporting
     const discountStr = discountAmount > 0 
@@ -322,7 +351,7 @@ export function POSDashboard() {
     const nGuests = Math.max(0, Math.round(Number(guests) || 0));
     addTransaction(Math.round(finalTotal * 100) / 100, paymentMethod, orderDestination, detail + (courtesyStr || rewardStr || discountStr), customerName, undefined, [...cart], discountAmount,
       { ...(selectedClient ? { clientId: selectedClient.id, rewardApplied: rewardOn } : {}), ...(resumedWaiter ? { waiterId: resumedWaiter.id, waiterName: resumedWaiter.name } : {}),
-        ...(tipAmount > 0 ? { tip: Math.round(tipAmount * 100) / 100 } : {}), ...(nGuests ? { guests: nGuests } : {}), ...(courtesy ? { courtesy: true } : {}), ...(shift ? { shiftId: shift.id } : {}) });
+        ...(tipAmount > 0 ? { tip: Math.round(tipAmount * 100) / 100 } : {}), ...(nGuests ? { guests: nGuests } : {}), ...(courtesy ? { courtesy: true } : {}), ...(shift ? { shiftId: shift.id } : {}), ...orderType });
     setResumedWaiter(null);
     if (pro && selectedClient) { recordVisit(selectedClient.id, finalTotal, rewardOn); setClients(getClients()); }
     // Inventario automático (Pro): descontar insumos de las recetas
@@ -345,6 +374,7 @@ export function POSDashboard() {
         receivedAmount: isCash && receivedAmount ? Number(receivedAmount) : undefined,
         discountAmount: discountAmount,
         tip: tipAmount,
+        orderLines: orderTypeLines({ ...orderType, destination: orderDestination, customerName }),
     });
 
     setCart([]);
@@ -355,6 +385,7 @@ export function POSDashboard() {
     setTipInput('');
     setGuests('');
     setCourtesy(false);
+    resetOrderType();
 
     // Trigger print dialog if any ticket is enabled
     if (settings.printCustomerTicket || settings.printKitchenTicket) runPrint('ticket');
@@ -363,8 +394,12 @@ export function POSDashboard() {
   const handleSaveTicket = () => {
       if (cart.length === 0) return;
       if (needsShift()) return;
-      const customerName = orderCustomerName.trim() || cart.find(i => i.customerNote)?.customerNote || 'Sin Nombre';
-      saveTicket(customerName, orderDestination, cart, finalTotal, resumedWaiter || undefined, Math.max(0, Math.round(Number(guests) || 0)) || undefined);
+      const miss = missingOrderInfo();
+      if (miss) { setOrderError(miss); return; }
+      const customerName = orderCustomerName.trim() || cart.find(i => i.customerNote)?.customerNote || (orderDestination === 'Tienda' && orderType.table ? `Mesa ${orderType.table}` : orderDestination === 'Didi' ? `Pedido DiDi #${orderType.orderRef}` : 'Sin Nombre');
+      const savedType = orderType;
+      saveTicket(customerName, orderDestination, cart, finalTotal, resumedWaiter || undefined, Math.max(0, Math.round(Number(guests) || 0)) || undefined, savedType);
+      resetOrderType();
       const items = [...cart];
       setCart([]);
       setOrderCustomerName('');
@@ -376,7 +411,7 @@ export function POSDashboard() {
       if (waiterMode) {
           // Comanda a cocina y se cierra la sesión del mesero para que el siguiente ponga su PIN
           if (settings.printKitchenTicket) {
-              setLastOrder({ items, total: finalTotal, paymentMethod: 'Efectivo', destination: orderDestination, customerName, kitchenOnly: true, waiterName: operator?.name });
+              setLastOrder({ items, total: finalTotal, paymentMethod: 'Efectivo', destination: orderDestination, customerName, kitchenOnly: true, waiterName: operator?.name, orderLines: orderTypeLines({ ...savedType, destination: orderDestination, customerName }) });
               runPrint('ticket', () => lockSession());
           } else {
               showToast(`Orden de ${customerName} enviada`);
@@ -391,6 +426,7 @@ export function POSDashboard() {
       setOrderCustomerName(ticket.customerName === 'Sin Nombre' ? '' : ticket.customerName);
       setResumedWaiter(ticket.waiterId && ticket.waiterName ? { id: ticket.waiterId, name: ticket.waiterName } : null);
       setGuests(ticket.guests ? String(ticket.guests) : '');
+      setService(ticket.service || ''); setTable(ticket.table || ''); setOrderRef(ticket.orderRef || ''); setOrderError('');
       deleteOpenTicket(ticket.id);
       setIsTicketsModalOpen(false);
   };
@@ -446,9 +482,10 @@ export function POSDashboard() {
             ))}
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-x-8 lg:gap-y-0">
             {/* Products Grid */}
-            <div className="lg:col-span-8 bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-2xl p-4 sm:p-6 shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)]">
+            {/* Encabezado (tienda/apps, método de pago): en celular va arriba de la orden; en compu es la parte de arriba de la tarjeta de productos */}
+            <div className="order-1 lg:order-none lg:col-span-8 bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-2xl lg:rounded-b-none lg:border-b-0 p-4 sm:p-6 lg:pb-0 shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] lg:shadow-none">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                     <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                         <h2 className="font-display text-xl font-bold text-carbon-950 flex items-center gap-2">
@@ -466,7 +503,7 @@ export function POSDashboard() {
                                 return (
                                     <button
                                         key={d}
-                                        onClick={() => setOrderDestination(d)}
+                                        onClick={() => { setOrderDestination(d); if (d !== 'Tienda') { setService(''); setTable(''); } if (d !== 'Didi') setOrderRef(''); }}
                                         className={cn(
                                             "px-1.5 sm:px-3 py-1.5 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-1 sm:gap-1.5",
                                             orderDestination === d ? activeColors[d] : "text-slate-500 hover:text-slate-300"
@@ -536,6 +573,9 @@ export function POSDashboard() {
                     </div>
                 </div>
 
+            </div>
+
+            <div className="order-3 lg:order-none lg:col-span-8 bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-2xl lg:rounded-t-none lg:border-t-0 p-4 sm:p-6 lg:pt-0 shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)]">
                 {/* Search bar */}
                 <div className="relative mb-4">
                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
@@ -584,13 +624,14 @@ export function POSDashboard() {
             </div>
 
             {/* Cart Section */}
-            <div className="lg:col-span-4 flex flex-col gap-4">
-                <div className="bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-2xl p-6 shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] flex-grow flex flex-col min-h-[520px]">
+            {/* En celular y tablet la orden va ARRIBA de los productos; en computadora, a la derecha */}
+            <div ref={cartRef} className="order-2 lg:order-none lg:col-span-4 lg:col-start-9 lg:row-start-1 lg:row-span-2 flex flex-col gap-4 scroll-mt-20">
+                <div className="bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-2xl p-4 sm:p-6 shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] flex-grow flex flex-col lg:min-h-[520px]">
                     <h3 className="text-lg font-bold text-carbon-950 mb-4">Orden Actual</h3>
-                    <div className="flex-grow space-y-3 overflow-y-auto no-scrollbar pr-1">
+                    <div className="flex-grow space-y-3 overflow-y-auto no-scrollbar pr-1 max-h-[45vh] lg:max-h-none">
                         {cart.length === 0 ? (
-                            <div className="text-center py-20 text-slate-600">
-                                <ShoppingCart size={48} className="mx-auto mb-4 opacity-10"/>
+                            <div className="text-center py-6 lg:py-20 text-slate-600">
+                                <ShoppingCart size={48} className="mx-auto mb-2 lg:mb-4 opacity-10 hidden lg:block"/>
                                 <p className="text-sm font-medium">El carrito está vacío</p>
                             </div>
                         ) : cart.map(item => {
@@ -627,6 +668,34 @@ export function POSDashboard() {
                         })}
                     </div>
                     <div className="pt-4 border-t border-carbon-950/10 mt-4 space-y-3">
+                        {/* Tipo de orden: sale en grande en ticket y comanda */}
+                        <div className={cn("rounded-xl border px-3 py-2 space-y-2", orderError ? "border-rose-400 bg-rose-50" : "border-carbon-950/10 bg-slate-950/50")} data-tour="order-type">
+                            {orderDestination === 'Tienda' && (
+                                <>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {([['aqui', 'COMER AQUÍ'], ['llevar', 'PARA LLEVAR']] as const).map(([k, l]) => (
+                                            <button key={k} type="button" onClick={() => setService(k)} className={cn("rounded-lg py-2 text-[11px] font-black tracking-wide border transition-all", service === k ? "bg-agave-600 text-white border-agave-600" : "bg-white text-carbon-700 border-carbon-950/15 hover:border-agave-400")}>{l}</button>
+                                        ))}
+                                    </div>
+                                    {service === 'aqui' && (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Mesa #:</span>
+                                            <input type="text" inputMode="numeric" maxLength={8} value={table} onChange={(e) => setTable(e.target.value)} placeholder="Opcional (ej. 4)" className="flex-grow min-w-0 bg-transparent text-carbon-950 text-xs font-bold outline-none placeholder:text-slate-500" />
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                            {orderDestination === 'Didi' && (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Pedido DiDi #:</span>
+                                    <input type="text" inputMode="numeric" maxLength={10} value={orderRef} onChange={(e) => setOrderRef(e.target.value.replace(/^#+/, ''))} placeholder="Obligatorio (ej. 12)" className="flex-grow min-w-0 bg-transparent text-carbon-950 text-sm font-black outline-none placeholder:text-slate-500 placeholder:font-medium placeholder:text-xs" />
+                                </div>
+                            )}
+                            {(orderDestination === 'Uber' || orderDestination === 'Rappi') && (
+                                <p className="text-[11px] font-semibold text-carbon-600">Pedido de {orderDestination}: escribe abajo el <b>nombre del cliente</b> como sale en la app.</p>
+                            )}
+                            {orderError && <p className="text-[11px] font-bold text-rose-600">{orderError}</p>}
+                        </div>
                         {/* Customer Name Field - always visible */}
                         <div className="relative">
                         <div className="flex items-center gap-2 bg-slate-950/50 border border-carbon-950/10 rounded-xl px-3 py-2">
@@ -637,7 +706,7 @@ export function POSDashboard() {
                                 onChange={(e) => { setOrderCustomerName(e.target.value); setClientId(null); setRewardOn(false); setShowSuggest(true); }}
                                 onFocus={() => setShowSuggest(true)}
                                 onBlur={() => setTimeout(() => setShowSuggest(false), 150)}
-                                placeholder={pro ? 'Nombre o teléfono del cliente' : 'Nombre del cliente (opcional)'}
+                                placeholder={orderDestination === 'Uber' || orderDestination === 'Rappi' ? 'Nombre del cliente (obligatorio)' : pro ? 'Nombre o teléfono del cliente' : 'Nombre del cliente (opcional)'}
                                 className="flex-grow bg-transparent text-carbon-950 text-xs font-medium outline-none placeholder:text-slate-500"
                             />
                             {pro && !clientId && orderCustomerName.trim().length >= 2 && suggestions.length === 0 && (
@@ -1009,7 +1078,7 @@ export function POSDashboard() {
                             <div key={ticket.id} className="bg-slate-950/50 border border-carbon-950/10 p-4 rounded-2xl flex items-center justify-between group hover:border-carbon-950/10 transition-all">
                                 <div className="flex flex-col gap-1">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-[10px] bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded-full font-black border border-indigo-500/20">{ticket.destination.toUpperCase()}</span>
+                                        <span className="text-[10px] bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded-full font-black border border-indigo-500/20">{orderTypeLabel(ticket) || ticket.destination.toUpperCase()}</span>
                                         <span className="text-sm font-bold text-carbon-950">{ticket.customerName}</span>
                                     </div>
                                     <div className="text-[10px] text-slate-600 font-medium">
@@ -1054,6 +1123,7 @@ export function POSDashboard() {
                     paymentMethod={lastOrder.paymentMethod}
                     destination={lastOrder.destination}
                     customerName={lastOrder.customerName}
+                    orderLines={lastOrder.orderLines}
                     paperSize={settings.paperSize}
                     receivedAmount={lastOrder.receivedAmount}
                     discountAmount={lastOrder.discountAmount}
@@ -1079,6 +1149,7 @@ export function POSDashboard() {
                     paymentMethod={lastOrder.paymentMethod}
                     destination={lastOrder.destination}
                     customerName={lastOrder.customerName}
+                    orderLines={lastOrder.orderLines}
                     isKitchen={true}
                     waiterName={lastOrder.waiterName}
                     paperSize={settings.paperSize}
@@ -1086,6 +1157,13 @@ export function POSDashboard() {
                 />
             )}
         </PrintArea>
+    )}
+
+    {/* Celular/tablet: ir a la orden (está arriba) */}
+    {cart.length > 0 && !cartVisible && (
+        <button type="button" onClick={() => cartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="lg:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-[80] no-print inline-flex items-center gap-2 rounded-full bg-agave-600 px-5 py-3 text-sm font-black text-white shadow-[0_12px_28px_-10px_rgba(14,111,77,0.7)]">
+            <ShoppingCart size={18} /> Ver orden ({cart.reduce((a, i) => a + i.quantity, 0)}) · ${money(waiterMode ? finalTotal : chargeTotal)}
+        </button>
     )}
 
     {/* Toast notification */}

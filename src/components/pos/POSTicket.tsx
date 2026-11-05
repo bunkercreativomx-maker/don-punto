@@ -24,9 +24,11 @@ interface POSTicketProps {
   discountAmount?: number;
   waiterName?: string;
   tip?: number;
+  /** Tipo de orden en grande: ["COMER AQUÍ", "MESA 4"], ["DIDI", "#12"]… */
+  orderLines?: string[];
 }
 
-export function POSTicket({ items, total, paymentMethod, destination, customerName, date, isKitchen = false, paperSize = '58mm', receivedAmount, businessName, businessPhone, businessAddress, discountAmount, waiterName, tip }: POSTicketProps) {
+export function POSTicket({ items, total, paymentMethod, destination, customerName, date, isKitchen = false, paperSize = '58mm', receivedAmount, businessName, businessPhone, businessAddress, discountAmount, waiterName, tip, orderLines }: POSTicketProps) {
   const { rows } = useCalculator();
   const printDate = date ? new Date(date) : new Date();
   const subtotal = total + (discountAmount || 0);
@@ -45,6 +47,14 @@ export function POSTicket({ items, total, paymentMethod, destination, customerNa
           </>
         )}
       </div>
+
+      {orderLines && orderLines.length > 0 && (
+        <div className="order-type text-center mb-3 border-b border-black pb-2">
+          {orderLines.map((l, i) => (
+            <h2 key={i} className={cn("font-bold uppercase leading-tight", isKitchen ? "text-xl" : "text-lg")}>{l}</h2>
+          ))}
+        </div>
+      )}
 
       <div className="space-y-1 mb-4 border-b border-black pb-2">
         <div className="flex-row-print">

@@ -1,5 +1,6 @@
 // Pedidos en línea (panel del restaurante): pedidos entrantes, página pública, menú con fotos y cobro con CoDi.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { orderTypeLines } from '../../lib/orderType';
 import { Bell, Bike, Store as StoreIcon, Check, X, Printer, Phone, MapPin, ExternalLink, Copy, Image as ImageIcon, Loader2, Globe, QrCode, Banknote, Lock, Eye, EyeOff, Clock, ChefHat, PackageCheck, AlertTriangle, Upload, LocateFixed, Search } from 'lucide-react';
 import { pb } from '../../lib/pocketbase';
 import { buildMenu, compressImage, slugify, money, SLUG_RE, RESERVED_SLUGS, type OMenu } from '../../lib/onlineStore';
@@ -354,7 +355,7 @@ function OrdersBoard({ store, rows }: { store: Rec; rows: ProductRowData[] }) {
   const finish = (o: WebOrder, method: POSPaymentMethod) => {
     const items: CartItem[] = o.items.map((i) => ({ cartId: crypto.randomUUID(), rowId: i.rowId, quantity: i.quantity, customerNote: i.customerNote, selectedModifiers: i.selectedModifiers || [] }));
     const note = `Pedido en línea #${o.number} · ${o.type === 'delivery' ? 'A domicilio' : 'Para recoger'}${o.delivery_fee ? ` (envío ${money(o.delivery_fee)})` : ''}`;
-    const tx = addTransaction(o.total, method, 'Tienda', note, o.customer_name, undefined, items);
+    const tx = addTransaction(o.total, method, 'Tienda', note, o.customer_name, undefined, items, undefined, { online: o.type === 'delivery' ? 'delivery' : 'pickup' });
     if (isPro()) {
       const { alerts } = applySaleToInventory(items, rows);
       if (alerts.length) apiPost('/api/push', { action: 'stock', items: alerts.map((a) => ({ nombre: a.nombre, saldo: a.saldo, unidad: a.unidad, level: a.level })) }).catch(() => {});
@@ -418,7 +419,8 @@ function OrdersBoard({ store, rows }: { store: Rec; rows: ProductRowData[] }) {
           <POSTicket items={printing.items.map((i) => ({ cartId: i.rowId, rowId: i.rowId, quantity: i.quantity, customerNote: i.customerNote, selectedModifiers: i.selectedModifiers || [] }))}
             total={printing.total} paymentMethod="Efectivo" isKitchen paperSize={settings.paperSize}
             destination={(`En línea · ${printing.type === 'delivery' ? 'Domicilio' : 'Recoger'}`) as OrderDestination}
-            customerName={`#${printing.number} ${printing.customer_name}`} />
+            customerName={`#${printing.number} ${printing.customer_name}`}
+            orderLines={orderTypeLines({ online: printing.type === 'delivery' ? 'delivery' : 'pickup' })} />
         </PrintArea>
       )}
     </div>

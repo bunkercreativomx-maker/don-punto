@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { usePOS } from '../../hooks/usePOS';
 import { useCalculator } from '../../hooks/useCalculator';
 import { POSTicket } from './POSTicket';
+import { orderTypeLines, orderTypeLabel } from '../../lib/orderType';
 import { 
   Search, 
   Calendar, 
@@ -72,7 +73,9 @@ export function POSTicketsHistory() {
         const matchesFolio = tx.folio.toLowerCase().includes(term);
         const matchesCustomer = (tx.customerName || '').toLowerCase().includes(term);
         const matchesNotes = (tx.notes || '').toLowerCase().includes(term);
-        return matchesFolio || matchesCustomer || matchesNotes;
+        // Tipo de orden: "#12", "mesa 4", "para llevar", "didi"…
+        const matchesType = orderTypeLabel(tx).toLowerCase().includes(term) || (!!tx.orderRef && term.replace(/^#/, '') === tx.orderRef.toLowerCase());
+        return matchesFolio || matchesCustomer || matchesNotes || matchesType;
       }
 
       return true;
@@ -114,7 +117,7 @@ export function POSTicketsHistory() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
             <input
               type="text"
-              placeholder="Buscar por Folio, Cliente o Productos..."
+              placeholder="Buscar por folio, cliente, #pedido, mesa o productos..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-slate-950 border border-carbon-950/10 rounded-2xl pl-12 pr-4 py-3.5 text-sm text-carbon-950 font-medium outline-none focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-slate-500"
@@ -208,6 +211,7 @@ export function POSTicketsHistory() {
                         <span className="shrink-0 text-xs font-black text-indigo-400 tracking-wider bg-indigo-950/40 border border-indigo-500/10 px-1.5 py-0.5 rounded-md">{tx.folio}</span>
                         <span className="text-sm font-black text-carbon-950 truncate">{tx.customerName || 'Venta Mostrador'}</span>
                       </div>
+                      {orderTypeLabel(tx) && <span className="inline-block mt-1 text-[10px] font-black uppercase tracking-wide rounded-md bg-maiz-100 text-maiz-800 px-1.5 py-0.5">{orderTypeLabel(tx)}</span>}
                       
                       <p className="text-[10px] text-slate-500 mt-1 italic line-clamp-1 w-full max-w-[200px] sm:max-w-[280px]">{tx.notes}</p>
                       
@@ -315,6 +319,12 @@ export function POSTicketsHistory() {
                     <span className="text-slate-500">Origen:</span>
                     <span className="font-bold uppercase">{selectedTicket.destination}</span>
                   </div>
+                  {orderTypeLabel(selectedTicket) && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Tipo:</span>
+                      <span className="font-bold uppercase">{orderTypeLabel(selectedTicket)}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Items */}
@@ -431,6 +441,7 @@ export function POSTicketsHistory() {
             paymentMethod={ticketToPrint.paymentMethod}
             destination={ticketToPrint.destination}
             customerName={ticketToPrint.customerName}
+            orderLines={orderTypeLines(ticketToPrint)}
             isKitchen={printType === 'kitchen'}
             paperSize={settings.paperSize}
             businessName={settings.businessName}

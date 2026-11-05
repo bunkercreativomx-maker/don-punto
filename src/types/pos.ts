@@ -2,6 +2,18 @@ import type { Modifier } from './calculator';
 
 export type POSPaymentMethod = 'Efectivo' | 'Didi' | 'Uber' | 'Rappi' | 'Tarjeta' | 'Didi Efectivo' | 'Transferencia';
 export type OrderDestination = 'Tienda' | 'Uber' | 'Didi' | 'Rappi';
+/** En tienda: comer aquí o para llevar */
+export type ServiceType = 'aqui' | 'llevar';
+/** Tipo de orden que sale en ticket/comanda */
+export interface OrderTypeInfo {
+  service?: ServiceType;
+  /** Mesa (solo comer aquí) */
+  table?: string;
+  /** Número de pedido de la app (DiDi: #1, #2…) */
+  orderRef?: string;
+  /** Pedido de la tienda en línea */
+  online?: 'pickup' | 'delivery';
+}
 
 export interface CartItem {
     cartId: string;
@@ -14,7 +26,7 @@ export interface CartItem {
     }[];
 }
 
-export interface POSTransaction {
+export interface POSTransaction extends OrderTypeInfo {
   id: string;
   date: string; // ISO 8601 string
   amount: number;
@@ -44,7 +56,7 @@ export interface POSTransaction {
   shiftId?: string;
 }
 
-export interface OpenTicket {
+export interface OpenTicket extends OrderTypeInfo {
     id: string;
     customerName: string;
     createdAt: string;

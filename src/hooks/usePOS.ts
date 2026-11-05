@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import type { POSTransaction, POSSettings, POSSummary, POSPaymentMethod, OrderDestination, OpenTicket, CartItem } from '../types/pos';
+import type { POSTransaction, POSSettings, POSSummary, POSPaymentMethod, OrderDestination, OpenTicket, CartItem, OrderTypeInfo } from '../types/pos';
+import { pickOrderType } from '../lib/orderType';
 import { storeGet, storeSet } from '../lib/cloudStore';
 import { getOperator } from '../lib/session';
 import type { Cancellation } from '../types/pos';
@@ -53,7 +54,7 @@ export function usePOS() {
     dateStr?: string,
     items?: CartItem[],
     discountAmount?: number,
-    extra?: { clientId?: string; rewardApplied?: boolean; waiterId?: string; waiterName?: string; tip?: number; guests?: number; courtesy?: boolean; shiftId?: string }
+    extra?: OrderTypeInfo & { clientId?: string; rewardApplied?: boolean; waiterId?: string; waiterName?: string; tip?: number; guests?: number; courtesy?: boolean; shiftId?: string }
   ) => {
     const op = getOperator();
     const newTx: POSTransaction = {
@@ -100,13 +101,14 @@ export function usePOS() {
       total: tx.amount + (tx.discountAmount || 0),
       waiterId: tx.waiterId, waiterName: tx.waiterName,
       ...(tx.guests ? { guests: tx.guests } : {}),
+      ...pickOrderType(tx),
     };
     setTransactions((prev) => prev.filter((t) => t.id !== id));
     setOpenTickets((prev) => [ticket, ...prev]);
     return ticket;
   };
 
-  const saveTicket = (customerName: string, destination: OrderDestination, items: CartItem[], total: number, waiter?: { id: string; name: string }, guests?: number) => {
+  const saveTicket = (customerName: string, destination: OrderDestination, items: CartItem[], total: number, waiter?: { id: string; name: string }, guests?: number, orderType?: OrderTypeInfo) => {
     // La orden queda a nombre de quien la tomó (o de quien la abrió originalmente)
     const op = getOperator();
     const w = waiter || (op ? { id: op.id, name: op.name } : undefined);
@@ -120,6 +122,7 @@ export function usePOS() {
         items,
         total,
         ...(guests ? { guests } : {}),
+        ...(orderType ? pickOrderType(orderType) : {}),
     };
     setOpenTickets(prev => [newTicket, ...prev]);
   };
