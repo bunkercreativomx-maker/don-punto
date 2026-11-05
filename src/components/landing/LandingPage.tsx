@@ -168,7 +168,7 @@ const PAINS: { icon: ReactNode; pain: string; hurt: string; fix: string }[] = [
   { icon: <Wallet strokeWidth={1.6} />, pain: 'Cierras y la caja no cuadra', hurt: 'Cuentas billetes, falta dinero y nunca sabes en qué momento se fue.', fix: 'Don Punto te dice cuánto efectivo debe haber en el cajón antes de contarlo.' },
   { icon: <EyeOff strokeWidth={1.6} />, pain: 'Si no estás, no sabes cuánto vendiste', hurt: 'Te enteras hasta el otro día, o cuando alguien te lo cuenta.', fix: 'Cada noche te llega el cierre del día al celular, estés donde estés.' },
   { icon: <ChefHat strokeWidth={1.6} />, pain: 'La orden se pierde en la cocina', hurt: 'Platillo equivocado, cliente esperando y comida que se tira.', fix: 'Cada orden sale con ticket para el cliente y comanda para cocina.' },
-  { icon: <Ban strokeWidth={1.6} />, pain: 'Descuentos y cancelaciones que nadie autorizó', hurt: 'Un ticket borrado por aquí, un descuento por allá. Al mes es mucho dinero.', fix: 'Borrar o descontar pide tu PIN. En el plan Pro cada empleado tiene el suyo.' },
+  { icon: <Ban strokeWidth={1.6} />, pain: 'Descuentos y cancelaciones que nadie autorizó', hurt: 'Un ticket borrado por aquí, un descuento por allá. Al mes es mucho dinero.', fix: 'Borrar o descontar pide tu PIN. Tu cajero entra con el suyo, y en el plan Pro cada empleado tiene el propio.' },
   { icon: <PackageCheck strokeWidth={1.6} />, pain: 'Se te acaba un insumo en hora pico', hurt: 'Le dices al cliente "ya no hay" y se va con la competencia.', fix: 'En el plan Pro el inventario se descuenta solo y te avisa antes de que se acabe.' },
   { icon: <TrendingDown strokeWidth={1.6} />, pain: 'Vendes mucho, pero no sabes qué te deja dinero', hurt: 'Trabajas más horas y al final del mes no ves la ganancia.', fix: 'Ves el costo y el margen de cada producto, y cuál se vende y cuál no.' },
 ];
@@ -542,7 +542,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
             <div className="mt-12 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
               {[
                 { icon: <Store strokeWidth={1.6} />, t: 'Varias sucursales', d: 'Cada local cobra con su caja, su corte y su inventario. Tú ves todas juntas: cuál vende más y cuál va para abajo.' },
-                { icon: <UserCog strokeWidth={1.6} />, t: 'Cada empleado con su PIN', d: 'Sabes quién cobró, quién hizo descuentos y quién canceló tickets. Cajeros y gerentes con permisos distintos.' },
+                { icon: <UserCog strokeWidth={1.6} />, t: 'Todo tu equipo con su PIN', d: 'Meseros que mandan órdenes a cocina, cajeros y gerentes con permisos distintos. Sabes quién cobró, quién hizo descuentos y quién canceló.' },
                 { icon: <PackageCheck strokeWidth={1.6} />, t: 'Inventario que se descuenta solo', d: 'Al vender un platillo se restan los insumos de su receta. Te llega un aviso al celular cuando algo se está acabando.' },
                 { icon: <HeartHandshake strokeWidth={1.6} />, t: 'Clientes que regresan', d: 'Guarda a tus clientes con su teléfono, mira lo que compran y prémialos: "tu orden 10 va por la casa".' },
                 { icon: <BarChart3 strokeWidth={1.6} />, t: 'Reportes avanzados', d: 'Esta semana contra la pasada, horas pico, mejores días y platillos estrella. Descarga en hoja de cálculo o PDF.' },
@@ -588,7 +588,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 name="Básico"
                 price={350}
                 text="Para un negocio con una sucursal que quiere orden y vender más."
-                items={['1 sucursal, ventas ilimitadas', 'Tienda en línea propia, sin comisión por pedido', 'Calculadora de precios para apps de delivery', 'Tu menú desde una foto con IA', 'Combos sugeridos para mover tus platillos', 'Corte de caja con IVA, inventario y recetario', 'Reportes y ganancias protegidos con PIN', 'Respaldo en la nube y app instalable']}
+                items={['1 sucursal, ventas ilimitadas', 'Tienda en línea propia, sin comisión por pedido', 'Calculadora de precios para apps de delivery', 'Tu menú desde una foto con IA', 'Combos sugeridos para mover tus platillos', 'Corte de caja con IVA, inventario y recetario', '2 usuarios: tú y 1 cajero con su PIN', 'Reportes y ganancias protegidos con PIN', 'Respaldo en la nube y app instalable']}
                 cta="Prueba 15 días gratis"
                 note="Luego $350 al mes. Cancela cuando quieras."
                 onClick={onSubscribe}
@@ -598,7 +598,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 name="Pro"
                 price={799}
                 text="Para negocios con equipo, varias sucursales y ganas de crecer."
-                items={['Todo lo del plan Básico, incluida la tienda en línea', 'Varias sucursales con reporte de todas juntas', 'Empleados con su propio PIN y reporte por cajero', 'Inventario que se descuenta solo y avisos al celular', 'Clientes frecuentes y recompensas por visita', 'Reportes avanzados con hoja de cálculo y PDF', 'Facturas de proveedor leídas con IA', 'Soporte prioritario']}
+                items={['Todo lo del plan Básico, incluida la tienda en línea', 'Varias sucursales con reporte de todas juntas', 'Empleados ilimitados (meseros, cajeros y gerentes) con su PIN y reporte por persona', 'Inventario que se descuenta solo y avisos al celular', 'Clientes frecuentes y recompensas por visita', 'Reportes avanzados con hoja de cálculo y PDF', 'Facturas de proveedor leídas con IA', 'Soporte prioritario']}
                 cta="Elegir Pro"
                 onClick={onSubscribe}
               />

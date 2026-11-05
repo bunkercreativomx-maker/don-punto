@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Plus, Trash2, UserCog, ShieldCheck, Power } from 'lucide-react';
-import { useSession, isPro, getTeam, saveTeam, getBranches, type Employee, type Role } from '../../lib/session';
+import { useSession, isPro, getTeam, saveTeam, getBranches, teamLimit, roleAllowed, usableTeam, type Employee, type Role } from '../../lib/session';
 import { usePOS } from '../../hooks/usePOS';
 import { storeGet } from '../../lib/cloudStore';
 import { money } from '../../lib/format';
@@ -47,19 +47,15 @@ export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adm
     return [...map.values()].sort((a, b) => b.ventas + b.atendido - (a.ventas + a.atendido));
   }, [transactions, range]);
 
-  if (!isPro()) {
-    return (
-      <ProUpsell
-        title="Cada empleado con su propio PIN"
-        text="Hoy todos en tu negocio usan el mismo PIN. Con Pro, cada cajero entra con el suyo y sabes exactamente quién cobró, quién hizo descuentos y quién canceló tickets."
-        bullets={['PIN propio por empleado y por sucursal', 'Rol de cajero o gerente con permisos distintos', 'Reporte por cajero: ventas, descuentos y cancelaciones', 'Al abrir la caja se pide "¿Quién cobra?"']}
-        onUpgrade={onUpgrade}
-      />
-    );
-  }
+  const pro = isPro();
+  const limit = teamLimit();
+  const full = team.length >= limit;
+  const usable = new Set(usableTeam().map((e) => e.id));
 
   const add = () => {
     setError('');
+    if (full) return setError('Tu plan Básico incluye 1 cajero. Para agregar más personal cámbiate a Pro.');
+    if (!roleAllowed(form.role)) return setError('Meseros y gerentes son del plan Pro.');
     const name = form.name.trim();
     const pin = form.pin.trim();
     if (!name) return setError('Escribe el nombre.');
@@ -78,26 +74,27 @@ export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adm
       <div className="xl:col-span-3 space-y-6">
         <div className="rounded-3xl border border-carbon-950/10 bg-white p-6">
           <h3 className="font-display text-lg font-bold text-carbon-950 flex items-center gap-2"><UserCog size={18} className="text-agave-600" /> Agregar empleado</h3>
+          {!pro && <p className="mt-1 text-xs text-carbon-500">Plan Básico: 2 usuarios — tú (dueño) y 1 cajero con su propio PIN.</p>}
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <input className={input} placeholder="Nombre (ej. Juan)" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             <input className={input} placeholder="PIN de 4 a 6 números" inputMode="numeric" maxLength={6} value={form.pin} onChange={(e) => setForm({ ...form, pin: e.target.value.replace(/\D/g, '') })} />
             <select className={input} value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as Role })}>
-              <option value="mesero">Mesero</option>
+              <option value="mesero" disabled={!pro}>Mesero{pro ? '' : ' (Pro)'}</option>
               <option value="cajero">Cajero</option>
-              <option value="gerente">Gerente</option>
+              <option value="gerente" disabled={!pro}>Gerente{pro ? '' : ' (Pro)'}</option>
             </select>
-            <select className={input} value={form.branchId} onChange={(e) => setForm({ ...form, branchId: e.target.value })}>
+            {pro && <select className={input} value={form.branchId} onChange={(e) => setForm({ ...form, branchId: e.target.value })}>
               <option value="">Todas las sucursales</option>
               {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
+            </select>}
           </div>
           <p className="mt-2 text-xs text-carbon-500">{ROLE_INFO[form.role]}</p>
           {error && <p className="mt-2 text-sm font-semibold text-rose-600">{error}</p>}
-          <button onClick={add} className="mt-4 inline-flex items-center gap-2 rounded-full bg-agave-600 hover:bg-agave-700 px-5 py-2.5 text-sm font-semibold text-white"><Plus size={16} /> Agregar</button>
+          <button onClick={add} disabled={full} className="mt-4 disabled:opacity-40 inline-flex items-center gap-2 rounded-full bg-agave-600 hover:bg-agave-700 px-5 py-2.5 text-sm font-semibold text-white"><Plus size={16} /> Agregar</button>
         </div>
 
         <div className="rounded-3xl border border-carbon-950/10 bg-white p-6">
-          <h3 className="font-display text-lg font-bold text-carbon-950">Tu equipo ({team.length})</h3>
+          <h3 className="font-display text-lg font-bold text-carbon-950">Tu equipo ({team.length}{pro ? '' : ` de ${limit}`})</h3>
           {team.length === 0 ? (
             <p className="mt-3 text-sm text-carbon-500">Aún no hay empleados. Cuando agregues el primero, al abrir la caja se pedirá "¿Quién cobra?".</p>
           ) : (
@@ -108,11 +105,12 @@ export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adm
                   <div className="flex-1 min-w-[140px]">
                     <div className={`font-semibold ${e.active ? 'text-carbon-900' : 'text-carbon-400 line-through'}`}>{e.name}</div>
                     <div className="text-xs text-carbon-500">PIN •••• · {branches.find((b) => b.id === e.branchId)?.name || 'Todas las sucursales'}</div>
+                    {e.active && !usable.has(e.id) && <div className="text-[11px] font-semibold text-maiz-800">No puede entrar con el plan Básico</div>}
                   </div>
                   <select value={e.role} onChange={(ev) => update(e.id, { role: ev.target.value as Role })} className="rounded-lg border border-carbon-950/15 bg-white px-2 py-1.5 text-xs font-semibold text-carbon-800">
-                    <option value="mesero">Mesero</option>
+                    <option value="mesero" disabled={!pro}>Mesero{pro ? '' : ' (Pro)'}</option>
                     <option value="cajero">Cajero</option>
-                    <option value="gerente">Gerente</option>
+                    <option value="gerente" disabled={!pro}>Gerente{pro ? '' : ' (Pro)'}</option>
                   </select>
                   <button onClick={() => { const pin = prompt(`Nuevo PIN para ${e.name} (4 a 6 números):`) || ''; if (/^\d{4,6}$/.test(pin) && pin !== adminPin && !team.some((x) => x.pin === pin && x.id !== e.id)) update(e.id, { pin }); else if (pin) alert('PIN inválido o ya en uso.'); }} className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-carbon-700 hover:bg-carbon-100">Cambiar PIN</button>
                   <button onClick={() => update(e.id, { active: !e.active })} title={e.active ? 'Desactivar' : 'Activar'} className="rounded-lg p-2 text-carbon-600 hover:bg-carbon-100"><Power size={15} /></button>
@@ -124,6 +122,14 @@ export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adm
         </div>
       </div>
 
+      {!pro && <div className="xl:col-span-3 xl:row-start-2">
+        <ProUpsell
+          title="¿Necesitas más personal?"
+          text="Tu plan Básico incluye al dueño y 1 cajero. Con Pro agregas todos los empleados que quieras: meseros que mandan órdenes a cocina, más cajeros y gerentes."
+          bullets={['Empleados ilimitados, cada uno con su PIN', 'Meseros: toman órdenes y las mandan a cocina, sin cobrar', 'Gerentes con permisos distintos', 'PIN por sucursal']}
+          onUpgrade={onUpgrade}
+        />
+      </div>}
       <div className="xl:col-span-2 rounded-3xl border border-carbon-950/10 bg-white p-6 h-fit">
         <div className="flex items-center justify-between gap-3">
           <h3 className="font-display text-lg font-bold text-carbon-950 flex items-center gap-2"><ShieldCheck size={18} className="text-agave-600" /> Por persona</h3>

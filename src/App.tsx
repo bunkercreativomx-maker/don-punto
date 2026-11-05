@@ -439,7 +439,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
     { tab: 'recipes', label: 'Recetario', Icon: BookOpen },
     { tab: 'financial', label: 'Financiero', Icon: Wallet },
     { tab: 'branches', label: 'Sucursales', Icon: Store, pro: true, sep: true },
-    { tab: 'team', label: 'Equipo', Icon: UserCog, pro: true },
+    { tab: 'team', label: 'Equipo', Icon: UserCog },
   ];
   const current = shownTab === 'settings' ? { label: 'Ajustes', Icon: Settings } : (NAV.find((n) => n.tab === shownTab) ?? NAV[0]);
   const drawerShown = navOpen || tourOpen;

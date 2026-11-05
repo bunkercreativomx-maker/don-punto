@@ -8,8 +8,8 @@ Don Punto es un punto de venta para restaurantes que funciona en la computadora,
 
 **Planes (pesos mexicanos, pago mensual, sin contrato):**
 
-- **Básico — $350 MXN/mes:** 1 sucursal, ventas ilimitadas · Tienda en línea propia, sin comisión por pedido · Calculadora de precios para apps de delivery · Tu menú desde una foto con IA · Combos sugeridos para mover tus platillos · Corte de caja con IVA, inventario y recetario · Reportes y ganancias protegidos con PIN · Respaldo en la nube y app instalable.
-- **Pro — $799 MXN/mes:** Todo lo del plan Básico, incluida la tienda en línea · Varias sucursales con reporte de todas juntas · Empleados con su propio PIN y reporte por cajero · Inventario que se descuenta solo y avisos al celular · Clientes frecuentes y recompensas por visita · Reportes avanzados con hoja de cálculo y PDF · Facturas de proveedor leídas con IA · Soporte prioritario.
+- **Básico — $350 MXN/mes:** 1 sucursal, ventas ilimitadas · Tienda en línea propia, sin comisión por pedido · Calculadora de precios para apps de delivery · Tu menú desde una foto con IA · Combos sugeridos para mover tus platillos · Corte de caja con IVA, inventario y recetario · 2 usuarios: el dueño y 1 cajero con su PIN · Reportes y ganancias protegidos con PIN · Respaldo en la nube y app instalable.
+- **Pro — $799 MXN/mes:** Todo lo del plan Básico, incluida la tienda en línea · Varias sucursales con reporte de todas juntas · Empleados ilimitados (meseros, cajeros y gerentes) con su PIN y reporte por persona · Inventario que se descuenta solo y avisos al celular · Clientes frecuentes y recompensas por visita · Reportes avanzados con hoja de cálculo y PDF · Facturas de proveedor leídas con IA · Soporte prioritario.
 
 **Prueba de 15 días:** es lo único gratis. Te registras (correo, contraseña y nombre del negocio) y eliges plan con **PROBAR 15 DÍAS GRATIS**. Registras tu tarjeta al empezar, pero no se cobra nada hasta el día 16. Te llega un aviso al celular 3 días antes (si tienes las notificaciones activadas). Si cancelas antes desde **Mi plan**, no pagas nada. La prueba se da solo la primera vez; si ya tuviste una suscripción, el botón dice **ELEGIR BÁSICO** / **ELEGIR PRO** y se cobra desde el inicio.
 
@@ -22,16 +22,16 @@ Don Punto es un punto de venta para restaurantes que funciona en la computadora,
 
 ## 2. Navegación, roles y PIN
 
-**Menú lateral** (en celular y tablet se abre con el botón **☰ Menú** de arriba a la izquierda; junto a él siempre dice en qué sección estás): **Punto de Venta**, **Pedidos en línea**, **Tickets**, **Reportes**, **Clientes** (plan Pro), **Tienda Física**, **Plataformas**, **Catálogo**, **Inventario**, **Radar de Menú**, **Recetario**, **Financiero**, **Sucursales** (plan Pro), **Equipo** (plan Pro), y **Escanear menú con IA**. Abajo: **Ajustes**, **Instalar app**, **Ayuda** (chat con soporte), **Mi plan** y **Cerrar Sesión**. Las secciones con candado piden PIN.
+**Menú lateral** (en celular y tablet se abre con el botón **☰ Menú** de arriba a la izquierda; junto a él siempre dice en qué sección estás): **Punto de Venta**, **Pedidos en línea**, **Tickets**, **Reportes**, **Clientes** (plan Pro), **Tienda Física**, **Plataformas**, **Catálogo**, **Inventario**, **Radar de Menú**, **Recetario**, **Financiero**, **Sucursales** (plan Pro), **Equipo**, y **Escanear menú con IA**. Abajo: **Ajustes**, **Instalar app**, **Ayuda** (chat con soporte), **Mi plan** y **Cerrar Sesión**. Las secciones con candado piden PIN.
 
 **Quién ve qué:**
 - **Modo caja** (nadie identificado): **Punto de Venta** siempre está abierto. Por defecto la caja también ve **Pedidos en línea** y **Clientes**. El dueño decide qué más se abre sin PIN en **Ajustes → Seguridad Antifraude → Qué puede ver la caja sin PIN** (opciones: Pedidos en línea, Tickets, Clientes, Catálogo, Inventario, Recetario). **Reportes, Financiero, Tienda Física, Plataformas, Radar de Menú y Ajustes siempre piden PIN.**
 - **Dueño:** el **PIN de Administrador** (Ajustes) abre todo. Se bloquea solo tras 15 minutos sin uso.
 - **Gerente** (plan Pro): todo menos **Ajustes**, **Financiero**, **Equipo** y **Sucursales**.
-- **Cajero** (plan Pro): cobra y ve solo lo que el dueño dejó abierto a la caja.
+- **Cajero** (Básico: 1 cajero; Pro: los que quieras): cobra y ve solo lo que el dueño dejó abierto a la caja.
 - **Mesero** (plan Pro): solo **Punto de Venta**; toma órdenes y las manda a cocina. No cobra, no hace descuentos ni borra.
 
-En el menú lateral ves quién está usando el equipo: **Entrar** (escribir PIN) o **Bloquear** (volver a modo caja). Si en plan Pro hay empleados registrados, al abrir la caja aparece **¿Quién eres?** para que cada quien ponga su PIN; arriba del Punto de Venta sale "Cobrando: nombre" con el botón **Cambiar**.
+En el menú lateral ves quién está usando el equipo: **Entrar** (escribir PIN) o **Bloquear** (volver a modo caja). Si hay empleados registrados, al abrir la caja aparece **¿Quién eres?** para que cada quien ponga su PIN; arriba del Punto de Venta sale "Cobrando: nombre" con el botón **Cambiar**.
 
 **Acciones que piden PIN de dueño o gerente** (un cajero no puede autorizar): quitar un producto o bajar la cantidad en la orden, borrar un ticket abierto, marcar **Cortesía** y **REABRIR** una venta.
 
@@ -121,7 +121,7 @@ En **Inventario** toca **SUBIR FACTURA** → toma o sube la foto (sirve con fact
 En **Clientes**: **Nuevo cliente** (nombre, teléfono, nota) → **Guardar cliente**. Ves visitas, total gastado, últimas compras y quién no viene hace 30+ días. **Recompensa por visita**: actívala y elige en qué visita se gana (por defecto la 10), % o $ de descuento y el texto del ticket. Al cobrar, escribe nombre o teléfono en **Cliente**; si no existe, toca **Guardar**. Cuando ya ganó su recompensa aparece **Aplicar recompensa**. La lista se puede descargar en archivo CSV.
 
 ### Equipo con PIN (plan Pro)
-En **Equipo** (solo dueño): **Agregar empleado** con nombre, PIN de 4 a 6 números, rol (**Mesero**, **Cajero** o **Gerente**) y sucursal (o **Todas las sucursales**) → **Agregar**. Cada uno tiene **Cambiar PIN**, **Desactivar** y **Eliminar** (sus ventas pasadas se conservan). El reporte **Por persona** muestra ventas, tickets, órdenes, descuentos y cancelado de cada quien.
+En **Equipo** (solo dueño). **Plan Básico:** 2 usuarios, el dueño y **1 cajero** (meseros, gerentes o más empleados piden plan Pro; si bajas de Pro a Básico solo entra el primer cajero activo). **Plan Pro:** empleados ilimitados. **Agregar empleado** con nombre, PIN de 4 a 6 números, rol (**Mesero**, **Cajero** o **Gerente**) y sucursal (o **Todas las sucursales**) → **Agregar**. Cada uno tiene **Cambiar PIN**, **Desactivar** y **Eliminar** (sus ventas pasadas se conservan). El reporte **Por persona** muestra ventas, tickets, órdenes, descuentos y cancelado de cada quien.
 
 ### Sucursales (plan Pro)
 En **Sucursales** (solo dueño): **Agregar sucursal** (nombre y dirección opcional). Todas comparten menú y recetas; ventas, tickets, corte, inventario y gastos van por separado. En cada caja o tablet toca **Cobrar aquí** (o usa el selector de sucursal arriba del menú lateral) para que las ventas caigan en la sucursal correcta. Ves el reporte de todas juntas (hoy, 30 días, vs. mes anterior, ticket promedio, hora pico). También **Renombrar** o **Quitar**.

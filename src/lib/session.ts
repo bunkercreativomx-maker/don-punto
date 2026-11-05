@@ -4,7 +4,8 @@
  * Modelo de acceso:
  *  - Sin nadie identificado = "caja": solo ve las pantallas que el dueño deje abiertas (por defecto, solo Punto de Venta).
  *  - PIN del dueño (Ajustes → Seguridad) = acceso total por 15 minutos sin actividad.
- *  - Plan Pro: cada empleado tiene su PIN y un rol (mesero, cajero o gerente). Las ventas quedan a su nombre.
+ *  - Plan Básico: dueño + 1 cajero con su PIN (2 usuarios).
+ *  - Plan Pro: empleados ilimitados, cada uno con su PIN y un rol (mesero, cajero o gerente). Las ventas quedan a su nombre.
  *  - Mesero: solo toma órdenes (cuentas abiertas + comanda a cocina). No cobra, no descuenta, no borra.
  */
 import { useEffect, useState, useSyncExternalStore } from 'react';
@@ -43,6 +44,17 @@ export function getTeam(): Employee[] {
   try { return JSON.parse(storeGet(TEAM_KEY) || '[]'); } catch { return []; }
 }
 export function saveTeam(t: Employee[]) { storeSet(TEAM_KEY, JSON.stringify(t)); emitChange(); }
+/** Básico: dueño + 1 cajero. Pro: sin límite y todos los roles. */
+export const BASIC_TEAM_LIMIT = 1;
+export const BASIC_ROLES: Role[] = ['cajero'];
+export function teamLimit(): number { return isPro() ? Infinity : BASIC_TEAM_LIMIT; }
+export function roleAllowed(r: Role): boolean { return isPro() || BASIC_ROLES.includes(r); }
+/** Empleados que pueden entrar hoy según el plan (si bajó de Pro a Básico, solo el primer cajero activo). */
+export function usableTeam(): Employee[] {
+  const active = getTeam().filter((e) => e.active);
+  if (isPro()) return active;
+  return active.filter((e) => roleAllowed(e.role)).slice(0, BASIC_TEAM_LIMIT);
+}
 
 // ---------------------------------------------------------------- sucursales
 export interface Branch { id: string; name: string; address?: string }
@@ -102,10 +114,8 @@ export function findOperatorByPin(pin: string, ownerPin: string): Operator | nul
   const p = pin.trim();
   if (!p) return null;
   if (p === (ownerPin || '1234')) return { kind: 'owner', id: 'owner', name: 'Dueño', role: 'dueno' };
-  if (isPro()) {
-    const e = getTeam().find((x) => x.active && x.pin === p && (!x.branchId || x.branchId === getActiveBranch()));
-    if (e) return { kind: 'employee', id: e.id, name: e.name, role: e.role };
-  }
+  const e = usableTeam().find((x) => x.pin === p && (!x.branchId || x.branchId === getActiveBranch()));
+  if (e) return { kind: 'employee', id: e.id, name: e.name, role: e.role };
   return null;
 }
 /** Identifica a alguien por PIN y lo deja como operador de este equipo. */
@@ -125,15 +135,15 @@ export function lockSession() { setOperator(null); }
 export function canAccess(tab: Tab, op: Operator | null = operator): boolean {
   if (tab === 'pos') return true;
   if (op?.role === 'mesero') return false;
-  if ((tab === 'clients' || tab === 'branches' || tab === 'team') && !isPro() && op?.role !== 'dueno') return false;
+  if ((tab === 'clients' || tab === 'branches') && !isPro() && op?.role !== 'dueno') return false;
   if (!op || op.role === 'cajero') return getCajaTabs().includes(tab);
   if (op.role === 'gerente') return !OWNER_ONLY.includes(tab);
   return true; // dueño
 }
 
-/** ¿Hay que pedir quién cobra al abrir? (Pro con empleados registrados) */
+/** ¿Hay que pedir quién cobra al abrir? (hay empleados que pueden entrar) */
 export function requiresCashierLogin(): boolean {
-  return isPro() && getTeam().some((e) => e.active);
+  return usableTeam().length > 0;
 }
 
 export const isWaiter = (op: Operator | null = operator) => op?.role === 'mesero';

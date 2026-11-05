@@ -12,8 +12,8 @@ interface SubscriptionGateProps {
 }
 
 const FEATURES: Record<PlanKey, string[]> = {
-  basico: ['1 sucursal', 'Reportes protegidos con PIN', 'Punto de venta ilimitado', 'Calculadora Uber / DiDi / Rappi', 'Menú desde una foto con IA', 'Combos sugeridos con IA', 'Corte de caja, inventario y recetario'],
-  pro: ['Todo lo del plan Básico', 'Varias sucursales con reporte consolidado', 'Empleados con PIN y reporte por cajero', 'Inventario automático y alertas', 'Clientes frecuentes y recompensas', 'Reportes avanzados, Excel y PDF', 'Facturas de proveedor con IA'],
+  basico: ['1 sucursal', '2 usuarios: dueño y 1 cajero', 'Reportes protegidos con PIN', 'Punto de venta ilimitado', 'Calculadora Uber / DiDi / Rappi', 'Menú desde una foto con IA', 'Combos sugeridos con IA', 'Corte de caja, inventario y recetario'],
+  pro: ['Todo lo del plan Básico', 'Varias sucursales con reporte consolidado', 'Empleados ilimitados: meseros, cajeros y gerentes', 'Inventario automático y alertas', 'Clientes frecuentes y recompensas', 'Reportes avanzados, Excel y PDF', 'Facturas de proveedor con IA'],
 };
 
 export function SubscriptionGate({ status, email, verifyingPayment, hasStripeCustomer, onLogout }: SubscriptionGateProps) {
