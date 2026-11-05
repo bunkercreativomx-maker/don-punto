@@ -1,0 +1,18 @@
+{
+  "name": "donpunto-pb",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "observability": { "enabled": true },
+  "triggers": { "crons": ["*/2 * * * *"] },
+  "containers": [
+    { "class_name": "DonPuntoPB", "image": "registry.cloudflare.com/fa420c2d491ae210ba3f75c191cf70af/donpunto-pb-cf:v1", "instance_type": "lite", "max_instances": 1 }
+  ],
+  "durable_objects": { "bindings": [{ "name": "PB", "class_name": "DonPuntoPB" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DonPuntoPB"] }],
+  "vars": {
+    "LS_BUCKET": "bunker-backups",
+    "LS_PATH": "live/donpunto-pb/prod-1/data.db",
+    "LS_ENDPOINT": "https://fa420c2d491ae210ba3f75c191cf70af.r2.cloudflarestorage.com"
+  }
+}

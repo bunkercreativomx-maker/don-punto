@@ -1,0 +1,16 @@
+# Réplica continua de data.db (auxiliary.db = logs, no se replica)
+snapshot:
+  interval: 6h
+  retention: 168h
+dbs:
+  - path: /pb_data/data.db
+    replica:
+      type: s3
+      bucket: ${LS_BUCKET}
+      path: ${LS_PATH}
+      endpoint: ${LS_ENDPOINT}
+      region: auto
+      access-key-id: ${LS_KEY}
+      secret-access-key: ${LS_SECRET}
+      force-path-style: true
+      sync-interval: 1s
