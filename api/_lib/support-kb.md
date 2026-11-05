@@ -62,7 +62,7 @@ Las cuentas nuevas ven un tour al entrar por primera vez: cambia el **PIN de due
 ### Cobrar una venta (Punto de Venta)
 1. Arriba elige el canal: **TIENDA** para mostrador/mesa, o la app de comida a domicilio si es pedido de una app.
 2. Elige **Método de Pago**: en tienda **EFECTIVO** o **TARJETA**.
-3. Toca un producto (puedes filtrar por categoría o usar **Buscar producto...**). Se abre **Personalizar**: elige modificadores, escribe una nota en **Nombre del Cliente / Notas** (ej. "sin cebolla") y toca **AGREGAR A LA ORDEN**.
+3. Toca un producto (puedes filtrar por categoría o usar **Buscar producto...**). Se abre **Personalizar**: elige modificadores, escribe una nota en **Notas** (ej. "sin cebolla"); el nombre del cliente va en el campo **Cliente** de la orden y toca **AGREGAR A LA ORDEN**.
 4. En **Orden Actual** puedes subir cantidad con **+**. Bajar cantidad o quitar un producto pide PIN de dueño o gerente.
 5. Opcionales: **Cliente** (nombre; en plan Pro también busca por teléfono), **Personas**, **Descuento** (en **$** o **%**), **Cortesía** (la casa invita: descuento de 100%, pide PIN) y **Propina** (solo en tienda: botones **10%**, **15%** o monto). La propina no cuenta como venta; se suma al total a cobrar.
 6. Toca **FINALIZAR**. Si es efectivo se abre la **Calculadora de Cambio**: escribe el **Monto Recibido** (o toca $20, $50, $100, $200, $500 o **EXACTO**), ve el cambio a entregar y toca **FINALIZAR Y COBRAR**.

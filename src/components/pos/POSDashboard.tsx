@@ -339,7 +339,7 @@ export function POSDashboard() {
         return `${item.quantity}x ${row?.name}${mods ? ` (${mods})` : ''}${noteStr}`;
     }).join(', ');
     
-    const customerName = orderCustomerName.trim() || cart.find(i => i.customerNote)?.customerNote || (orderDestination === 'Tienda' ? 'Venta Mostrador' : orderDestination === 'Didi' ? `Pedido DiDi #${orderType.orderRef}` : `Pedido ${orderDestination}`);
+    const customerName = orderCustomerName.trim() || (orderDestination === 'Tienda' ? 'Venta Mostrador' : orderDestination === 'Didi' ? `Pedido DiDi #${orderType.orderRef}` : `Pedido ${orderDestination}`);
     
     // Include discount details in transactions table for reporting
     const discountStr = discountAmount > 0 
@@ -396,7 +396,7 @@ export function POSDashboard() {
       if (needsShift()) return;
       const miss = missingOrderInfo();
       if (miss) { setOrderError(miss); return; }
-      const customerName = orderCustomerName.trim() || cart.find(i => i.customerNote)?.customerNote || (orderDestination === 'Tienda' && orderType.table ? `Mesa ${orderType.table}` : orderDestination === 'Didi' ? `Pedido DiDi #${orderType.orderRef}` : 'Sin Nombre');
+      const customerName = orderCustomerName.trim() || (orderDestination === 'Tienda' && orderType.table ? `Mesa ${orderType.table}` : orderDestination === 'Didi' ? `Pedido DiDi #${orderType.orderRef}` : 'Sin Nombre');
       const savedType = orderType;
       saveTicket(customerName, orderDestination, cart, finalTotal, resumedWaiter || undefined, Math.max(0, Math.round(Number(guests) || 0)) || undefined, savedType);
       resetOrderType();
@@ -927,10 +927,10 @@ export function POSDashboard() {
                     })()}
 
                     <div className="pt-4 border-t border-carbon-950/10 space-y-2">
-                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Nombre del Cliente / Notas</label>
+                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Notas</label>
                          <input 
                             type="text"
-                            placeholder="Ej. Juan Pérez - Sin cebolla"
+                            placeholder="Ej. Sin cebolla, salsa aparte"
                             value={customerNote}
                             onChange={(e) => setCustomerNote(e.target.value)}
                             className="w-full bg-slate-950 border border-carbon-950/10 rounded-xl px-4 py-3 text-sm text-carbon-950 font-medium focus:ring-1 focus:ring-indigo-500 outline-none transition-all placeholder:text-slate-500"
