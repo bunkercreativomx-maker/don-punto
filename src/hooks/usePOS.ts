@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import type { POSTransaction, POSSettings, POSSummary, POSPaymentMethod, OrderDestination, OpenTicket, CartItem, OrderTypeInfo } from '../types/pos';
+import type { POSTransaction, POSSettings, POSSummary, POSPaymentMethod, OrderDestination, OpenTicket, CartItem, OrderTypeInfo, PaymentPart } from '../types/pos';
 import { pickOrderType } from '../lib/orderType';
 import { storeGet, storeSet, pullKey } from '../lib/cloudStore';
 import { getOperator } from '../lib/session';
@@ -54,7 +54,7 @@ export function usePOS() {
     dateStr?: string,
     items?: CartItem[],
     discountAmount?: number,
-    extra?: OrderTypeInfo & { clientId?: string; rewardApplied?: boolean; waiterId?: string; waiterName?: string; tip?: number; guests?: number; courtesy?: boolean; shiftId?: string }
+    extra?: OrderTypeInfo & { clientId?: string; rewardApplied?: boolean; waiterId?: string; waiterName?: string; tip?: number; guests?: number; courtesy?: boolean; shiftId?: string; payments?: PaymentPart[]; splitWays?: number }
   ) => {
     const op = getOperator();
     const newTx: POSTransaction = {
@@ -149,7 +149,8 @@ export function usePOS() {
     const total = txs.reduce((acc, tx) => acc + tx.amount, 0);
     
     const byMethod = txs.reduce((acc, tx) => {
-       acc[tx.paymentMethod] = (acc[tx.paymentMethod] || 0) + tx.amount;
+       if (tx.payments?.length) tx.payments.forEach((p) => { acc[p.method] = (acc[p.method] || 0) + p.amount; });
+       else acc[tx.paymentMethod] = (acc[tx.paymentMethod] || 0) + tx.amount;
        return acc;
     }, { Efectivo: 0, Didi: 0, Uber: 0, Rappi: 0, Tarjeta: 0, 'Didi Efectivo': 0, Transferencia: 0 } as Record<POSPaymentMethod, number>);
 

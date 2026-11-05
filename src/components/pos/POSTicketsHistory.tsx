@@ -20,6 +20,7 @@ import {
 import { twMerge } from 'tailwind-merge';
 import clsx from 'clsx';
 import { money } from '../../lib/format';
+import { paymentLabel } from '../../lib/payments';
 import { PrintArea } from '../print/PrintArea';
 import { runPrint } from '../../lib/print';
 import { logEvent, getShifts } from '../../lib/cashShift';
@@ -227,7 +228,7 @@ export function POSTicketsHistory() {
                           tx.paymentMethod === 'Didi Efectivo' && "text-orange-400",
                           tx.paymentMethod === 'Rappi' && "text-pink-500"
                         )}>
-                          {tx.paymentMethod}
+                          {tx.payments && tx.payments.length > 1 ? `MIXTO · ${paymentLabel(tx)}` : tx.paymentMethod}
                         </span>
                       </div>
                     </div>
@@ -383,7 +384,7 @@ export function POSTicketsHistory() {
                   </div>
                   <div className="flex justify-between pt-1">
                     <span className="text-slate-500">Forma de Pago:</span>
-                    <span className="font-bold uppercase">{selectedTicket.paymentMethod}</span>
+                    <span className="font-bold uppercase text-right">{paymentLabel(selectedTicket)}{selectedTicket.splitWays ? ` (entre ${selectedTicket.splitWays})` : ''}</span>
                   </div>
                 </div>
 
@@ -439,6 +440,8 @@ export function POSTicketsHistory() {
             items={ticketToPrint.items || []}
             total={ticketToPrint.amount}
             paymentMethod={ticketToPrint.paymentMethod}
+            payments={ticketToPrint.payments}
+            splitWays={ticketToPrint.splitWays}
             destination={ticketToPrint.destination}
             customerName={ticketToPrint.customerName}
             orderLines={orderTypeLines(ticketToPrint)}

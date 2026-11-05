@@ -14,6 +14,8 @@ import { getOpenShift, useCashShift, requestOpenShift } from '../../lib/cashShif
 import { PrintArea } from '../print/PrintArea';
 import { runPrint } from '../../lib/print';
 import { fetchUnseenItems } from '../../lib/cloudStore';
+import { salePayments, equalParts } from '../../lib/payments';
+import type { PaymentPart } from '../../types/pos';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import type { ProductRowData } from '../../types/calculator';
@@ -193,7 +195,20 @@ export function POSDashboard() {
     waiterName?: string;
     tip?: number;
     orderLines?: string[];
+    payments?: PaymentPart[];
+    splitWays?: number;
     } | null>(null);
+  // Dividir cuenta / pago mixto
+  const [splitOpen, setSplitOpen] = useState(false);
+  const [splitTab, setSplitTab] = useState<'mixto' | 'iguales' | 'platillos'>('mixto');
+  const [mixCash, setMixCash] = useState('');
+  const [mixFirst, setMixFirst] = useState<POSPaymentMethod>('Efectivo');
+  const [ways, setWays] = useState(2);
+  const [wayMethods, setWayMethods] = useState<POSPaymentMethod[]>([]);
+  const [pickQty, setPickQty] = useState<Record<string, number>>({});
+  const [splitError, setSplitError] = useState('');
+  /** Lo que falta por cobrar cuando se cobra por platillos (la parte cobrada ya salió del carrito) */
+  const [splitRest, setSplitRest] = useState<{ items: CartItem[]; customerName: string; service: ServiceType | ''; table: string; orderRef: string; waiter: { id: string; name: string } | null; guests: string; destination: OrderDestination; paidParts: number } | null>(null);
 
   // Search query state
   const [searchQuery, setSearchQuery] = useState('');
@@ -353,7 +368,8 @@ export function POSDashboard() {
     processCheckout();
   };
 
-  const processCheckout = () => {
+  const processCheckout = (split?: { payments: PaymentPart[]; primary: POSPaymentMethod; splitWays?: number }) => {
+    const method = split ? split.primary : paymentMethod;
     const detail = cart.map(item => {
         const row = rows.find(r => r.id === item.rowId);
         const mods = item.selectedModifiers.flatMap(g => g.modifiers.map(m => m.name)).join('+');
@@ -371,9 +387,9 @@ export function POSDashboard() {
     const courtesyStr = courtesy ? ' (Cortesía)' : '';
     const shift = getOpenShift();
     const nGuests = Math.max(0, Math.round(Number(guests) || 0));
-    addTransaction(Math.round(finalTotal * 100) / 100, paymentMethod, orderDestination, detail + (courtesyStr || rewardStr || discountStr), customerName, undefined, [...cart], discountAmount,
+    addTransaction(Math.round(finalTotal * 100) / 100, method, orderDestination, detail + (courtesyStr || rewardStr || discountStr), customerName, undefined, [...cart], discountAmount,
       { ...(selectedClient ? { clientId: selectedClient.id, rewardApplied: rewardOn } : {}), ...(resumedWaiter ? { waiterId: resumedWaiter.id, waiterName: resumedWaiter.name } : {}),
-        ...(tipAmount > 0 ? { tip: Math.round(tipAmount * 100) / 100 } : {}), ...(nGuests ? { guests: nGuests } : {}), ...(courtesy ? { courtesy: true } : {}), ...(shift ? { shiftId: shift.id } : {}), ...orderType });
+        ...(tipAmount > 0 ? { tip: Math.round(tipAmount * 100) / 100 } : {}), ...(nGuests ? { guests: nGuests } : {}), ...(courtesy ? { courtesy: true } : {}), ...(shift ? { shiftId: shift.id } : {}), ...(split && (split.payments.length > 1 || split.splitWays) ? { payments: split.payments } : {}), ...(split?.splitWays ? { splitWays: split.splitWays } : {}), ...orderType });
     setResumedWaiter(null);
     if (pro && selectedClient) { recordVisit(selectedClient.id, finalTotal, rewardOn); setClients(getClients()); }
     // Inventario automático (Pro): descontar insumos de las recetas
@@ -386,11 +402,13 @@ export function POSDashboard() {
     }
     
     // Set for printing
-    const isCash = paymentMethod === 'Efectivo' || paymentMethod === 'Didi Efectivo';
+    const isCash = !split && (paymentMethod === 'Efectivo' || paymentMethod === 'Didi Efectivo');
     setLastOrder({
         items: [...cart],
         total: finalTotal,
-        paymentMethod,
+        paymentMethod: method,
+        ...(split && (split.payments.length > 1 || split.splitWays) ? { payments: split.payments } : {}),
+        ...(split?.splitWays ? { splitWays: split.splitWays } : {}),
         destination: orderDestination,
         customerName,
         receivedAmount: isCash && receivedAmount ? Number(receivedAmount) : undefined,
@@ -408,13 +426,90 @@ export function POSDashboard() {
     setGuests('');
     setCourtesy(false);
     resetOrderType();
+    // Cobro por platillos: regresa al carrito lo que falta por pagar, con la misma mesa/cliente
+    if (splitRest) {
+        const r = splitRest;
+        setCart(r.items);
+        setOrderDestination(r.destination);
+        setOrderCustomerName(r.customerName);
+        setService(r.service); setTable(r.table); setOrderRef(r.orderRef);
+        setResumedWaiter(r.waiter);
+        setGuests(r.guests);
+        setSplitRest(null);
+        showToast(`Parte ${r.paidParts} cobrada. Falta por cobrar lo que quedó en la orden.`);
+    }
 
     // Trigger print dialog if any ticket is enabled
     if (settings.printCustomerTicket || settings.printKitchenTicket) runPrint('ticket');
   };
 
+  // ---------- Dividir cuenta / pago mixto
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  const otherMethod = (m: POSPaymentMethod): POSPaymentMethod => (m === 'Efectivo' ? 'Tarjeta' : 'Efectivo');
+  const openSplit = () => {
+    if (waiterMode || cart.length === 0) return;
+    if (needsShift()) return;
+    const miss = missingOrderInfo();
+    if (miss) { setOrderError(miss); return; }
+    if (localBusy) { setOrderError(busyMsg(localBusy)); return; }
+    setSplitError(''); setMixCash(''); setMixFirst('Efectivo'); setPickQty({});
+    setWayMethods(Array.from({ length: 8 }, () => 'Efectivo' as POSPaymentMethod));
+    setSplitTab('mixto');
+    setSplitOpen(true);
+  };
+  const confirmMixto = () => {
+    const first = r2(Number(mixCash) || 0);
+    if (first <= 0 || first >= r2(chargeTotal)) { setSplitError(`Escribe cuánto paga en ${mixFirst.toLowerCase()} (más de $0 y menos de $${money(chargeTotal)}).`); return; }
+    const sp = salePayments([{ method: mixFirst, amount: first }, { method: otherMethod(mixFirst), amount: r2(chargeTotal - first) }], finalTotal, tipAmount);
+    if (!sp) { setSplitError(`La propina ($${money(tipAmount)}) va en el pago con ${otherMethod(mixFirst).toLowerCase()}: no alcanza.`); return; }
+    setSplitOpen(false);
+    processCheckout(sp);
+  };
+  const equalAmounts = equalParts(r2(chargeTotal), ways);
+  const confirmIguales = () => {
+    const sp = salePayments(equalAmounts.map((a, i) => ({ method: wayMethods[i] || 'Efectivo', amount: a })), finalTotal, tipAmount);
+    if (!sp) { setSplitError('La propina no cabe en la última parte; quita personas o baja la propina.'); return; }
+    setSplitOpen(false);
+    processCheckout({ ...sp, splitWays: ways });
+  };
+  const pickedTotal = cart.reduce((a, it) => a + getItemPrice(it.rowId, it.selectedModifiers) * (pickQty[it.cartId] || 0), 0);
+  const confirmPlatillos = () => {
+    const part: CartItem[] = [];
+    const rest: CartItem[] = [];
+    cart.forEach((it) => {
+      const q = Math.min(it.quantity, Math.max(0, pickQty[it.cartId] || 0));
+      if (q > 0) part.push({ ...it, quantity: q });
+      if (it.quantity - q > 0) rest.push({ ...it, quantity: it.quantity - q });
+    });
+    if (!part.length) { setSplitError('Marca los platillos de la persona que va a pagar.'); return; }
+    if (!rest.length) { setSplitError('Marcaste toda la cuenta: ciérrala y usa FINALIZAR normal.'); return; }
+    setSplitRest((prev) => ({
+      items: prev ? mergeItems(rest, prev.items) : rest,
+      customerName: orderCustomerName, service, table, orderRef, waiter: resumedWaiter, guests, destination: orderDestination,
+      paidParts: (prev?.paidParts || 0) + 1,
+    }));
+    setCart(part);
+    setGuests('');
+    setSplitOpen(false);
+  };
+  const mergeItems = (a: CartItem[], b: CartItem[]): CartItem[] => {
+    const out = a.map((x) => ({ ...x }));
+    b.forEach((it) => {
+      const m = out.find((x) => x.cartId === it.cartId);
+      if (m) m.quantity += it.quantity; else out.push({ ...it });
+    });
+    return out;
+  };
+  const restTotal = splitRest ? splitRest.items.reduce((a, it) => a + getItemPrice(it.rowId, it.selectedModifiers) * it.quantity, 0) : 0;
+  const joinSplit = () => {
+    if (!splitRest) return;
+    setCart((c) => mergeItems(c, splitRest.items));
+    setSplitRest(null);
+  };
+
   const handleSaveTicket = async () => {
       if (cart.length === 0 || checkingTable) return;
+      if (splitRest) { setOrderError('Estás cobrando una parte de la cuenta: cóbrala o toca JUNTAR CUENTA antes de guardar.'); return; }
       if (needsShift()) return;
       const miss = missingOrderInfo();
       if (miss) { setOrderError(miss); return; }
@@ -702,6 +797,12 @@ export function POSDashboard() {
                         })}
                     </div>
                     <div className="pt-4 border-t border-carbon-950/10 mt-4 space-y-3">
+                        {splitRest && (
+                            <div className="rounded-xl border border-maiz-400 bg-maiz-50 px-3 py-2 flex items-center gap-2">
+                                <p className="flex-grow min-w-0 text-[11px] font-bold text-carbon-900">Cobrando la parte {splitRest.paidParts}. Faltan <b>${money(restTotal)}</b> por cobrar ({splitRest.items.reduce((a, i) => a + i.quantity, 0)} platillos).</p>
+                                <button type="button" onClick={joinSplit} className="shrink-0 rounded-lg border border-carbon-950/20 bg-white px-2 py-1 text-[10px] font-black">JUNTAR CUENTA</button>
+                            </div>
+                        )}
                         {/* Tipo de orden: sale en grande en ticket y comanda */}
                         <div className={cn("rounded-xl border px-3 py-2 space-y-2", orderError ? "border-rose-400 bg-rose-50" : "border-carbon-950/10 bg-slate-950/50")} data-tour="order-type">
                             {orderDestination === 'Tienda' && (
@@ -895,6 +996,15 @@ export function POSDashboard() {
                             </button>
                         </div>
                         )}
+                        {!waiterMode && orderDestination === 'Tienda' && (
+                            <button
+                                type="button"
+                                disabled={cart.length === 0}
+                                onClick={openSplit}
+                                data-tour="split"
+                                className="w-full mt-2 py-2.5 rounded-xl border border-carbon-950/15 bg-white text-carbon-800 text-[11px] font-black tracking-wide hover:border-agave-400 disabled:opacity-40 transition-all"
+                            >DIVIDIR CUENTA / PAGO MIXTO</button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -1057,6 +1167,99 @@ export function POSDashboard() {
         </div>
     )}
 
+    {splitOpen && (
+        <div className="fixed inset-0 z-[65] flex items-center justify-center p-4 bg-carbon-950/35 backdrop-blur-md no-print">
+            <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl w-full max-w-md max-h-[92vh] shadow-[0_12px_32px_-18px_rgba(13,16,14,0.18)] flex flex-col overflow-hidden">
+                <div className="p-5 bg-slate-800/30 border-b border-carbon-950/10">
+                    <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-1">Cobrar</h4>
+                    <h3 className="text-xl font-bold text-carbon-950">Total ${money(chargeTotal)}</h3>
+                    <div className="grid grid-cols-3 gap-1 mt-3">
+                        {([['mixto', 'PAGO MIXTO'], ['iguales', 'PARTES IGUALES'], ['platillos', 'POR PLATILLOS']] as const).map(([k, l]) => (
+                            <button key={k} type="button" onClick={() => { setSplitTab(k); setSplitError(''); }} className={cn("rounded-lg py-2 text-[10px] font-black border", splitTab === k ? "bg-agave-600 text-white border-agave-600" : "bg-white text-carbon-700 border-carbon-950/15")}>{l}</button>
+                        ))}
+                    </div>
+                </div>
+                <div className="p-5 space-y-4 overflow-y-auto">
+                    {splitTab === 'mixto' && (
+                        <>
+                            <p className="text-xs text-carbon-600">Una parte con un método y el resto con el otro.</p>
+                            <div className="grid grid-cols-2 gap-2">
+                                {(['Efectivo', 'Tarjeta'] as POSPaymentMethod[]).map((m) => (
+                                    <button key={m} type="button" onClick={() => setMixFirst(m)} className={cn("rounded-lg py-2 text-[11px] font-black border", mixFirst === m ? "bg-carbon-950 text-white border-carbon-950" : "bg-white text-carbon-700 border-carbon-950/15")}>Primero {m.toUpperCase()}</button>
+                                ))}
+                            </div>
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Paga en {mixFirst.toLowerCase()}</label>
+                            <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-black text-slate-600">$</span>
+                                <input type="number" inputMode="decimal" autoFocus value={mixCash} onChange={(e) => { setMixCash(e.target.value); setSplitError(''); }} placeholder="100" className="w-full bg-white border-2 border-carbon-950/10 rounded-2xl pl-10 pr-6 py-4 text-2xl font-black text-carbon-950 outline-none focus:border-indigo-500" />
+                            </div>
+                            <div className="flex justify-between items-baseline rounded-2xl bg-white border border-carbon-950/10 px-4 py-3">
+                                <span className="text-xs font-bold text-slate-500 uppercase">Resto en {otherMethod(mixFirst).toLowerCase()}</span>
+                                <span className="text-2xl font-black text-carbon-950">${money(Math.max(0, chargeTotal - (Number(mixCash) || 0)))}</span>
+                            </div>
+                        </>
+                    )}
+                    {splitTab === 'iguales' && (
+                        <>
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-carbon-700">¿Entre cuántas personas?</span>
+                                <div className="flex items-center gap-3">
+                                    <button type="button" onClick={() => setWays((w) => Math.max(2, w - 1))} className="w-9 h-9 rounded-lg border border-carbon-950/15 bg-white font-black"><Minus size={14} className="mx-auto" /></button>
+                                    <span className="text-2xl font-black w-6 text-center">{ways}</span>
+                                    <button type="button" onClick={() => setWays((w) => Math.min(8, w + 1))} className="w-9 h-9 rounded-lg border border-carbon-950/15 bg-white font-black"><Plus size={14} className="mx-auto" /></button>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                {equalAmounts.map((a, i) => (
+                                    <div key={i} className="flex items-center gap-2 rounded-xl bg-white border border-carbon-950/10 px-3 py-2">
+                                        <span className="text-xs font-black text-carbon-700 w-16">Persona {i + 1}</span>
+                                        <span className="flex-grow text-lg font-black text-carbon-950">${money(a)}</span>
+                                        {(['Efectivo', 'Tarjeta'] as POSPaymentMethod[]).map((m) => (
+                                            <button key={m} type="button" onClick={() => setWayMethods((w) => w.map((x, j) => (j === i ? m : x)))} className={cn("rounded-lg px-2 py-1 text-[10px] font-black border", (wayMethods[i] || 'Efectivo') === m ? "bg-carbon-950 text-white border-carbon-950" : "bg-white text-carbon-600 border-carbon-950/15")}>{m === 'Efectivo' ? 'EFECT.' : 'TARJ.'}</button>
+                                        ))}
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
+                    {splitTab === 'platillos' && (
+                        <>
+                            <p className="text-xs text-carbon-600">Marca lo que paga esta persona. Lo demás se queda en la orden para cobrarlo después.</p>
+                            <div className="space-y-2">
+                                {cart.map((it) => {
+                                    const q = pickQty[it.cartId] || 0;
+                                    const name = rows.find((r) => r.id === it.rowId)?.name || 'Producto';
+                                    return (
+                                        <div key={it.cartId} className="flex items-center gap-2 rounded-xl bg-white border border-carbon-950/10 px-3 py-2">
+                                            <div className="flex-grow min-w-0">
+                                                <p className="text-xs font-black text-carbon-950 truncate">{name}</p>
+                                                <p className="text-[10px] text-slate-500">{it.quantity} en la cuenta · ${money(getItemPrice(it.rowId, it.selectedModifiers))} c/u</p>
+                                            </div>
+                                            <button type="button" onClick={() => setPickQty((p) => ({ ...p, [it.cartId]: Math.max(0, q - 1) }))} className="w-8 h-8 rounded-lg border border-carbon-950/15"><Minus size={12} className="mx-auto" /></button>
+                                            <span className="w-5 text-center font-black">{q}</span>
+                                            <button type="button" onClick={() => setPickQty((p) => ({ ...p, [it.cartId]: Math.min(it.quantity, q + 1) }))} className="w-8 h-8 rounded-lg border border-carbon-950/15"><Plus size={12} className="mx-auto" /></button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <div className="flex justify-between items-baseline rounded-2xl bg-white border border-carbon-950/10 px-4 py-3">
+                                <span className="text-xs font-bold text-slate-500 uppercase">Esta parte</span>
+                                <span className="text-2xl font-black text-carbon-950">${money(pickedTotal)}</span>
+                            </div>
+                        </>
+                    )}
+                    {splitError && <p className="text-[11px] font-bold text-rose-600">{splitError}</p>}
+                </div>
+                <div className="p-5 border-t border-carbon-950/10 flex gap-3">
+                    <button type="button" onClick={() => setSplitOpen(false)} className="flex-grow py-4 rounded-2xl font-bold text-slate-500">CANCELAR</button>
+                    <button type="button" onClick={splitTab === 'mixto' ? confirmMixto : splitTab === 'iguales' ? confirmIguales : confirmPlatillos} className="flex-[2] bg-emerald-500 hover:bg-emerald-400 text-white font-black py-4 rounded-2xl active:scale-95">
+                        {splitTab === 'platillos' ? 'COBRAR ESTA PARTE' : 'FINALIZAR Y COBRAR'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    )}
+
     {/* --- PIN SECURITY MODAL --- */}
     {isPinModalOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-carbon-950/35 backdrop-blur-md no-print">
@@ -1158,6 +1361,8 @@ export function POSDashboard() {
                     items={lastOrder.items}
                     total={lastOrder.total}
                     paymentMethod={lastOrder.paymentMethod}
+                    payments={lastOrder.payments}
+                    splitWays={lastOrder.splitWays}
                     destination={lastOrder.destination}
                     customerName={lastOrder.customerName}
                     orderLines={lastOrder.orderLines}
@@ -1184,6 +1389,8 @@ export function POSDashboard() {
                     items={lastOrder.items}
                     total={lastOrder.total}
                     paymentMethod={lastOrder.paymentMethod}
+                    payments={lastOrder.payments}
+                    splitWays={lastOrder.splitWays}
                     destination={lastOrder.destination}
                     customerName={lastOrder.customerName}
                     orderLines={lastOrder.orderLines}
