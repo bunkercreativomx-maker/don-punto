@@ -6,7 +6,7 @@
   "observability": { "enabled": true },
   "triggers": { "crons": ["*/2 * * * *"] },
   "containers": [
-    { "class_name": "DonPuntoPB", "image": "registry.cloudflare.com/fa420c2d491ae210ba3f75c191cf70af/donpunto-pb-cf:v1", "instance_type": "lite", "max_instances": 1 }
+    { "class_name": "DonPuntoPB", "image": "registry.cloudflare.com/fa420c2d491ae210ba3f75c191cf70af/donpunto-pb-cf:v2", "instance_type": "lite", "max_instances": 1 }
   ],
   "durable_objects": { "bindings": [{ "name": "PB", "class_name": "DonPuntoPB" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DonPuntoPB"] }],
