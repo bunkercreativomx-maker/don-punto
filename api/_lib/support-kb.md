@@ -68,6 +68,13 @@ Las cuentas nuevas ven un tour al entrar por primera vez: cambia el **PIN de due
 6. Toca **FINALIZAR**. Si es efectivo se abre la **Calculadora de Cambio**: escribe el **Monto Recibido** (o toca $20, $50, $100, $200, $500 o **EXACTO**), ve el cambio a entregar y toca **FINALIZAR Y COBRAR**.
 7. Si tienes encendidos los interruptores **Ticket** y/o **Cocina** (arriba del menú), se abre la ventana de impresión.
 
+### Dividir la cuenta o pagar con dos métodos (pago mixto)
+Solo en canal **TIENDA**. Arma la orden (o reanuda la cuenta abierta) y, debajo de **FINALIZAR**, toca **DIVIDIR CUENTA / PAGO MIXTO**. Elige una pestaña:
+- **PAGO MIXTO** (una sola persona paga parte en efectivo y parte con tarjeta): elige con qué paga primero (**Efectivo** o **Tarjeta**), escribe cuánto paga así y el sistema calcula el **Resto** con el otro método. Toca **FINALIZAR Y COBRAR**.
+- **PARTES IGUALES**: con **−** / **+** elige entre cuántas personas (2 a 8); cada **Persona** ve su monto y eliges si paga en **Efectivo** o **Tarjeta**. Toca **FINALIZAR Y COBRAR**. Es una sola venta y el ticket dice "Dividida entre N".
+- **POR PLATILLOS** (cada quien paga lo suyo): marca con **+** lo que paga esta persona, ve **Esta parte** y toca **COBRAR ESTA PARTE**. Lo demás regresa a la orden con la misma mesa para cobrarlo después (repite con la siguiente persona). Cada parte es una venta y un ticket. Mientras estás cobrando por partes no se puede **GUARDAR**; para volver a juntar lo que falta toca **JUNTAR CUENTA**.
+En el corte de caja cada parte cuenta en su forma de pago. Si la cuenta tiene propina, la propina va con el último pago.
+
 No hay un método "transferencia" al cobrar en el Punto de Venta; sí aparece como forma de pago al cerrar pedidos en línea y en la declaración del corte.
 
 ### Cuentas abiertas, mesas y meseros
