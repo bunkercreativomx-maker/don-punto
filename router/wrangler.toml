@@ -2,7 +2,9 @@ name = "donpunto-router"
 main = "index.js"
 compatibility_date = "2026-10-01"
 workers_dev = false
+services = [{ binding = "PB", service = "donpunto-pb" }]
 routes = [
   { pattern = "donpunto.com", custom_domain = true },
   { pattern = "www.donpunto.com", custom_domain = true },
+  { pattern = "donpunto-pb.bunkeragent.cloud", custom_domain = true },
 ]
