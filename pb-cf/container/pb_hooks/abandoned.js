@@ -106,13 +106,18 @@ function run(app, opts) {
     const email = user.getString('email').toLowerCase();
     if (!email || SKIP.indexOf(email) >= 0 || /@donpunto\.com$/.test(email)) continue;
     if (opts.only && opts.only !== email) continue;
-    const age = now - user.getDateTime('created').unix();
-    const step = STEPS.find((s) => age >= s.min && age < s.max);
-    if (!step) continue;
     const key = 'abandoned_mail:' + user.id;
     const rec = kv(app, key);
-    const sent = kvVal(rec).sent || {};
-    if (Object.keys(sent).some((n) => Number(n) >= step.n)) continue; // ya recibió este o uno posterior
+    const data = kvVal(rec);
+    const sent = data.sent || {};
+    const created = user.getDateTime('created').unix();
+    // Ancla: cuentas viejas (ya pasaron 1 h al conocerlas) empiezan la serie HOY; nuevas desde su registro.
+    let anchor = data.anchor || (now - created > STEPS[0].min ? now - STEPS[0].min : created);
+    const done = Object.keys(sent).map(Number);
+    const next = done.length ? Math.max.apply(null, done) + 1 : 1;
+    const step = STEPS.find((x) => x.n === next);
+    if (!step) continue; // ya recibió los 5
+    if (now - anchor < step.min) continue;
     let rest = '';
     try { rest = app.findFirstRecordByFilter('restaurants', 'owner = {:o}', { o: user.id }).getString('name'); } catch (_) {}
     if (rest === 'Mi Restaurante') rest = '';
@@ -130,7 +135,7 @@ function run(app, opts) {
     sent[String(step.n)] = now;
     const r = rec || new Record(app.findCollectionByNameOrId('app_kv'));
     r.set('key', key);
-    r.set('value', { sent, email });
+    r.set('value', { sent, email, anchor });
     app.save(r);
     console.log('[donpunto] correo pago incompleto', step.n, email);
   }
