@@ -7,6 +7,7 @@ import { AdvancedReports } from './AdvancedReports';
 import { twMerge } from 'tailwind-merge';
 import clsx from 'clsx';
 import { money } from '../../lib/format';
+import { paymentLabel } from '../../lib/payments';
 import { PrintArea } from '../print/PrintArea';
 import { runPrint } from '../../lib/print';
 import { CorteCaja } from './CorteCaja';
@@ -248,7 +249,7 @@ export function POSReports({ onUpgrade }: { onUpgrade?: () => void } = {}) {
                                                 tx.paymentMethod === 'Uber' ? "text-green-500" :
                                                 tx.paymentMethod === 'Didi' ? "text-orange-500" : 
                                                 tx.paymentMethod === 'Didi Efectivo' ? "text-orange-400 font-black border-b border-orange-500/30" : "text-pink-500"
-                                            )}>{tx.paymentMethod.toUpperCase()}</span>
+                                            )}>{tx.payments && tx.payments.length > 1 ? `MIXTO · ${paymentLabel(tx).toUpperCase()}` : tx.paymentMethod.toUpperCase()}</span>
                                             {tx.destination && tx.destination.toUpperCase() !== tx.paymentMethod.toUpperCase() && (
                                                 <>
                                                     <span className="text-carbon-950/20">•</span>

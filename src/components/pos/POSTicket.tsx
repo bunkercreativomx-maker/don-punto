@@ -1,4 +1,4 @@
-import type { CartItem, POSPaymentMethod, OrderDestination, PaperSize } from '../../types/pos';
+import type { CartItem, POSPaymentMethod, OrderDestination, PaperSize, PaymentPart } from '../../types/pos';
 import { useCalculator } from '../../hooks/useCalculator';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -26,9 +26,13 @@ interface POSTicketProps {
   tip?: number;
   /** Tipo de orden en grande: ["COMER AQUÍ", "MESA 4"], ["DIDI", "#12"]… */
   orderLines?: string[];
+  /** Pago mixto / dividido: parte de la venta por forma de pago (la propina va con paymentMethod) */
+  payments?: PaymentPart[];
+  /** Cuenta dividida en partes iguales */
+  splitWays?: number;
 }
 
-export function POSTicket({ items, total, paymentMethod, destination, customerName, date, isKitchen = false, paperSize = '58mm', receivedAmount, businessName, businessPhone, businessAddress, discountAmount, waiterName, tip, orderLines }: POSTicketProps) {
+export function POSTicket({ items, total, paymentMethod, destination, customerName, date, isKitchen = false, paperSize = '58mm', receivedAmount, businessName, businessPhone, businessAddress, discountAmount, waiterName, tip, orderLines, payments, splitWays }: POSTicketProps) {
   const { rows } = useCalculator();
   const printDate = date ? new Date(date) : new Date();
   const subtotal = total + (discountAmount || 0);
@@ -143,10 +147,25 @@ export function POSTicket({ items, total, paymentMethod, destination, customerNa
               </div>
             </>
           )}
-          <div className="flex-row-print">
-            <span>Metodo de Pago:</span>
-            <span>{paymentMethod}</span>
-          </div>
+          {payments && (payments.length > 1 || splitWays) ? (
+            <>
+              <div className="flex-row-print">
+                <span>{splitWays ? `Dividida entre ${splitWays}:` : 'Pago mixto:'}</span>
+                <span>{splitWays ? `$${money((total + (tip || 0)) / splitWays)} c/u` : ''}</span>
+              </div>
+              {payments.map((p) => (
+                <div key={p.method} className="flex-row-print">
+                  <span>{p.method}{tip && p.method === paymentMethod ? ' +prop.' : ''}</span>
+                  <span>${money(p.amount + (tip && p.method === paymentMethod ? tip : 0))}</span>
+                </div>
+              ))}
+            </>
+          ) : (
+            <div className="flex-row-print">
+              <span>Metodo de Pago:</span>
+              <span>{paymentMethod}</span>
+            </div>
+          )}
           {receivedAmount !== undefined && (
             <>
               <div className="flex-row-print">

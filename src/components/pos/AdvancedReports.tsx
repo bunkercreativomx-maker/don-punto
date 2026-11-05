@@ -6,6 +6,7 @@ import { useCalculator } from '../../hooks/useCalculator';
 import { isPro, currentBranch } from '../../lib/session';
 import { money } from '../../lib/format';
 import { orderTypeLabel } from '../../lib/orderType';
+import { paymentLabel } from '../../lib/payments';
 
 const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -92,7 +93,7 @@ export function AdvancedReports({ transactions, onUpgrade }: { transactions: POS
     const txs = transactions.filter((t) => { const d = new Date(t.date); return d >= from && d < to; }).sort((a, b) => a.date.localeCompare(b.date));
     const ventas = txs.map((t) => {
       const d = new Date(t.date);
-      return { Fecha: d.toLocaleDateString('es-MX'), Hora: d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }), Canal: t.destination, 'Tipo de orden': orderTypeLabel(t), 'Método de pago': t.paymentMethod, Cliente: t.customerName || '', Cajero: t.employeeName || '', Detalle: t.notes || '', Descuento: t.discountAmount || 0, Total: Math.round(t.amount * 100) / 100 };
+      return { Fecha: d.toLocaleDateString('es-MX'), Hora: d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }), Canal: t.destination, 'Tipo de orden': orderTypeLabel(t), 'Método de pago': paymentLabel(t), Cliente: t.customerName || '', Cajero: t.employeeName || '', Detalle: t.notes || '', Descuento: t.discountAmount || 0, Total: Math.round(t.amount * 100) / 100 };
     });
     const byDay = new Map<string, { Fecha: string; Tickets: number; Total: number; Tienda: number; Uber: number; Didi: number; Rappi: number }>();
     txs.forEach((t) => {

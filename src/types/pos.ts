@@ -26,6 +26,12 @@ export interface CartItem {
     }[];
 }
 
+/** Una parte de un pago mixto o dividido */
+export interface PaymentPart {
+  method: POSPaymentMethod;
+  amount: number;
+}
+
 export interface POSTransaction extends OrderTypeInfo {
   id: string;
   date: string; // ISO 8601 string
@@ -54,6 +60,10 @@ export interface POSTransaction extends OrderTypeInfo {
   courtesy?: boolean;
   /** Turno de caja en el que se cobró */
   shiftId?: string;
+  /** Pago mixto / cuenta dividida: cuánto de la VENTA (sin propina) entró por cada forma de pago. Suma = amount. La propina va con paymentMethod. */
+  payments?: PaymentPart[];
+  /** Cuenta dividida en partes iguales: entre cuántas personas */
+  splitWays?: number;
 }
 
 export interface OpenTicket extends OrderTypeInfo {

@@ -10,6 +10,7 @@
  *  - Lo que cobran las apps de delivery (Uber/DiDi/Rappi) no entra a la caja; se reporta aparte.
  */
 import type { POSTransaction, POSPaymentMethod, OrderDestination, CashShift, Cancellation, SecurityEvent, CashDeclaration } from '../types/pos';
+import { txPortion, txUses } from './payments';
 import type { ProductRowData, Category } from '../types/calculator';
 
 export const CASH_METHODS: POSPaymentMethod[] = ['Efectivo', 'Didi Efectivo'];
@@ -117,7 +118,7 @@ export function buildCorte(a: BuildArgs): CorteData {
   const sinImp = (n: number) => n / (1 + ivaF);
 
   const total = sum(txs.map((t) => t.amount));
-  const byMethod = (m: POSPaymentMethod) => sum(txs.filter((t) => t.paymentMethod === m).map((t) => t.amount));
+  const byMethod = (m: POSPaymentMethod) => sum(txs.map((t) => txPortion(t, m)));
   const tipsBy = (m: POSPaymentMethod) => sum(txs.filter((t) => t.paymentMethod === m).map((t) => t.tip || 0));
   const efectivo = sum(CASH_METHODS.map(byMethod));
   const tarjeta = byMethod('Tarjeta');
@@ -191,7 +192,7 @@ export function buildCorte(a: BuildArgs): CorteData {
   const diferencia = declaracion ? r2(declaradoTotal - saldoFinal) : 0;
 
   // Siempre todas las formas de pago (aunque estén en 0) para que el cajero vea cada plataforma
-  const pagosVentas: Line[] = ALL_METHODS.map((m) => ({ label: METHOD_LABEL[m] || m, amount: byMethod(m), count: txs.filter((t) => t.paymentMethod === m).length }));
+  const pagosVentas: Line[] = ALL_METHODS.map((m) => ({ label: METHOD_LABEL[m] || m, amount: byMethod(m), count: txs.filter((t) => txUses(t, m)).length }));
   const pagosPropinas: Line[] = ALL_METHODS.map((m) => ({ label: METHOD_LABEL[m] || m, amount: tipsBy(m) })).filter((l) => l.amount > 0);
 
   // Meseros / quién atendió
