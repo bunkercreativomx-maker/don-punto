@@ -13,6 +13,7 @@ import { CashShiftBar } from './CashShiftBar';
 import { getOpenShift, useCashShift, requestOpenShift } from '../../lib/cashShift';
 import { PrintArea } from '../print/PrintArea';
 import { runPrint } from '../../lib/print';
+import { fetchUnseenItems } from '../../lib/cloudStore';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import type { ProductRowData } from '../../types/calculator';
@@ -104,8 +105,18 @@ export function POSDashboard() {
     if ((orderDestination === 'Uber' || orderDestination === 'Rappi') && !orderCustomerName.trim()) return `Escribe el nombre del cliente de ${orderDestination}.`;
     return '';
   };
+  /** Mesa ya ocupada por otra cuenta abierta (misma sucursal). "03" = "3", sin importar mayúsculas */
+  const tableKey = (t?: string) => (t || '').trim().toUpperCase().replace(/^0+(?=.)/, '');
+  const busyTicket = (list: OpenTicket[], t?: string): OpenTicket | undefined => {
+    const k = tableKey(t);
+    if (!k) return undefined;
+    return list.find((x) => (x.destination || 'Tienda') === 'Tienda' && x.service === 'aqui' && tableKey(x.table) === k);
+  };
+  const busyMsg = (tk: OpenTicket) => `La MESA ${tableKey(tk.table)} ya tiene una cuenta abierta${tk.waiterName ? ` (${tk.waiterName})` : ''}. Agrégale desde TICKETS (Reanudar) o cambia el número de mesa.`;
+  const localBusy = orderType.table ? busyTicket(openTickets, orderType.table) : undefined;
+  const [checkingTable, setCheckingTable] = useState(false);
   const resetOrderType = () => { setService(''); setTable(''); setOrderRef(''); setOrderError(''); };
-  useEffect(() => { setOrderError(''); }, [orderDestination, service, orderRef, orderCustomerName]);
+  useEffect(() => { setOrderError(''); }, [orderDestination, service, orderRef, orderCustomerName, table]);
   // Clientes frecuentes (Pro)
   const pro = isPro();
   const [clients, setClients] = useState<Client[]>(() => (isPro() ? getClients() : []));
@@ -320,6 +331,7 @@ export function POSDashboard() {
     if (needsShift()) return;
     const miss = missingOrderInfo();
     if (miss) { setOrderError(miss); return; }
+    if (localBusy) { setOrderError(busyMsg(localBusy)); return; }
     
     // If it's cash, show calculator first
     if (paymentMethod === 'Efectivo' || paymentMethod === 'Didi Efectivo') {
@@ -391,11 +403,23 @@ export function POSDashboard() {
     if (settings.printCustomerTicket || settings.printKitchenTicket) runPrint('ticket');
   };
 
-  const handleSaveTicket = () => {
-      if (cart.length === 0) return;
+  const handleSaveTicket = async () => {
+      if (cart.length === 0 || checkingTable) return;
       if (needsShift()) return;
       const miss = missingOrderInfo();
       if (miss) { setOrderError(miss); return; }
+      if (localBusy) { setOrderError(busyMsg(localBusy)); return; }
+      if (orderType.table) {
+          // Otra caja o mesero pudo abrir esa mesa en otro dispositivo: se revisa en la nube (máx. 4 s; sin internet se guarda)
+          setCheckingTable(true);
+          const remote = await Promise.race([
+              fetchUnseenItems<OpenTicket>('delivery_calculator_pos_tickets').catch(() => [] as OpenTicket[]),
+              new Promise<OpenTicket[]>((r) => setTimeout(() => r([]), 4000)),
+          ]);
+          setCheckingTable(false);
+          const rb = busyTicket(remote, orderType.table);
+          if (rb) { setOrderError(busyMsg(rb)); return; }
+      }
       const customerName = orderCustomerName.trim() || (orderDestination === 'Tienda' && orderType.table ? `Mesa ${orderType.table}` : orderDestination === 'Didi' ? `Pedido DiDi #${orderType.orderRef}` : 'Sin Nombre');
       const savedType = orderType;
       saveTicket(customerName, orderDestination, cart, finalTotal, resumedWaiter || undefined, Math.max(0, Math.round(Number(guests) || 0)) || undefined, savedType);
@@ -683,6 +707,9 @@ export function POSDashboard() {
                                             <input type="text" inputMode="numeric" maxLength={8} value={table} onChange={(e) => setTable(e.target.value)} placeholder="Opcional (ej. 4)" className="flex-grow min-w-0 bg-transparent text-carbon-950 text-xs font-bold outline-none placeholder:text-slate-500" />
                                         </div>
                                     )}
+                                    {service === 'aqui' && localBusy && !orderError && (
+                                        <p className="text-[11px] font-bold text-rose-600">Mesa {tableKey(localBusy.table)} ocupada: ya tiene cuenta abierta.</p>
+                                    )}
                                 </>
                             )}
                             {orderDestination === 'Didi' && (
@@ -834,7 +861,7 @@ export function POSDashboard() {
                         </div>
                         {waiterMode ? (
                             <button
-                                disabled={cart.length === 0}
+                                disabled={cart.length === 0 || checkingTable}
                                 onClick={handleSaveTicket}
                                 className="w-full bg-indigo-500 hover:bg-indigo-400 disabled:bg-slate-800 disabled:text-slate-500 text-white font-black py-4 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2"
                             >
@@ -843,7 +870,7 @@ export function POSDashboard() {
                         ) : (
                         <div className="grid grid-cols-2 gap-3">
                             <button 
-                                disabled={cart.length === 0}
+                                disabled={cart.length === 0 || checkingTable}
                                 onClick={handleSaveTicket}
                                 className="bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 disabled:text-slate-500 text-slate-300 font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm"
                             >

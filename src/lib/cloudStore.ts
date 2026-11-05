@@ -155,6 +155,25 @@ export function storeSet(baseKey: string, value: string): void {
   schedule(key);
 }
 
+/**
+ * Elementos de una clave tipo arreglo que OTROS dispositivos subieron a la nube y este aún no
+ * conoce (no están en su mapa de sincronizados). Los que este dispositivo borró y siguen
+ * pendientes de subir no cuentan. Sirve para validar antes de guardar (p.ej. mesa ocupada).
+ */
+export async function fetchUnseenItems<T>(baseKey: string): Promise<T[]> {
+  if (!currentUid) return [];
+  const key = branchKey(baseKey);
+  const synced = readJSON<SyncedMap>(syncedKey(key), {});
+  const rows = await pb.collection(COLLECTION).getFullList({
+    filter: pb.filter('owner = {:o} && kind = {:k}', { o: currentUid, k: key }),
+    requestKey: null,
+  });
+  return rows
+    .filter((r) => r.item_id !== SINGLE && !((r.item_id as string) in synced))
+    .map((r) => (r.data as { v?: T })?.v)
+    .filter((v): v is T => !!v);
+}
+
 export function storeRemove(baseKey: string): void {
   const key = branchKey(baseKey);
   localStorage.removeItem(scoped(key));
