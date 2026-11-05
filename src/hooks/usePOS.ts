@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import type { POSTransaction, POSSettings, POSSummary, POSPaymentMethod, OrderDestination, OpenTicket, CartItem, OrderTypeInfo } from '../types/pos';
 import { pickOrderType } from '../lib/orderType';
-import { storeGet, storeSet } from '../lib/cloudStore';
+import { storeGet, storeSet, pullKey } from '../lib/cloudStore';
 import { getOperator } from '../lib/session';
 import type { Cancellation } from '../types/pos';
 
@@ -127,6 +127,16 @@ export function usePOS() {
     setOpenTickets(prev => [newTicket, ...prev]);
   };
 
+  /** Trae las cuentas abiertas que guardaron otros dispositivos (meseros, otra caja) */
+  const refreshOpenTickets = async () => {
+    try {
+      if (await pullKey(TICKETS_KEY)) {
+        const saved = storeGet(TICKETS_KEY);
+        setOpenTickets(saved ? JSON.parse(saved) : []);
+      }
+    } catch { /* sin conexión: se intenta en la siguiente vuelta */ }
+  };
+
   const deleteOpenTicket = (id: string) => {
     setOpenTickets(prev => prev.filter(t => t.id !== id));
   };
@@ -194,6 +204,7 @@ export function usePOS() {
     reopenTransaction,
     saveTicket,
     deleteOpenTicket,
+    refreshOpenTickets,
     updateSettings,
     calculateSummaryInfo
   };

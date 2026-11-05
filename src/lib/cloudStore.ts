@@ -174,6 +174,44 @@ export async function fetchUnseenItems<T>(baseKey: string): Promise<T[]> {
     .filter((v): v is T => !!v);
 }
 
+/**
+ * Baja de la nube los cambios que OTROS dispositivos hicieron a una clave tipo arreglo
+ * (altas, cambios y bajas) y los aplica aquí. Si este dispositivo tiene cambios sin subir en
+ * esa clave, no hace nada (gana lo local; se reintenta en la siguiente vuelta).
+ * Regresa true si cambió algo (el llamador vuelve a leer con storeGet).
+ */
+export async function pullKey(baseKey: string): Promise<boolean> {
+  const uid = currentUid;
+  if (!uid || !navigator.onLine) return false;
+  const key = branchKey(baseKey);
+  if (dirty.has(key) || running.has(key)) return false;
+  const before = localStorage.getItem(scoped(key));
+  const rows = await pb.collection(COLLECTION).getFullList({
+    filter: pb.filter('owner = {:o} && kind = {:k}', { o: uid, k: key }),
+    requestKey: null,
+  });
+  // Si mientras bajaba hubo cambios locales, se deja para la siguiente vuelta
+  if (currentUid !== uid || dirty.has(key) || running.has(key) || localStorage.getItem(scoped(key)) !== before) return false;
+  // Solo claves tipo arreglo (una lista vacía se guarda como fila "_" con [])
+  if (rows.some((r) => r.item_id === SINGLE && !Array.isArray((r.data as { v?: unknown })?.v))) return false;
+  const synced = readJSON<SyncedMap>(syncedKey(key), {});
+  const next: SyncedMap = {};
+  const items: Record<string, unknown> = {};
+  for (const r of rows) {
+    const id = r.item_id as string;
+    items[id] = r.data;
+    next[id] = [r.id, hash(JSON.stringify(r.data)), (r.data as { __i?: number })?.__i];
+  }
+  const same =
+    Object.keys(next).length === Object.keys(synced).length &&
+    Object.entries(next).every(([id, v]) => synced[id]?.[0] === v[0] && synced[id]?.[1] === v[1]);
+  if (same) return false;
+  const value = implode(items);
+  localStorage.setItem(scoped(key), JSON.stringify(Array.isArray(value) ? value : []));
+  localStorage.setItem(syncedKey(key), JSON.stringify(next));
+  return true;
+}
+
 export function storeRemove(baseKey: string): void {
   const key = branchKey(baseKey);
   localStorage.removeItem(scoped(key));

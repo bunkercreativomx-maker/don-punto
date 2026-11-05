@@ -24,7 +24,17 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 }
 
 export function POSDashboard() {
-  const { addTransaction, openTickets, saveTicket, deleteOpenTicket, settings, updateSettings, transactions } = usePOS();
+  const { addTransaction, openTickets, saveTicket, deleteOpenTicket, refreshOpenTickets, settings, updateSettings, transactions } = usePOS();
+  // Cuentas abiertas de otros dispositivos (meseros, otra caja): cada 10 s con la pantalla visible y al volver a ella
+  useEffect(() => {
+    const tick = () => { if (document.visibilityState === 'visible') void refreshOpenTickets(); };
+    tick();
+    const t = setInterval(tick, 10000);
+    document.addEventListener('visibilitychange', tick);
+    window.addEventListener('focus', tick);
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', tick); window.removeEventListener('focus', tick); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useCashShift(); // re-render al abrir/cerrar turno
   const { rows, settings: calcGlobalSettings, categories, modifierGroups } = useCalculator();
 
@@ -543,7 +553,7 @@ export function POSDashboard() {
                     
                     <div className="flex flex-wrap items-center gap-3">
                         <button 
-                            onClick={() => setIsTicketsModalOpen(true)}
+                            onClick={() => { setIsTicketsModalOpen(true); void refreshOpenTickets(); }}
                             className="flex items-center gap-2 bg-slate-950 border border-carbon-950/10 h-10 px-4 rounded-xl text-slate-400 hover:text-carbon-950 transition-all group shrink-0"
                         >
                             <History size={18} className="text-amber-500 group-hover:scale-110 transition-transform"/>
