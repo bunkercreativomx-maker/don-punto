@@ -2,7 +2,7 @@
 
 // .trim(): las variables pegadas en Vercel a veces traen espacios o tabuladores invisibles
 const env = (k: string) => (process.env[k] || '').trim();
-export const PB_URL = (env('PB_URL') || 'https://donpunto-pb.bunkeragent.cloud').replace(/\/$/, '');
+export const PB_URL = (env('PB_URL') || 'https://donpunto-pb.bunkercreativomx.workers.dev').replace(/\/$/, '');
 export const APP_URL = (env('APP_URL') || 'https://donpunto.com').replace(/\/$/, '');
 // El WAF de Cloudflare frente a PocketBase bloquea agentes que no parecen navegador
 const UA = 'Mozilla/5.0 (DonPunto-Server) Chrome/130';

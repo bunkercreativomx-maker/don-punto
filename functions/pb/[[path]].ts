@@ -1,5 +1,5 @@
 // /pb/* -> PocketBase (reemplaza el rewrite de vercel.json)
-const UPSTREAM = 'https://donpunto-pb.bunkeragent.cloud';
+const UPSTREAM = 'https://donpunto-pb.bunkercreativomx.workers.dev'; // PocketBase en Cloudflare Containers (repo donpunto-pb-cf)
 export async function onRequest({ request }: any) {
   const url = new URL(request.url);
   const target = UPSTREAM + url.pathname.replace(/^\/pb/, '') + url.search;
