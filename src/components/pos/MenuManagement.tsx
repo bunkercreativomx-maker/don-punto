@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Trash2, Edit2, Layers, Tag, X, Check } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Plus, Trash2, Edit2, Layers, Tag, X, Check, GripVertical, ChevronUp, ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -15,6 +15,7 @@ interface MenuManagementProps {
     addCategory: (name: string) => void;
     updateCategory: (id: string, name: string) => void;
     removeCategory: (id: string) => void;
+    moveCategory: (from: number, to: number) => void;
     addModifierGroup: (group: Omit<ModifierGroup, 'id'>) => void;
     updateModifierGroup: (id: string, updates: Partial<ModifierGroup>) => void;
     removeModifierGroup: (id: string) => void;
@@ -28,6 +29,7 @@ export function MenuManagement({
     addCategory,
     updateCategory,
     removeCategory,
+    moveCategory,
     addModifierGroup,
     updateModifierGroup,
     removeModifierGroup,
@@ -43,6 +45,31 @@ export function MenuManagement({
     const [modGroupOptions, setModGroupOptions] = useState<Omit<Modifier, 'id'>[]>([]);
     const [selectionType, setSelectionType] = useState<'single' | 'multiple'>('multiple');
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+
+    // Reordenar categorías: arrastrar desde la agarradera (mouse y dedo, pointer events) o flechas.
+    const listRef = useRef<HTMLDivElement>(null);
+    const [dragId, setDragId] = useState<string | null>(null);
+    const dragIdx = useRef(-1);
+    const onGripDown = (e: React.PointerEvent, cat: Category, i: number) => {
+        e.preventDefault();
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+        dragIdx.current = i;
+        setDragId(cat.id);
+    };
+    const onGripMove = (e: React.PointerEvent) => {
+        if (!dragId || !listRef.current) return;
+        const rows = Array.from(listRef.current.querySelectorAll<HTMLElement>('[data-cat-row]'));
+        let to = rows.length - 1;
+        for (let i = 0; i < rows.length; i++) {
+            const r = rows[i].getBoundingClientRect();
+            if (e.clientY < r.top + r.height / 2) { to = i; break; }
+        }
+        if (to !== dragIdx.current) { moveCategory(dragIdx.current, to); dragIdx.current = to; }
+        const box = listRef.current.getBoundingClientRect();
+        if (e.clientY > window.innerHeight - 60 || e.clientY > box.bottom) window.scrollBy(0, 12);
+        else if (e.clientY < 80) window.scrollBy(0, -12);
+    };
+    const onGripUp = () => { setDragId(null); dragIdx.current = -1; };
 
     // Categoría Management
     const handleAddCategory = () => {
@@ -152,12 +179,23 @@ export function MenuManagement({
                     </button>
                 </div>
 
-                <div className="space-y-2">
+                {categories.length > 1 && <p className="text-[11px] text-slate-500 mb-2">Arrastra <GripVertical size={12} className="inline -mt-0.5" /> para cambiar el orden. Así salen en el punto de venta y en tu tienda en línea.</p>}
+                <div ref={listRef} className="space-y-2">
                     {categories.length === 0 ? (
                         <p className="text-center py-8 text-slate-500 text-sm border-2 border-dashed border-carbon-950/10 rounded-xl">No hay categorías. Agrega una arriba.</p>
                     ) : (
-                        categories.map(cat => (
-                            <div key={cat.id} className="flex items-center justify-between bg-slate-800/30 border border-carbon-950/10 p-3 rounded-xl group hover:bg-slate-800/50 transition-all">
+                        categories.map((cat, i) => (
+                            <div key={cat.id} data-cat-row className={cn("flex items-center justify-between gap-2 bg-slate-800/30 border border-carbon-950/10 p-3 rounded-xl group hover:bg-slate-800/50 transition-all select-none", dragId === cat.id && "ring-2 ring-agave-500 shadow-lg bg-white relative z-10")}>
+                                <button
+                                    type="button"
+                                    aria-label={`Mover ${cat.name}`}
+                                    title="Arrastra para mover"
+                                    onPointerDown={(e) => onGripDown(e, cat, i)}
+                                    onPointerMove={onGripMove}
+                                    onPointerUp={onGripUp}
+                                    onPointerCancel={onGripUp}
+                                    className="-ml-1 p-1.5 text-slate-400 hover:text-slate-200 rounded-md cursor-grab active:cursor-grabbing touch-none shrink-0"
+                                ><GripVertical size={18} /></button>
                                 {editingCategoryId === cat.id ? (
                                     <div className="flex-grow flex gap-2">
                                         <input
@@ -171,7 +209,11 @@ export function MenuManagement({
                                     </div>
                                 ) : (
                                     <>
-                                        <span className="text-sm font-medium text-slate-200">{cat.name}</span>
+                                        <span className="flex-grow min-w-0 truncate text-sm font-medium text-slate-200">{cat.name}</span>
+                                        <div className="flex items-center gap-0.5 shrink-0">
+                                            <button onClick={() => moveCategory(i, i - 1)} disabled={i === 0} aria-label="Subir" className="p-1.5 text-slate-400 hover:text-slate-200 rounded-lg disabled:opacity-25"><ChevronUp size={16} /></button>
+                                            <button onClick={() => moveCategory(i, i + 1)} disabled={i === categories.length - 1} aria-label="Bajar" className="p-1.5 text-slate-400 hover:text-slate-200 rounded-lg disabled:opacity-25"><ChevronDown size={16} /></button>
+                                        </div>
                                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button onClick={() => startEditingCategory(cat)} className="p-2 text-slate-400 hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition-all"><Edit2 size={14} /></button>
                                             <button onClick={() => removeCategory(cat.id)} className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all"><Trash2 size={14} /></button>

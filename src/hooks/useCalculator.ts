@@ -158,6 +158,16 @@ export function useCalculator(
         setCategories(prev => prev.map(c => c.id === id ? { ...c, name } : c));
     };
 
+    const moveCategory = (from: number, to: number) => {
+        setCategories(prev => {
+            if (from === to || from < 0 || to < 0 || from >= prev.length || to >= prev.length) return prev;
+            const next = [...prev];
+            const [it] = next.splice(from, 1);
+            next.splice(to, 0, it);
+            return next;
+        });
+    };
+
     const removeCategory = (id: string) => {
         setCategories(prev => prev.filter(c => c.id !== id));
         // Reset categoryId for rows in this category
@@ -419,6 +429,7 @@ export function useCalculator(
         addCategory,
         updateCategory,
         removeCategory,
+        moveCategory,
         modifierGroups,
         addModifierGroup,
         updateModifierGroup,

@@ -83,6 +83,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
     addCategory,
     updateCategory,
     removeCategory,
+    moveCategory,
     modifierGroups,
     addModifierGroup,
     updateModifierGroup,
@@ -839,6 +840,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                     addCategory={addCategory}
                     updateCategory={updateCategory}
                     removeCategory={removeCategory}
+                    moveCategory={moveCategory}
                     addModifierGroup={addModifierGroup}
                     updateModifierGroup={updateModifierGroup}
                     removeModifierGroup={removeModifierGroup}
