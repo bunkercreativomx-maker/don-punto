@@ -274,7 +274,7 @@ function StoreHeader({ store, link, canEdit, onChange }: { store: Rec; link: str
       ].filter(Boolean);
       if (problems.length) return alert('Antes de publicar: ' + problems.join(', ') + '.');
     }
-    onChange(await pb.collection('stores').update(store.id, { [field]: !store[field] }));
+    onChange(await pb.collection('stores').update(store.id, { [field]: !store[field] }, { requestKey: null }));
   };
   return (
     <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
@@ -564,7 +564,7 @@ function ImagePick({ store, field, label, aspect, hint, onChange }: { store: Rec
       const file = field === 'codi_qr' ? f : await compressImage(f, field === 'cover' ? 1600 : 600);
       const fd = new FormData();
       fd.append(field, file);
-      onChange(await pb.collection('stores').update(store.id, fd));
+      onChange(await pb.collection('stores').update(store.id, fd, { requestKey: null }));
     } catch (e: any) { alert('No se pudo subir la imagen: ' + (e?.message || '')); }
     setBusy(false);
   };
@@ -577,7 +577,7 @@ function ImagePick({ store, field, label, aspect, hint, onChange }: { store: Rec
         {busy && <span className="absolute inset-0 grid place-items-center bg-white/70"><Loader2 className="w-5 h-5 animate-spin" /></span>}
       </button>
       {hint && <p className="mt-1 text-[11px] leading-snug text-carbon-500">{hint}</p>}
-      {url && <button type="button" onClick={async () => onChange(await pb.collection('stores').update(store.id, { [field]: null }))} className="mt-1 text-[12px] font-semibold text-carbon-500 hover:text-red-600">Quitar</button>}
+      {url && <button type="button" onClick={async () => onChange(await pb.collection('stores').update(store.id, { [field]: null }, { requestKey: null }))} className="mt-1 text-[12px] font-semibold text-carbon-500 hover:text-red-600">Quitar</button>}
       <input ref={ref} type="file" accept="image/*" className="hidden" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ''; }} />
     </div>
   );
@@ -591,7 +591,7 @@ function PageEditor({ store, onChange }: { store: Rec; onChange: (s: Rec) => voi
   const save = async () => {
     if (!check.ok) return setMsg(check.msg || 'Revisa la dirección');
     setBusy(true); setMsg('');
-    try { onChange(await pb.collection('stores').update(store.id, d)); setMsg('Guardado ✓'); }
+    try { onChange(await pb.collection('stores').update(store.id, d, { requestKey: null })); setMsg('Guardado ✓'); }
     catch (e: any) { setMsg(e?.response?.data?.slug ? 'Esa dirección ya está ocupada' : 'No se pudo guardar'); }
     setBusy(false);
   };
@@ -638,22 +638,32 @@ function MenuEditor({ store, onChange, categories }: { store: Rec; onChange: (s:
     try { onChange(await pb.collection('stores').update(store.id, { menu: { ...menu, products } }, { requestKey: 'menu' })); } catch (e: any) { if (!e?.isAbort) alert('No se pudo guardar el menú'); }
   };
   const setP = (id: string, patch: Partial<OMenu['products'][number]>) => saveMenu(menu.products.map((p) => (p.id === id ? { ...p, ...patch } : p)));
-  const upload = async (f?: File) => {
+  // Las subidas van en fila (una tras otra) y sin autocancelación de PocketBase: antes, elegir otra foto
+  // mientras subía la primera cancelaba la petición ("The request was autocancelled").
+  const queue = useRef<Promise<void>>(Promise.resolve());
+  const latest = useRef(store);
+  latest.current = store;
+  const upload = (f?: File) => {
     const id = target.current;
     if (!f || !id) return;
     setBusyId(id);
-    try {
-      const p = menu.products.find((x) => x.id === id);
-      const fd = new FormData();
-      fd.append('photos+', await compressImage(f, 1000));
-      if (p?.photo) fd.append('photos-', p.photo);
-      const before = new Set<string>(store.photos || []);
-      const rec = await pb.collection('stores').update(store.id, fd);
-      const added = (rec.photos as string[]).find((n) => !before.has(n));
-      const products = (rec.menu as OMenu).products.map((x) => (x.id === id ? { ...x, photo: added } : x));
-      onChange(await pb.collection('stores').update(store.id, { menu: { ...(rec.menu as OMenu), products } }));
-    } catch (e: any) { alert('No se pudo subir la foto: ' + (e?.message || '')); }
-    setBusyId(null);
+    queue.current = queue.current.then(async () => {
+      try {
+        const cur = latest.current;
+        const p = (cur.menu as OMenu | undefined)?.products?.find((x) => x.id === id);
+        const fd = new FormData();
+        fd.append('photos+', await compressImage(f, 1000));
+        if (p?.photo) fd.append('photos-', p.photo);
+        const before = new Set<string>(cur.photos || []);
+        const rec = await pb.collection('stores').update(cur.id, fd, { requestKey: null });
+        const added = (rec.photos as string[]).find((n) => !before.has(n));
+        const products = (rec.menu as OMenu).products.map((x) => (x.id === id ? { ...x, photo: added } : x));
+        const saved = await pb.collection('stores').update(cur.id, { menu: { ...(rec.menu as OMenu), products } }, { requestKey: null });
+        latest.current = saved;
+        onChange(saved);
+      } catch (e: any) { alert('No se pudo subir la foto: ' + (e?.message || '')); }
+      setBusyId((b) => (b === id ? null : b));
+    });
   };
   const groups = useMemo(() => {
     const cats = [...categories.map((c) => ({ id: c.id, name: c.name })), { id: '', name: 'Sin categoría' }];
@@ -735,7 +745,7 @@ function PayEditor({ store, onChange }: { store: Rec; onChange: (s: Rec) => void
     if (d.pay_codi && !clabe && !store.codi_qr) return setMsg('Para CoDi sube tu QR o escribe tu CLABE');
     setBusy(true); setMsg('');
     try {
-      onChange(await pb.collection('stores').update(store.id, { ...d, codi_clabe: clabe, radius_km: Number(d.radius_km) || 3, lat: Number(d.lat) || null, lng: Number(d.lng) || null, delivery_fee: Number(d.delivery_fee) || 0, min_order: Number(d.min_order) || 0, prep_minutes: Number(d.prep_minutes) || 0 }));
+      onChange(await pb.collection('stores').update(store.id, { ...d, codi_clabe: clabe, radius_km: Number(d.radius_km) || 3, lat: Number(d.lat) || null, lng: Number(d.lng) || null, delivery_fee: Number(d.delivery_fee) || 0, min_order: Number(d.min_order) || 0, prep_minutes: Number(d.prep_minutes) || 0 }, { requestKey: null }));
       setMsg('Guardado ✓');
     } catch { setMsg('No se pudo guardar'); }
     setBusy(false);
