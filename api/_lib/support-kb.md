@@ -52,6 +52,7 @@ Las cuentas nuevas ven un tour al entrar por primera vez: cambia el **PIN de due
 ### Agregar productos, categorías y modificadores
 - **Crear productos:** en **Tienda Física** (o **Plataformas**) toca **AGREGAR PRODUCTO** y llena nombre, **Costo ($)** y **Precio ($)**. Ahí ves cuánto recibes, IVA, ganancia y margen; el bote de basura elimina el producto.
 - **Categorías:** en **Catálogo**, escribe en **Nueva categoría...** y presiona Enter o el botón de agregar.
+- **Ordenar categorías:** en **Catálogo** arrastra la agarradera (⋮⋮, a la izquierda de cada categoría) hacia arriba o abajo, o usa las flechas ▲▼. Ese orden es el que sale en el Punto de Venta y en la tienda en línea.
 - **Modificadores** (salsas, extras): en **Catálogo** toca **NUEVO GRUPO**, ponle nombre, elige **SOLO UNA (Radio)** o **VARIAS (Checkbox)**, agrega opciones con **AGREGAR OPCIÓN** (nombre y precio extra) y, si quieres, márcalo en **Aplicar Automáticamente a Categorías**. Guarda con **GUARDAR GRUPO**.
 - **Asignación de Productos** (en Catálogo): a cada producto le eliges su **Categoría** y sus **Modificadores**.
 
