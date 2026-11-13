@@ -136,7 +136,26 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
       reader.onload = (event) => {
           try {
               const data = new Uint8Array(event.target?.result as ArrayBuffer);
-              const workbook = XLSX.read(data, { type: 'array' });
+              const isCsv = /\.(csv|txt)$/i.test(file.name);
+              let workbook: XLSX.WorkBook;
+              if (isCsv) {
+                  // CSV: UTF-8 si es válido; si no, Windows-1252 (Excel en español guarda así y rompe acentos)
+                  let text: string;
+                  try { text = new TextDecoder('utf-8', { fatal: true }).decode(data); }
+                  catch { text = new TextDecoder('windows-1252').decode(data); }
+                  workbook = XLSX.read(text, { type: 'string', raw: true });
+              } else {
+                  workbook = XLSX.read(data, { type: 'array' });
+              }
+              // Precio desde número o texto ("$1,250.50", "89,90", " 120 ")
+              const toPrice = (v: unknown): number => {
+                  if (typeof v === 'number') return isFinite(v) ? v : 0;
+                  let s = String(v ?? '').replace(/[^\d.,-]/g, '');
+                  if (s.includes(',') && s.includes('.')) s = s.replace(/,/g, '');
+                  else if (/,\d{1,2}$/.test(s)) s = s.replace(',', '.');
+                  else s = s.replace(/,/g, '');
+                  return parseFloat(s) || 0;
+              };
               
               // Find a sheet with menu columns
               let selectedSheetName = "";
@@ -179,12 +198,12 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                   const categoryName = (normalizedRow["category"] || normalizedRow["categoría"] || "").toString().trim();
                   const productName = (normalizedRow["dishes"] || normalizedRow["dish"] || normalizedRow["platillo"] || normalizedRow["producto"] || "").toString().trim();
                   const itemId = (normalizedRow["item_id"] || normalizedRow["id"] || "").toString().trim() || productName;
-                  const basePrice = parseFloat(normalizedRow["price"] || normalizedRow["precio"] || "0") || 0;
+                  const basePrice = toPrice(normalizedRow["price"] || normalizedRow["precio"] || "0");
                   
                   const optionGroupName = (normalizedRow["option group"] || normalizedRow["grupo de opciones"] || "").toString().trim();
                   const selectionMode = (normalizedRow["selection mode"] || normalizedRow["modo selección"] || "").toString().trim().toLowerCase();
                   const optionName = (normalizedRow["option name"] || normalizedRow["opción"] || "").toString().trim();
-                  const optionPrice = parseFloat(normalizedRow["option price"] || normalizedRow["precio opción"] || "0") || 0;
+                  const optionPrice = toPrice(normalizedRow["option price"] || normalizedRow["precio opción"] || "0");
 
                   if (!productName) return;
 

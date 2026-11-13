@@ -58,7 +58,7 @@ Las cuentas nuevas ven un tour al entrar por primera vez: cambia el **PIN de due
 
 ### Importar tu menú
 - **Desde una foto (IA):** en el menú lateral toca **Escanear menú con IA** (o el botón **ESCANEAR MENÚ** en **Tienda Física**, **Plataformas** o **Catálogo**) → **TOMAR FOTO** (abre la cámara) o **SUBIR DE GALERÍA**. La IA lee nombres y precios; revisa la lista, elige los **Canales de Destino** (Tienda Física y/o cada app) y toca **IMPORTAR AL SISTEMA**. No borra tus productos: si un platillo ya existe con el mismo nombre, actualiza su precio. No crea categorías; asígnalas después en Catálogo. Usa una foto clara y bien iluminada.
-- **Desde hoja de cálculo:** **IMPORTAR MENÚ**, elige canales y sube un .xlsx o .xls con columnas Categoría, Platillo/Producto y Precio. Ojo: para Tienda Física el precio se divide entre 1.42 ("Precios desinflados"), pues asume precios de app.
+- **Desde hoja de cálculo:** **IMPORTAR MENÚ**, elige canales y sube un .xlsx, .xls o .csv con columnas Categoría, Platillo/Producto y Precio. Ojo: para Tienda Física el precio se divide entre 1.42 ("Precios desinflados"), pues asume precios de app.
 
 ### Cobrar una venta (Punto de Venta)
 1. Arriba elige el canal: **TIENDA** para mostrador/mesa, o la app de comida a domicilio si es pedido de una app.

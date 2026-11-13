@@ -42,8 +42,8 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
     const validateAndSetFile = (selectedFile: File) => {
         setError(null);
         const ext = selectedFile.name.split('.').pop()?.toLowerCase();
-        if (ext !== 'xlsx' && ext !== 'xls') {
-            setError("Formato no válido. Por favor sube un archivo Excel (.xlsx o .xls)");
+        if (ext !== 'xlsx' && ext !== 'xls' && ext !== 'csv') {
+            setError("Formato no válido. Sube una hoja de cálculo (.xlsx, .xls o .csv)");
             setFile(null);
             return;
         }
@@ -267,7 +267,7 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
                         </label>
                         <input 
                             type="file" 
-                            accept=".xlsx, .xls" 
+                            accept=".xlsx,.xls,.csv,text/csv" 
                             className="hidden" 
                             ref={fileInputRef} 
                             onChange={handleFileChange}
@@ -313,7 +313,7 @@ export function MenuImportModal({ onClose, onImport }: MenuImportModalProps) {
                                 <div className="space-y-2">
                                     <h4 className="text-base font-bold text-carbon-950">Arrastra aquí tu archivo Excel o haz clic</h4>
                                     <p className="text-xs text-slate-400 max-w-xs mx-auto">
-                                        Sube la plantilla de catálogo en formato .xlsx o .xls
+                                        Sube la plantilla de catálogo en formato .xlsx, .xls o .csv
                                     </p>
                                 </div>
                             )}
