@@ -178,7 +178,47 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
               }
 
               const worksheet = workbook.Sheets[selectedSheetName];
-              const json: any[] = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+              // Encabezados flexibles: sin acentos/mayúsculas, sinónimos comunes y fila de encabezados que no sea la primera
+              const normKey = (s: unknown) => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[_\-]+/g, ' ').replace(/\s+/g, ' ').trim();
+              const PRODUCT_KEYS = ['dishes', 'dish', 'platillo', 'platillos', 'producto', 'productos', 'nombre', 'nombre del producto', 'nombre producto', 'nombre del platillo', 'articulo', 'articulos', 'item', 'item name', 'name', 'product', 'product name', 'descripcion', 'concepto'];
+              const CATEGORY_KEYS = ['category', 'categoria', 'categorias', 'category name', 'departamento', 'grupo', 'seccion', 'familia', 'tipo'];
+              const PRICE_KEYS = ['price', 'precio', 'precio venta', 'precio de venta', 'precio publico', 'precio unitario', 'pvp', 'importe', 'costo venta', 'venta'];
+              const grid: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+              let headerIdx = grid.slice(0, 20).findIndex(r => Array.isArray(r) && r.some(c => PRODUCT_KEYS.includes(normKey(c))));
+              let headers: string[];
+              if (headerIdx >= 0) {
+                  headers = grid[headerIdx].map(normKey);
+              } else {
+                  // Sin encabezado reconocible: adivina por contenido (columna de texto = platillo, columna numérica = precio)
+                  headerIdx = grid.findIndex(r => Array.isArray(r) && r.filter(c => String(c).trim()).length >= 2);
+                  const sample = grid.slice(headerIdx + 1, headerIdx + 40);
+                  const ncols = Math.max(0, ...grid.map(r => r.length));
+                  const numRatio = (c: number) => sample.filter(r => toPrice(r[c]) > 0 && /^[\s$\d.,]+$/.test(String(r[c]))).length / Math.max(1, sample.length);
+                  const txtRatio = (c: number) => sample.filter(r => /[a-záéíóúñ]/i.test(String(r[c] ?? ''))).length / Math.max(1, sample.length);
+                  const cols = [...Array(ncols).keys()];
+                  const priceCol = cols.find(c => numRatio(c) > 0.6);
+                  // Platillo = columna de texto con más valores distintos (la categoría se repite)
+                  const all = grid.slice(headerIdx, headerIdx + 40);
+                  const avgLen = (c: number) => all.reduce((n, r) => n + String(r[c] ?? '').length, 0) / Math.max(1, all.length);
+                  const distinct = (c: number) => new Set(all.map(r => String(r[c] ?? '').trim().toLowerCase())).size + avgLen(c) / 1000;
+                  const textCols = cols.filter(c => c !== priceCol && txtRatio(c) > 0.6).sort((x, y) => distinct(y) - distinct(x));
+                  const prodCol = textCols[0];
+                  const catCol = textCols.find(c => c !== prodCol && distinct(c) < distinct(prodCol));
+                  const first = grid[headerIdx] || [];
+                  // Si la primera fila ya trae precio, no es encabezado: es un platillo
+                  if (priceCol !== undefined && toPrice(first[priceCol]) > 0) headerIdx -= 1;
+                  headers = headerIdx >= 0 ? (grid[headerIdx] || []).map(normKey) : [];
+                  if (prodCol !== undefined) headers[prodCol] = 'platillo';
+                  if (priceCol !== undefined) headers[priceCol] = 'precio';
+                  if (catCol !== undefined) headers[catCol] = 'categoria';
+              }
+              const json: any[] = grid.slice(headerIdx + 1).map(r => {
+                  const o: any = {};
+                  headers.forEach((h, i) => { if (h && !(h in o)) o[h] = r[i] ?? ""; });
+                  return o;
+              });
+              const pick = (row: any, keys: string[]) => { for (const k of keys) { const v = row[k]; if (v !== undefined && String(v).trim() !== '') return v; } return ''; };
+              const foundHeaders = headers.filter(Boolean).join(', ');
               
               // Copy current states to perform non-destructive merge
               const currentCategories = [...categories];
@@ -189,21 +229,16 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
               const importedModifierGroupsMap = new Map<string, { id: string, name: string, selectionType: 'single' | 'multiple', options: { id: string, name: string, extraPrice: number }[] }>();
               const importedProductsMap = new Map<string, { id: string, name: string, costPrice: number, salePrice: number, didiPrice?: number, uberPrice?: number, rappiPrice?: number, categoryId?: string, modifierGroupIds: string[] }>();
               
-              json.forEach((rowElem: any) => {
-                  const normalizedRow: any = {};
-                  Object.keys(rowElem).forEach(key => {
-                      normalizedRow[key.trim().toLowerCase()] = rowElem[key];
-                  });
-
-                  const categoryName = (normalizedRow["category"] || normalizedRow["categoría"] || "").toString().trim();
-                  const productName = (normalizedRow["dishes"] || normalizedRow["dish"] || normalizedRow["platillo"] || normalizedRow["producto"] || "").toString().trim();
-                  const itemId = (normalizedRow["item_id"] || normalizedRow["id"] || "").toString().trim() || productName;
-                  const basePrice = toPrice(normalizedRow["price"] || normalizedRow["precio"] || "0");
+              json.forEach((normalizedRow: any) => {
+                  const categoryName = pick(normalizedRow, CATEGORY_KEYS).toString().trim();
+                  const productName = pick(normalizedRow, PRODUCT_KEYS).toString().trim();
+                  const itemId = pick(normalizedRow, ['item id', 'id', 'sku', 'clave', 'codigo']).toString().trim() || productName;
+                  const basePrice = toPrice(pick(normalizedRow, PRICE_KEYS) || "0");
                   
-                  const optionGroupName = (normalizedRow["option group"] || normalizedRow["grupo de opciones"] || "").toString().trim();
-                  const selectionMode = (normalizedRow["selection mode"] || normalizedRow["modo selección"] || "").toString().trim().toLowerCase();
-                  const optionName = (normalizedRow["option name"] || normalizedRow["opción"] || "").toString().trim();
-                  const optionPrice = toPrice(normalizedRow["option price"] || normalizedRow["precio opción"] || "0");
+                  const optionGroupName = pick(normalizedRow, ['option group', 'grupo de opciones']).toString().trim();
+                  const selectionMode = pick(normalizedRow, ['selection mode', 'modo seleccion']).toString().trim().toLowerCase();
+                  const optionName = pick(normalizedRow, ['option name', 'opcion']).toString().trim();
+                  const optionPrice = toPrice(pick(normalizedRow, ['option price', 'precio opcion']) || "0");
 
                   if (!productName) return;
 
@@ -380,7 +415,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                   alert(`¡Menú importado con éxito sin borrar tus productos existentes!\n\nCanales actualizados:\n• ${activeChannels.join(", ")}\n\nSe procesaron:\n• ${newCatsFromImport.length} Categorías nuevas\n• ${newProductsFromImport.length} Productos importados/actualizados\n• Modificadores vinculados en el POS.`);
                   setIsImportModalOpen(false);
               } else {
-                  alert("No se encontraron productos válidos en el archivo.");
+                  alert(`No se encontraron productos válidos en el archivo.\n\nNecesito una columna con el nombre del platillo (Platillo, Producto o Nombre) y otra con el Precio.\nColumnas que encontré: ${foundHeaders || "ninguna"}`);
               }
           } catch (err) {
               console.error("Error parsing Excel:", err);
