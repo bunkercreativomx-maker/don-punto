@@ -49,7 +49,7 @@ export function BranchesModule({ onUpgrade }: { onUpgrade: () => void }) {
       <ProUpsell
         title="Todas tus sucursales en un solo lugar"
         text="El plan Básico es para un negocio con una sucursal. Con Pro agregas todas las que tengas: cada una cobra con su propia caja y tú ves el reporte de todas juntas."
-        bullets={['Cada sucursal con sus ventas, tickets, corte e inventario', 'Reporte que junta todas: cuál vende más y cuál va para abajo', 'Horario pico y ticket promedio por sucursal', 'Mismo menú y recetas para todas']}
+        bullets={['Cada sucursal con sus ventas, tickets, corte e inventario', 'Reporte que junta todas: cuál vende más y cuál va para abajo', 'Horario pico y ticket promedio por sucursal', 'Menú por sucursal: qué se vende y su precio en cada una']}
         onUpgrade={onUpgrade}
       />
     );
@@ -146,7 +146,7 @@ export function BranchesModule({ onUpgrade }: { onUpgrade: () => void }) {
 
       <div className="rounded-3xl border border-carbon-950/10 bg-white p-6 max-w-2xl">
         <h3 className="font-display text-lg font-bold text-carbon-950">Agregar sucursal</h3>
-        <p className="text-sm text-carbon-500 mt-1">Comparte tu menú y recetas. Ventas, tickets, corte, inventario y gastos van por separado.</p>
+        <p className="text-sm text-carbon-500 mt-1">Menú y recetas compartidos (en Catálogo → Menú por sucursal eliges qué se vende y su precio en cada una). Ventas, tickets, corte, inventario y gastos van por separado.</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <input className={input} placeholder="Nombre (ej. Sucursal Centro)" value={name} onChange={(e) => setName(e.target.value)} />
           <div className="relative"><MapPin size={15} className="absolute left-3 top-3 text-carbon-400" /><input className={input + ' pl-9'} placeholder="Dirección (opcional)" value={address} onChange={(e) => setAddress(e.target.value)} /></div>
