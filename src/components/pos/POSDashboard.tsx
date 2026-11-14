@@ -618,12 +618,31 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                 </div>
             </div>
         )}
+        {/* Category Filter: en celular lista desplegable; en tablet/compu etiquetas en renglones (sin scroll de lado) */}
+        <div className="md:hidden">
+            <label className="sr-only" htmlFor="pos-cat">Categoría</label>
+            <select
+                id="pos-cat"
+                value={activeCategoryId ?? ''}
+                onChange={(e) => setActiveCategoryId(e.target.value || null)}
+                className={cn(
+                    "w-full rounded-xl border pl-4 pr-10 py-3 text-sm font-bold outline-none appearance-none",
+                    activeCategoryId ? "border-indigo-400 bg-indigo-50 text-indigo-700" : "border-carbon-950/15 bg-white text-carbon-900"
+                )}
+                style={{ backgroundRepeat: 'no-repeat', backgroundSize: '16px', backgroundPosition: 'right 14px center', backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23334155' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")" }}
+            >
+                <option value="">Todas las categorías ({rows.length})</option>
+                {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}{categoryCounts[cat.id] ? ` (${categoryCounts[cat.id]})` : ''}</option>
+                ))}
+            </select>
+        </div>
         {/* Category Filter Bar */}
-        <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
+        <div className="hidden md:flex flex-wrap gap-1.5">
             <button
                 onClick={() => setActiveCategoryId(null)}
                 className={cn(
-                    "px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap border flex items-center gap-1.5",
+                    "px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap border flex items-center gap-1.5",
                     activeCategoryId === null
                         ? "bg-indigo-500 border-indigo-400 text-white shadow-lg shadow-indigo-500/20"
                         : "bg-white border-carbon-950/10 text-carbon-700 hover:border-agave-300 hover:text-agave-700"
@@ -637,7 +656,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                     key={cat.id}
                     onClick={() => setActiveCategoryId(cat.id)}
                     className={cn(
-                        "px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap border flex items-center gap-1.5",
+                        "px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap border flex items-center gap-1.5",
                         activeCategoryId === cat.id
                             ? "bg-indigo-500 border-indigo-400 text-white shadow-lg shadow-indigo-500/20"
                             : "bg-white border-carbon-950/10 text-carbon-700 hover:border-agave-300 hover:text-agave-700"
