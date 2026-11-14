@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { track } from '../../lib/pixel';
-import { Mail, Lock, Building2, ChevronRight, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, Building2, ChevronRight, AlertCircle, Loader2, ArrowLeft, Handshake } from 'lucide-react';
+import { getStoredRef, cleanRefCode, checkRefCode, attachRef } from '../../lib/referral';
 import { pb } from '../../lib/pocketbase';
 import { Logo } from '../brand/Logo';
 
@@ -23,6 +24,8 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [restaurantName, setRestaurantName] = useState('');
+    const [linkRef] = useState(() => getStoredRef());
+    const [refCode, setRefCode] = useState(linkRef);
     
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -48,6 +51,11 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
                     throw new Error("La contraseña debe tener al menos 8 caracteres.");
                 }
 
+                const code = cleanRefCode(refCode);
+                if (code && !(await checkRefCode(code).catch(() => true))) {
+                    throw new Error('Ese código de recomendación no existe. Revísalo o deja el campo vacío.');
+                }
+
                 // Registrar usuario en PocketBase
                 const cleanEmail = email.trim().toLowerCase();
                 const newUser = await pb.collection('users').create({ email: cleanEmail, password, passwordConfirm: password });
@@ -55,6 +63,7 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
                 await pb.collection('users').authWithPassword(cleanEmail, password);
                 // Crear su restaurante
                 await pb.collection('restaurants').create({ name: restaurantName.trim(), owner: newUser.id });
+                if (code) await attachRef(code, code === linkRef ? 'link' : 'manual');
                 track('CompleteRegistration');
                 onAuthSuccess();
             }
@@ -166,6 +175,26 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
                                 />
                             </div>
                         </div>
+                        )}
+
+                        {!isLogin && !forgot && (
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-slate-500 uppercase">Código de quien te recomendó <span className="normal-case font-semibold">(opcional)</span></label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                        <Handshake size={18} className="text-slate-500" />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        value={refCode}
+                                        onChange={(e) => setRefCode(cleanRefCode(e.target.value))}
+                                        autoCapitalize="characters"
+                                        autoComplete="off"
+                                        className="w-full bg-slate-950/50 border border-carbon-950/10 rounded-xl pl-11 pr-4 py-3 text-carbon-950 uppercase outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all"
+                                        placeholder="Ej. LIC320"
+                                    />
+                                </div>
+                            </div>
                         )}
 
                         <button
