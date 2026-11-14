@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Plus, Trash2, Edit2, Layers, Tag, X, Check, GripVertical, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Edit2, Copy, Layers, Tag, X, Check, GripVertical, ChevronUp, ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -105,6 +105,16 @@ export function MenuManagement({
             setSelectionType('multiple');
             setSelectedCategories([]);
         }
+        setIsModGroupModalOpen(true);
+    };
+
+    // Duplicar: abre la ventana como grupo NUEVO con las mismas opciones; solo cambias el nombre y guardas
+    const duplicateModGroup = (group: ModifierGroup) => {
+        setEditingModGroupId(null);
+        setModGroupName(`${group.name} (copia)`);
+        setModGroupOptions(group.options.map(({ name, extraPrice }) => ({ name, extraPrice })));
+        setSelectionType(group.selectionType);
+        setSelectedCategories(group.appliedToCategories || []);
         setIsModGroupModalOpen(true);
     };
 
@@ -258,7 +268,8 @@ export function MenuManagement({
                                         <span className="text-[10px] text-slate-500 uppercase font-black">{group.selectionType === 'single' ? 'Unica Selección' : 'Selección Múltiple'}</span>
                                     </div>
                                     <div className="flex gap-1">
-                                        <button onClick={() => openModGroupModal(group)} className="p-2 text-slate-500 hover:text-indigo-400 rounded-lg transition-all"><Edit2 size={14} /></button>
+                                        <button onClick={() => duplicateModGroup(group)} title="Duplicar grupo" aria-label="Duplicar grupo" className="p-2 text-slate-500 hover:text-emerald-500 rounded-lg transition-all"><Copy size={14} /></button>
+                                        <button onClick={() => openModGroupModal(group)} title="Editar" aria-label="Editar grupo" className="p-2 text-slate-500 hover:text-indigo-400 rounded-lg transition-all"><Edit2 size={14} /></button>
                                         <button onClick={() => removeModifierGroup(group.id)} className="p-2 text-slate-500 hover:text-rose-400 rounded-lg transition-all"><Trash2 size={14} /></button>
                                     </div>
                                 </div>
