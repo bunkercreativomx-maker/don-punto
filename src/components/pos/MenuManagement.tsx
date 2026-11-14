@@ -52,26 +52,38 @@ export function MenuManagement({
     const listRef = useRef<HTMLDivElement>(null);
     const [dragId, setDragId] = useState<string | null>(null);
     const dragIdx = useRef(-1);
+    // Los listeners van en window: al reordenar, React mueve el nodo en el DOM y se perdía el
+    // pointer capture, así que la fila "se regresaba" o caía en otro lugar.
+    const moveRef = useRef(moveCategory);
+    moveRef.current = moveCategory;
     const onGripDown = (e: React.PointerEvent, cat: Category, i: number) => {
         e.preventDefault();
-        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
         dragIdx.current = i;
         setDragId(cat.id);
+        const onMove = (ev: PointerEvent) => {
+            if (!listRef.current) return;
+            const rows = Array.from(listRef.current.querySelectorAll<HTMLElement>('[data-cat-row]'));
+            // Posición destino = cuántas OTRAS filas tienen su mitad arriba del dedo/cursor
+            let to = 0;
+            rows.forEach((r) => {
+                if (r.dataset.catRow === cat.id) return;
+                const b = r.getBoundingClientRect();
+                if (ev.clientY > b.top + b.height / 2) to++;
+            });
+            if (to !== dragIdx.current) { moveRef.current(dragIdx.current, to); dragIdx.current = to; }
+            if (ev.clientY > window.innerHeight - 60) window.scrollBy(0, 12);
+            else if (ev.clientY < 80) window.scrollBy(0, -12);
+        };
+        const onUp = () => {
+            setDragId(null); dragIdx.current = -1;
+            window.removeEventListener('pointermove', onMove);
+            window.removeEventListener('pointerup', onUp);
+            window.removeEventListener('pointercancel', onUp);
+        };
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', onUp);
+        window.addEventListener('pointercancel', onUp);
     };
-    const onGripMove = (e: React.PointerEvent) => {
-        if (!dragId || !listRef.current) return;
-        const rows = Array.from(listRef.current.querySelectorAll<HTMLElement>('[data-cat-row]'));
-        let to = rows.length - 1;
-        for (let i = 0; i < rows.length; i++) {
-            const r = rows[i].getBoundingClientRect();
-            if (e.clientY < r.top + r.height / 2) { to = i; break; }
-        }
-        if (to !== dragIdx.current) { moveCategory(dragIdx.current, to); dragIdx.current = to; }
-        const box = listRef.current.getBoundingClientRect();
-        if (e.clientY > window.innerHeight - 60 || e.clientY > box.bottom) window.scrollBy(0, 12);
-        else if (e.clientY < 80) window.scrollBy(0, -12);
-    };
-    const onGripUp = () => { setDragId(null); dragIdx.current = -1; };
 
     // Categoría Management
     const handleAddCategory = () => {
@@ -197,15 +209,12 @@ export function MenuManagement({
                         <p className="text-center py-8 text-slate-500 text-sm border-2 border-dashed border-carbon-950/10 rounded-xl">No hay categorías. Agrega una arriba.</p>
                     ) : (
                         categories.map((cat, i) => (
-                            <div key={cat.id} data-cat-row className={cn("flex items-center justify-between gap-2 bg-slate-800/30 border border-carbon-950/10 p-3 rounded-xl group hover:bg-slate-800/50 transition-all select-none", dragId === cat.id && "ring-2 ring-agave-500 shadow-lg bg-white relative z-10")}>
+                            <div key={cat.id} data-cat-row={cat.id} className={cn("flex items-center justify-between gap-2 bg-slate-800/30 border border-carbon-950/10 p-3 rounded-xl group hover:bg-slate-800/50 transition-colors select-none", dragId === cat.id && "ring-2 ring-agave-500 shadow-lg bg-white relative z-10")}>
                                 <button
                                     type="button"
                                     aria-label={`Mover ${cat.name}`}
                                     title="Arrastra para mover"
                                     onPointerDown={(e) => onGripDown(e, cat, i)}
-                                    onPointerMove={onGripMove}
-                                    onPointerUp={onGripUp}
-                                    onPointerCancel={onGripUp}
                                     className="-ml-1 p-1.5 text-slate-400 hover:text-slate-200 rounded-md cursor-grab active:cursor-grabbing touch-none shrink-0"
                                 ><GripVertical size={18} /></button>
                                 {editingCategoryId === cat.id ? (
