@@ -212,6 +212,16 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                   if (priceCol !== undefined) headers[priceCol] = 'precio';
                   if (catCol !== undefined) headers[catCol] = 'categoria';
               }
+              // Columna de precio con otro nombre ("Precio ($)", "Precio tienda", "Price MXN"…) o sin nombre reconocible
+              if (!headers.some(h => PRICE_KEYS.includes(h))) {
+                  const body = grid.slice(headerIdx + 1, headerIdx + 60);
+                  const isNum = (c: number) => body.filter(r => toPrice(r[c]) > 0 && /^[\s$\d.,]+$/.test(String(r[c]))).length / Math.max(1, body.filter(r => r.some(x => String(x).trim())).length);
+                  const byName = headers.findIndex(h => /precio|price|pvp|importe|venta|\$/.test(h));
+                  const byCost = headers.findIndex(h => /costo|cost/.test(h));
+                  const byNum = [...Array(Math.max(headers.length, ...body.map(r => r.length))).keys()].find(i => isNum(i) > 0.5 && !/id|sku|clave|codigo|cantidad|stock/.test(headers[i] || ''));
+                  const pc = byName >= 0 ? byName : byNum !== undefined ? byNum : byCost;
+                  if (pc !== undefined && pc >= 0) headers[pc] = 'precio';
+              }
               const json: any[] = grid.slice(headerIdx + 1).map(r => {
                   const o: any = {};
                   headers.forEach((h, i) => { if (h && !(h in o)) o[h] = r[i] ?? ""; });
