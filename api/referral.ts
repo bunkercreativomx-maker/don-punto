@@ -105,7 +105,7 @@ export async function computeReport(token: string, aff: any, monthKey: string) {
   for (const ref of refs) {
     const owner = ref.owner;
     const [rest, sub] = await Promise.all([
-      pbFetch(`/api/collections/restaurants/records?perPage=1&sort=created&filter=${q(`owner = "${owner}"`)}`, { token }),
+      pbFetch(`/api/collections/restaurants/records?perPage=1&filter=${q(`owner = "${owner}"`)}`, { token }),
       pbFetch(`/api/collections/subscriptions/records?perPage=1&filter=${q(`owner = "${owner}"`)}&expand=plan`, { token }),
     ]);
     const s = sub.data?.items?.[0];
@@ -133,7 +133,7 @@ export async function computeReport(token: string, aff: any, monthKey: string) {
     });
   }
   const paying = rows.filter((r) => r.paying).length;
-  const rate = rateFor(paying);
+  const rate = rateFor(Math.max(1, paying)); // sin pagos aún = nivel 1 (10%)
   const total = rows.reduce((a, r) => a + r.paid, 0);
   const commission = Math.round(total * rate);
   for (const r of rows) r.commission = r.paying ? Math.round(r.paid * rate) : 0;
