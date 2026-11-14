@@ -19,6 +19,7 @@ interface MenuManagementProps {
     addModifierGroup: (group: Omit<ModifierGroup, 'id'>) => void;
     updateModifierGroup: (id: string, updates: Partial<ModifierGroup>) => void;
     removeModifierGroup: (id: string) => void;
+    moveModifierGroup?: (from: number, to: number) => void;
     updateProduct: (id: string, updates: Partial<ProductRowData>) => void;
 }
 
@@ -33,6 +34,7 @@ export function MenuManagement({
     addModifierGroup,
     updateModifierGroup,
     removeModifierGroup,
+    moveModifierGroup,
     updateProduct
 }: MenuManagementProps) {
     const [newCategoryName, setNewCategoryName] = useState('');
@@ -245,7 +247,7 @@ export function MenuManagement({
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-carbon-950 tracking-tight">Modificadores</h2>
-                            <p className="text-xs text-slate-400">Extras, salsas e ingredientes adicionales</p>
+                            <p className="text-xs text-slate-400">Extras, salsas e ingredientes adicionales. Con las flechas ↑↓ eliges en qué orden salen al cobrar.</p>
                         </div>
                     </div>
                     <button
@@ -260,7 +262,7 @@ export function MenuManagement({
                     {modifierGroups.length === 0 ? (
                         <p className="text-center py-8 text-slate-500 text-sm border-2 border-dashed border-carbon-950/10 rounded-xl">Crea grupos de opciones como "Salsas" o "Extras".</p>
                     ) : (
-                        modifierGroups.map(group => (
+                        modifierGroups.map((group, gi) => (
                             <div key={group.id} className="bg-slate-800/30 border border-carbon-950/10 rounded-2xl p-4 group">
                                 <div className="flex justify-between items-start mb-3">
                                     <div>
@@ -268,6 +270,10 @@ export function MenuManagement({
                                         <span className="text-[10px] text-slate-500 uppercase font-black">{group.selectionType === 'single' ? 'Unica Selección' : 'Selección Múltiple'}</span>
                                     </div>
                                     <div className="flex gap-1">
+                                        {moveModifierGroup && modifierGroups.length > 1 && (<>
+                                            <button onClick={() => moveModifierGroup(gi, gi - 1)} disabled={gi === 0} title="Subir (sale antes al cobrar)" aria-label="Subir grupo" className="p-2 text-slate-500 hover:text-carbon-950 rounded-lg disabled:opacity-25"><ChevronUp size={16} /></button>
+                                            <button onClick={() => moveModifierGroup(gi, gi + 1)} disabled={gi === modifierGroups.length - 1} title="Bajar" aria-label="Bajar grupo" className="p-2 text-slate-500 hover:text-carbon-950 rounded-lg disabled:opacity-25"><ChevronDown size={16} /></button>
+                                        </>)}
                                         <button onClick={() => duplicateModGroup(group)} title="Duplicar grupo" aria-label="Duplicar grupo" className="p-2 text-slate-500 hover:text-emerald-500 rounded-lg transition-all"><Copy size={14} /></button>
                                         <button onClick={() => openModGroupModal(group)} title="Editar" aria-label="Editar grupo" className="p-2 text-slate-500 hover:text-indigo-400 rounded-lg transition-all"><Edit2 size={14} /></button>
                                         <button onClick={() => removeModifierGroup(group.id)} className="p-2 text-slate-500 hover:text-rose-400 rounded-lg transition-all"><Trash2 size={14} /></button>

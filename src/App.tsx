@@ -88,6 +88,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
     addModifierGroup,
     updateModifierGroup,
     removeModifierGroup,
+    moveModifierGroup,
     loadCloudMenu,
   } = useCalculator();
 
@@ -945,6 +946,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                     addModifierGroup={addModifierGroup}
                     updateModifierGroup={updateModifierGroup}
                     removeModifierGroup={removeModifierGroup}
+                    moveModifierGroup={moveModifierGroup}
                     updateProduct={updateRow}
                 />
               )}

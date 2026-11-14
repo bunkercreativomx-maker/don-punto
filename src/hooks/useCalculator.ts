@@ -183,6 +183,17 @@ export function useCalculator(
         setModifierGroups(prev => prev.map(g => g.id === id ? { ...g, ...updates } : g));
     };
 
+    // Orden de los grupos = orden en que salen en Personalizar (POS) y en la tienda en línea
+    const moveModifierGroup = (from: number, to: number) => {
+        setModifierGroups(prev => {
+            if (from === to || from < 0 || to < 0 || from >= prev.length || to >= prev.length) return prev;
+            const next = [...prev];
+            const [it] = next.splice(from, 1);
+            next.splice(to, 0, it);
+            return next;
+        });
+    };
+
     const removeModifierGroup = (id: string) => {
         setModifierGroups(prev => prev.filter(g => g.id !== id));
         // Remove from product association
@@ -434,6 +445,7 @@ export function useCalculator(
         addModifierGroup,
         updateModifierGroup,
         removeModifierGroup,
+        moveModifierGroup,
         loadCloudMenu,
     };
 }
