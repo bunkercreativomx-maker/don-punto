@@ -101,6 +101,8 @@ Todo esto está en la barra de caja, arriba del **Punto de Venta** (todos los pl
 
 El efectivo esperado = fondo + ventas en efectivo + propinas en efectivo + depósitos − retiros − propinas pagadas. Las ventas pagadas por las apps no entran a la caja. El Corte Z también trae IVA, formas de pago, categorías y seguridad (canceladas, cortesías, descuentos, reimpresiones, reaperturas).
 
+**Propinas por mesero**: el Corte Z, la hoja carta/PDF del corte y la ventana "Resultado del corte" muestran cuánto le toca de propina a cada mesero, separado en efectivo, tarjeta y transferencia, más el total a meseros. La propina es del mesero que tomó la orden; si no hubo mesero, de quien cobró. Las propinas de apps de delivery no se cuentan. En **Equipo → Por persona** también sale la propina de cada quien por hoy, semana o mes.
+
 **Cortes desde Reportes:** en **Reportes** elige **POR TURNO** o **POR FECHAS** → **VER CORTE**, **IMPRIMIR / PDF** (hoja carta para tu contador; para PDF elige "Guardar como PDF" en la ventana de impresión) o **TICKET TÉRMICO (CORTE Z)**. También puedes elegir un día y tocar **IMPRIMIR CORTE Z**.
 
 ### Ventas de apps de comida a domicilio (captura manual)

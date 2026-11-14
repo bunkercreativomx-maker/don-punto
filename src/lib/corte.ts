@@ -21,6 +21,8 @@ export const METHOD_LABEL: Record<POSPaymentMethod, string> = { Efectivo: 'Efect
 
 export interface Line { label: string; amount: number; count?: number; pct?: number }
 
+export interface TipLine { label: string; total: number; count: number; efectivo: number; tarjeta: number; transferencia: number }
+
 export interface CorteData {
   title: string;
   from: Date;
@@ -65,6 +67,8 @@ export interface CorteData {
   pagosPropinas: Line[];
   // personas y productos
   meseros: Line[];
+  /** Propinas por mesero (o quien cobró si no hubo mesero), separadas por forma de pago. Sin propinas de apps (no salen de la caja). */
+  propinasMeseros: TipLine[];
   productos: Line[];
   // operación
   folioInicial: string;
@@ -204,6 +208,22 @@ export function buildCorte(a: BuildArgs): CorteData {
     const k = t.waiterName || t.employeeName || (t.destination && t.destination !== 'Tienda' ? 'Pedidos de apps' : 'Caja');
     const m = mes.get(k) || { amount: 0, count: 0 }; m.amount += t.amount; m.count++; mes.set(k, m);
   }
+  // Propinas por mesero: la propina es del mesero que atendió; si no hubo mesero, de quien cobró
+  const tipMap = new Map<string, TipLine>();
+  for (const t of txs) {
+    const k = t.waiterName || t.employeeName || (t.destination && t.destination !== 'Tienda' ? 'Pedidos de apps' : 'Caja');
+    if (k === 'Pedidos de apps') continue;
+    const l = tipMap.get(k) || { label: k, total: 0, count: 0, efectivo: 0, tarjeta: 0, transferencia: 0 };
+    const tip = t.tip || 0;
+    if (tip > 0 && !APP_METHODS.includes(t.paymentMethod)) {
+      l.total += tip; l.count++;
+      if (CASH_METHODS.includes(t.paymentMethod)) l.efectivo += tip;
+      else if (t.paymentMethod === 'Transferencia') l.transferencia += tip;
+      else l.tarjeta += tip;
+    }
+    tipMap.set(k, l);
+  }
+  const propinasMeseros = [...tipMap.values()].map((l) => ({ ...l, total: r2(l.total), efectivo: r2(l.efectivo), tarjeta: r2(l.tarjeta), transferencia: r2(l.transferencia) })).sort((x, y) => y.total - x.total || x.label.localeCompare(y.label));
   const meseros = [...mes.entries()].map(([label, v]) => ({ label, amount: v.amount, count: v.count })).sort((x, y) => y.amount - x.amount);
   const productos = [...prod.entries()].map(([label, v]) => ({ label, amount: v.amount, count: v.qty })).sort((x, y) => (y.count || 0) - (x.count || 0) || y.amount - x.amount);
 
@@ -255,7 +275,7 @@ export function buildCorte(a: BuildArgs): CorteData {
     movimientos: movs.map((m) => ({ date: m.date, type: m.type === 'retiro' ? 'Retiro' : 'Depósito', amount: m.amount, reason: m.reason, byName: m.byName })).sort((x, y) => x.date.localeCompare(y.date)),
     declaracion, declaradoTotal, diferencia,
     pagosVentas, pagosPropinas,
-    meseros, productos,
+    meseros, propinasMeseros, productos,
     folioInicial, folioFinal,
     canceladas: { count: canc.length, amount: cancAmt, pct: total + cancAmt ? (cancAmt / (total + cancAmt)) * 100 : 0 },
     cortesias: { count: cortesiaTx.length, amount: sum(cortesiaTx.map((t) => t.discountAmount || 0)) },

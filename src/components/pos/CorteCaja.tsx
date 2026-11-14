@@ -138,6 +138,16 @@ export function CorteCaja({ d, branchName, logoUrl }: { d: CorteData; branchName
               </div>
             )) : <div className="cd-empty">Sin ventas</div>}
           </Box>
+          <Box title="PROPINAS POR MESERO">
+            {d.propinasMeseros.length ? d.propinasMeseros.map((m) => (
+              <div key={m.label} className="cd-row">
+                <span>{m.label.toUpperCase()} <em>({m.count})</em><br /><em>Efectivo {$(m.efectivo)} · Tarjeta {$(m.tarjeta)}{m.transferencia > 0 ? ` · Transf. ${$(m.transferencia)}` : ''}</em></span>
+                <span><b>{$(m.total)}</b></span>
+              </div>
+            )) : <div className="cd-empty">Sin ventas</div>}
+            {d.propinasMeseros.length > 0 && <Row label="TOTAL A MESEROS" value={$(d.propinasMeseros.reduce((a, m) => a + m.total, 0))} strong />}
+            <p className="cd-note">La propina es del mesero que atendió; si no hubo mesero, de quien cobró. Las de apps de delivery no se cuentan.</p>
+          </Box>
           <Box title="PRODUCTOS MÁS VENDIDOS">
             <Lines lines={d.productos.slice(0, 10)} showCount empty="Sin productos" />
           </Box>

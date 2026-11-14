@@ -29,9 +29,9 @@ export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adm
     if (range === 'mes') start.setDate(1);
     let cancels: Cancellation[] = [];
     try { cancels = JSON.parse(storeGet('donPuntoCancelaciones') || '[]'); } catch { /* vacío */ }
-    const map = new Map<string, { name: string; ventas: number; tickets: number; descuentos: number; cancelaciones: number; cancelado: number; ordenes: number; atendido: number }>();
+    const map = new Map<string, { name: string; ventas: number; tickets: number; descuentos: number; cancelaciones: number; cancelado: number; ordenes: number; atendido: number; propinas: number }>();
     const get = (id: string, name: string) => {
-      if (!map.has(id)) map.set(id, { name, ventas: 0, tickets: 0, descuentos: 0, cancelaciones: 0, cancelado: 0, ordenes: 0, atendido: 0 });
+      if (!map.has(id)) map.set(id, { name, ventas: 0, tickets: 0, descuentos: 0, cancelaciones: 0, cancelado: 0, ordenes: 0, atendido: 0, propinas: 0 });
       return map.get(id)!;
     };
     transactions.filter((t) => new Date(t.date) >= start).forEach((t) => {
@@ -39,6 +39,8 @@ export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adm
       r.ventas += t.amount; r.tickets += 1; r.descuentos += t.discountAmount || 0;
       // Mesero que tomó la orden (para propinas / comisiones)
       if (t.waiterId) { const w = get(t.waiterId, t.waiterName || 'Mesero'); w.ordenes += 1; w.atendido += t.amount; }
+      // Propina: del mesero que atendió; si no hubo mesero, de quien cobró (las de apps no son del personal)
+      if ((t.tip || 0) > 0 && !['Uber', 'Didi', 'Rappi'].includes(t.paymentMethod)) (t.waiterId ? get(t.waiterId, t.waiterName || 'Mesero') : r).propinas += t.tip || 0;
     });
     cancels.filter((c) => new Date(c.date) >= start).forEach((c) => {
       const r = get(c.byId || 'sin', c.byName || 'Sin identificar');
@@ -148,7 +150,8 @@ export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adm
                   <div className="font-display text-lg font-bold text-carbon-950 tabular-nums">${money(r.ventas)}</div>
                 </div>
                 {r.ordenes > 0 && <div className="mt-1 text-xs text-agave-700 font-semibold">Como mesero: {r.ordenes} {r.ordenes === 1 ? 'orden' : 'órdenes'} · ${money(r.atendido)}</div>}
-                <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                <div className="mt-2 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                  <div><div className="text-carbon-500">Propinas</div><div className={`font-semibold tabular-nums ${r.propinas > 0 ? 'text-agave-700' : 'text-carbon-800'}`}>${money(r.propinas)}</div></div>
                   <div><div className="text-carbon-500">Tickets</div><div className="font-semibold text-carbon-800 tabular-nums">{r.tickets}</div></div>
                   <div><div className="text-carbon-500">Descuentos</div><div className={`font-semibold tabular-nums ${r.descuentos > 0 ? 'text-maiz-800' : 'text-carbon-800'}`}>${money(r.descuentos)}</div></div>
                   <div><div className="text-carbon-500">Cancelado</div><div className={`font-semibold tabular-nums ${r.cancelaciones > 0 ? 'text-rose-600' : 'text-carbon-800'}`}>{r.cancelaciones} · ${money(r.cancelado)}</div></div>

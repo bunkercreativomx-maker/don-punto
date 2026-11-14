@@ -178,6 +178,16 @@ export function CashShiftBar(props: Props) {
                 </div>
               ))}
             </div>
+            {resultData.propinasMeseros.length > 0 && (
+              <div className="rounded-xl border border-carbon-950/10 divide-y divide-carbon-950/5 my-2">
+                <div className="px-3 py-1.5 text-[11px] font-black uppercase text-carbon-500">Propinas por mesero</div>
+                {resultData.propinasMeseros.map((m) => (
+                  <div key={m.label} className={`flex justify-between gap-2 px-3 py-1.5 text-xs ${m.total ? 'text-carbon-900' : 'text-carbon-400'}`}>
+                    <span className="min-w-0">{m.label} <span className="text-carbon-400">· Efectivo ${money(m.efectivo)} · Tarjeta ${money(m.tarjeta)}{m.transferencia > 0 ? ` · Transf. $${money(m.transferencia)}` : ''}</span></span><b className="tabular-nums shrink-0">${money(m.total)}</b>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="flex justify-between"><span>Esperado en caja</span><b className="tabular-nums">${money(resultData.saldoFinal)}</b></div>
             <div className="flex justify-between"><span>Declarado</span><b className="tabular-nums">${money(resultData.declaradoTotal)}</b></div>
             <div className={`mt-3 rounded-2xl p-4 flex justify-between items-center ${Math.abs(resultData.diferencia) < 0.5 ? 'bg-emerald-500/10 text-emerald-700' : resultData.diferencia > 0 ? 'bg-maiz-50 text-maiz-800' : 'bg-rose-50 text-rose-700'}`}>
