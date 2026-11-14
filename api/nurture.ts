@@ -166,7 +166,10 @@ export default async function handler(req: any, res: any) {
       const sent = st.sent || {};
       const next = Object.keys(sent).length + 1;
       if (next > DAYS.length) continue;
-      if (now - anchor < DAYS[next - 1] * 86400000) continue;
+      if (now - anchor < DAYS[next - 1] * 86400000) {
+        if (dry) out.push({ email, seg, step: next, due: new Date(anchor + DAYS[next - 1] * 86400000).toISOString() });
+        continue;
+      }
       let rest = '';
       const r = await pbFetch(`/api/collections/restaurants/records?perPage=1&filter=${encodeURIComponent(`owner = "${u.id}"`)}`, { token });
       rest = r.data?.items?.[0]?.name || '';
