@@ -1,9 +1,10 @@
 // Crons de Don Punto (Pages no tiene cron):
 //  0 4 * * *  -> /api/cron-daily (cierre del día + avisos de prueba)
 //  0 17 * * * -> /api/nurture (serie de reactivación por correo, ~10 am Juárez)
+//  0 15 * * * -> /api/trial-report (resumen de pruebas gratis a Telegram, 8 am Juárez)
 export default {
   async scheduled(ev, env, ctx) {
-    const path = ev.cron === '0 17 * * *' ? '/api/nurture' : '/api/cron-daily';
+    const path = ev.cron === '0 17 * * *' ? '/api/nurture' : ev.cron === '0 15 * * *' ? '/api/trial-report' : '/api/cron-daily';
     ctx.waitUntil(fetch(env.TARGET + path, {
       method: 'POST',
       headers: { authorization: `Bearer ${env.CRON_SECRET}`, 'content-type': 'application/json', 'user-agent': 'Mozilla/5.0 (DonPunto-Cron)' },

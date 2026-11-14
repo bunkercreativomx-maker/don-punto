@@ -14,11 +14,13 @@ import trial from '../../api/trial';
 import founders from '../../api/founders';
 import nurture from '../../api/nurture';
 import referral from '../../api/referral';
+import trialReport from '../../api/trial-report';
 
 const ROUTES: Record<string, (req: any, res: any) => any> = {
   combos, 'cron-daily': cronDaily, factura, order, 'promo-image': promoImage, push,
   'scan-menu': scanMenu, 'stripe-checkout': stripeCheckout, 'stripe-portal': stripePortal,
   'stripe-webhook': stripeWebhook, support, trial, founders, nurture, referral,
+  'trial-report': trialReport,
 };
 const RAW_BODY = new Set(['stripe-webhook']); // firma de Stripe sobre el body exacto
 
