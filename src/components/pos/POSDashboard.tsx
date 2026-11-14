@@ -399,6 +399,11 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
   // La propina solo aplica en tienda y no forma parte de la venta
   const tipAmount = orderDestination === 'Tienda' && !courtesy ? Math.max(0, Number(tipInput) || 0) : 0;
   const chargeTotal = finalTotal + tipAmount;
+  /** Si el negocio tiene meseros, no deja cobrar sin elegir mesero cuando hay propina o es para comer aquí (para que nadie se quede sin su propina) */
+  const WAITER_MSG = 'Elige el MESERO que atendió: hay propina o es para comer aquí y su propina debe quedar a su nombre.';
+  useEffect(() => { setOrderError((e) => (e === WAITER_MSG ? '' : e)); }, [resumedWaiter, tipInput]);
+  const missingWaiter = (): string =>
+    orderDestination === 'Tienda' && waiterOptions.length > 0 && !resumedWaiter && (tipAmount > 0 || service === 'aqui') ? WAITER_MSG : '';
 
   const handleCheckout = () => {
     if (waiterMode) return; // el mesero no cobra
@@ -407,6 +412,8 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
     const miss = missingOrderInfo();
     if (miss) { setOrderError(miss); return; }
     if (localBusy) { setOrderError(busyMsg(localBusy)); return; }
+    const noWaiter = missingWaiter();
+    if (noWaiter) { setOrderError(noWaiter); document.getElementById('pos-waiter')?.focus(); return; }
     
     // If it's cash, show calculator first
     if (paymentMethod === 'Efectivo' || paymentMethod === 'Didi Efectivo') {
@@ -503,6 +510,8 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
     const miss = missingOrderInfo();
     if (miss) { setOrderError(miss); return; }
     if (localBusy) { setOrderError(busyMsg(localBusy)); return; }
+    const noWaiter = missingWaiter();
+    if (noWaiter) { setOrderError(noWaiter); document.getElementById('pos-waiter')?.focus(); return; }
     setSplitError(''); setMixCash(''); setMixFirst('Efectivo'); setPickQty({});
     setWayMethods(Array.from({ length: 8 }, () => 'Efectivo' as POSPaymentMethod));
     setSplitTab('mixto');
@@ -960,7 +969,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                             {(orderDestination === 'Uber' || orderDestination === 'Rappi') && (
                                 <p className="text-[11px] font-semibold text-carbon-600">Pedido de {orderDestination}: escribe abajo el <b>nombre del cliente</b> como sale en la app.</p>
                             )}
-                            {orderError && <p className="text-[11px] font-bold text-rose-600">{orderError}</p>}
+                            {orderError && orderError !== WAITER_MSG && <p className="text-[11px] font-bold text-rose-600">{orderError}</p>}
                         </div>
                         {/* Customer Name Field - always visible */}
                         <div className="relative">
@@ -1059,16 +1068,17 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                             </button>
                         </div>}
                         {!waiterMode && orderDestination === 'Tienda' && (waiterOptions.length > 0 || resumedWaiter) && (
-                            <div className="flex items-center gap-2 bg-slate-950/50 border border-carbon-950/10 rounded-xl px-3 py-1.5">
+                            <div className={cn("flex items-center gap-2 bg-slate-950/50 border rounded-xl px-3 py-1.5", orderError === WAITER_MSG ? "border-rose-400 ring-2 ring-rose-200" : "border-carbon-950/10")}>
                                 <label htmlFor="pos-waiter" className="text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Mesero:</label>
                                 <select id="pos-waiter" value={resumedWaiter?.id || ''}
                                     onChange={(e) => { const w = waiterOptions.find((x) => x.id === e.target.value); setResumedWaiter(w ? { id: w.id, name: w.name } : null); }}
-                                    className={cn("min-w-0 flex-grow bg-transparent text-xs font-bold outline-none text-right", resumedWaiter ? "text-carbon-950" : "text-slate-500")}>
+                                    className={cn("min-w-0 flex-grow bg-transparent text-xs font-bold outline-none text-right", resumedWaiter ? "text-carbon-950" : orderError === WAITER_MSG ? "text-rose-600" : "text-slate-500")}>
                                     <option value="">Sin mesero</option>
                                     {waiterOptions.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
                                 </select>
                             </div>
                         )}
+                        {!waiterMode && orderError === WAITER_MSG && <p className="text-[11px] font-bold text-rose-600 px-1">{orderError}</p>}
                         {!waiterMode && orderDestination === 'Tienda' && !courtesy && (
                             <div className="flex items-center gap-2 bg-slate-950/50 border border-carbon-950/10 rounded-xl px-3 py-1.5">
                                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Propina:</span>
