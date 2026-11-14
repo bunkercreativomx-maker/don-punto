@@ -922,7 +922,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                     )}
                 </div>
               ); })()}
-              {shownTab === 'pos' && <POSDashboard />}
+              {shownTab === 'pos' && <POSDashboard menu={{ rows, settings, categories, modifierGroups, addProducts, removeRow }} />}
               {shownTab === 'online' && <OnlineOrdersModule rows={rows} categories={categories} modifierGroups={modifierGroups} onNeedPin={() => setPinFor('online')} />}
               {shownTab === 'reports' && <POSReports onUpgrade={onBilling} />}
               {shownTab === 'tickets' && <POSTicketsHistory />}

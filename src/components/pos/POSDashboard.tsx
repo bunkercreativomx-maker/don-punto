@@ -35,7 +35,16 @@ const PAY_COLOR: Record<string, string> = {
     'Uber': '#111827',
     'Rappi': '#e11d48',
 };
-export function POSDashboard() {
+export interface POSMenuOps {
+  rows: ProductRowData[];
+  settings: ReturnType<typeof useCalculator>['settings'];
+  categories: ReturnType<typeof useCalculator>['categories'];
+  modifierGroups: ReturnType<typeof useCalculator>['modifierGroups'];
+  addProducts: (p: ProductRowData[]) => void;
+  removeRow: (id: string) => void;
+}
+
+export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
   const { addTransaction, openTickets, saveTicket, deleteOpenTicket, refreshOpenTickets, settings, updateSettings, transactions } = usePOS();
   // Cuentas abiertas de otros dispositivos (meseros, otra caja): cada 10 s con la pantalla visible y al volver a ella
   useEffect(() => {
@@ -48,7 +57,9 @@ export function POSDashboard() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useCashShift(); // re-render al abrir/cerrar turno
-  const { rows, settings: calcGlobalSettings, categories, modifierGroups } = useCalculator();
+  // El menú viene de App (misma fuente que Catálogo) para que agregar/borrar aquí no lo pise otra pantalla
+  const ownCalc = useCalculator([], { persist: !menu });
+  const { rows, settings: calcGlobalSettings, categories, modifierGroups } = menu || ownCalc;
 
   const [paymentMethod, setPaymentMethod] = useState<POSPaymentMethod>('Efectivo');
   const [orderDestination, setOrderDestination] = useState<OrderDestination>('Tienda');
@@ -172,6 +183,25 @@ export function POSDashboard() {
   // Mesero: solo toma órdenes. Y si se reanuda una cuenta, la venta sigue a nombre de quien la tomó.
   const { operator } = useSession();
   const waiterMode = operator?.role === 'mesero';
+  // Solo dueño o gerente identificados pueden agregar/borrar productos desde el punto de venta
+  const canEditMenu = !!menu && (operator?.role === 'dueno' || operator?.role === 'gerente');
+  const [newProd, setNewProd] = useState<{ name: string; price: string; categoryId: string } | null>(null);
+  const deleteProduct = (p: ProductRowData) => {
+    if (!menu || !canEditMenu) return;
+    if (!window.confirm(`¿Eliminar "${p.name}" del menú?\n\nSe quita del punto de venta, Tienda Física y tu tienda en línea. Las ventas que ya hiciste no se borran.`)) return;
+    menu.removeRow(p.id);
+    showToast(`Se eliminó "${p.name}"`);
+  };
+  const saveNewProduct = () => {
+    if (!menu || !canEditMenu || !newProd) return;
+    const name = newProd.name.trim();
+    const price = Math.round((parseFloat(newProd.price.replace(',', '.')) || 0) * 100) / 100;
+    if (!name) { showToast('Escribe el nombre del producto'); return; }
+    if (rows.some(r => r.name.trim().toLowerCase() === name.toLowerCase())) { showToast('Ya existe un producto con ese nombre'); return; }
+    menu.addProducts([{ id: crypto.randomUUID(), name, costPrice: 0, salePrice: price, categoryId: newProd.categoryId || undefined }]);
+    setNewProd(null);
+    showToast(`Se agregó "${name}"`);
+  };
   const [resumedWaiter, setResumedWaiter] = useState<{ id: string; name: string } | null>(null);
 
   const requirePin = (action: () => void) => {
@@ -753,8 +783,8 @@ export function POSDashboard() {
                         </div>
                     )}
                     {filteredProducts.map(p => (
+                        <div key={p.id} className="relative group/card">
                         <button
-                            key={p.id}
                             onClick={() => handleProductClick(p)}
                             className="bg-white border border-carbon-950/10 p-4 rounded-2xl text-left shadow-[0_1px_2px_rgba(13,16,14,0.05)] hover:border-agave-400 hover:shadow-[0_10px_24px_-14px_rgba(14,111,77,0.45)] active:scale-[0.98] transition-all duration-200 group relative overflow-hidden h-32 flex flex-col justify-between"
                         >
@@ -770,8 +800,53 @@ export function POSDashboard() {
                                 );
                             })()}
                         </button>
+                        {canEditMenu && (
+                            <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); deleteProduct(p); }}
+                                title="Eliminar producto"
+                                aria-label={`Eliminar ${p.name}`}
+                                className="absolute bottom-2 right-2 p-1.5 rounded-lg text-rose-500 bg-white/90 border border-rose-200 hover:bg-rose-50 hover:text-rose-600 transition-all"
+                            >
+                                <Trash2 size={14} />
+                            </button>
+                        )}
+                        </div>
                     ))}
+                    {canEditMenu && !searchQuery && (
+                        <button
+                            type="button"
+                            onClick={() => setNewProd({ name: '', price: '', categoryId: activeCategoryId || '' })}
+                            className="border-2 border-dashed border-agave-400/60 text-agave-700 rounded-2xl h-32 flex flex-col items-center justify-center gap-1 font-bold text-sm hover:bg-agave-50 transition-all"
+                        >
+                            <Plus size={20} /> Agregar producto
+                        </button>
+                    )}
                 </div>
+                {newProd && (
+                    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-carbon-950/40 backdrop-blur-sm" onClick={() => setNewProd(null)}>
+                        <div className="w-full max-w-sm bg-white rounded-2xl p-5 space-y-3 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                            <h3 className="text-lg font-bold text-carbon-950">Agregar producto</h3>
+                            <label className="block text-xs font-bold text-slate-500">Nombre
+                                <input autoFocus value={newProd.name} onChange={(e) => setNewProd({ ...newProd, name: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && saveNewProduct()} placeholder="Ej. Agua 1 litro" className="mt-1 w-full rounded-xl border border-carbon-950/15 px-3 py-2.5 text-sm text-carbon-950 outline-none focus:border-agave-500" />
+                            </label>
+                            <label className="block text-xs font-bold text-slate-500">Precio en tienda
+                                <input inputMode="decimal" value={newProd.price} onChange={(e) => setNewProd({ ...newProd, price: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && saveNewProduct()} placeholder="0.00" className="mt-1 w-full rounded-xl border border-carbon-950/15 px-3 py-2.5 text-sm text-carbon-950 outline-none focus:border-agave-500" />
+                            </label>
+                            <label className="block text-xs font-bold text-slate-500">Categoría
+                                <select value={newProd.categoryId} onChange={(e) => setNewProd({ ...newProd, categoryId: e.target.value })} className="mt-1 w-full rounded-xl border border-carbon-950/15 px-3 py-2.5 text-sm text-carbon-950 outline-none bg-white">
+                                    <option value="">Sin categoría</option>
+                                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                            </label>
+                            <p className="text-[11px] text-slate-500">Los precios de apps y la foto los ajustas en Plataformas / Tienda Física.</p>
+                            <div className="flex gap-2 pt-1">
+                                <button type="button" onClick={() => setNewProd(null)} className="flex-1 py-2.5 rounded-xl border border-carbon-950/15 font-bold text-sm">Cancelar</button>
+                                <button type="button" onClick={saveNewProduct} className="flex-1 py-2.5 rounded-xl bg-agave-600 text-white font-black text-sm">GUARDAR</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Cart Section */}

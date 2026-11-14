@@ -64,6 +64,7 @@ Las cuentas nuevas ven un tour al entrar por primera vez: cambia el **PIN de due
 1. Arriba elige el canal: **TIENDA** para mostrador/mesa, o la app de comida a domicilio si es pedido de una app.
 2. Elige **Método de Pago**: en tienda **EFECTIVO** o **TARJETA**.
 3. Toca un producto (puedes filtrar por categoría o usar **Buscar producto...**). Se abre **Personalizar**: elige modificadores, escribe una nota en **Notas** (ej. "sin cebolla"); el nombre del cliente va en el campo **Cliente** de la orden y toca **AGREGAR A LA ORDEN**.
+   - Si entró el **dueño o gerente** (con su PIN), cada producto trae un **bote de basura** para eliminarlo del menú (pide confirmar; las ventas pasadas no se borran) y al final de la lista sale **Agregar producto** (nombre, precio en tienda y categoría → **GUARDAR**). La caja y los meseros no ven esos botones.
 4. En **Orden Actual** puedes subir cantidad con **+**. Bajar cantidad o quitar un producto pide PIN de dueño o gerente.
 5. Opcionales: **Cliente** (nombre; en plan Pro también busca por teléfono), **Personas**, **Descuento** (en **$** o **%**), **Cortesía** (la casa invita: descuento de 100%, pide PIN) y **Propina** (solo en tienda: botones **10%**, **15%** o monto). La propina no cuenta como venta; se suma al total a cobrar.
 6. Toca **FINALIZAR**. Si es efectivo se abre la **Calculadora de Cambio**: escribe el **Monto Recibido** (o toca $20, $50, $100, $200, $500 o **EXACTO**), ve el cambio a entregar y toca **FINALIZAR Y COBRAR**.
