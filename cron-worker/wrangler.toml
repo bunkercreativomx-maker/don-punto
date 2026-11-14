@@ -5,4 +5,4 @@ workers_dev = false
 [vars]
 TARGET = "https://donpunto.pages.dev"
 [triggers]
-crons = ["0 4 * * *"]
+crons = ["0 4 * * *", "0 17 * * *"]
