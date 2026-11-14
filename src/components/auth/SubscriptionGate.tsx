@@ -81,7 +81,7 @@ export function SubscriptionGate({ status, email, verifyingPayment, hasStripeCus
           onClick={onBack}
           className="absolute top-4 left-4 z-20 flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-carbon-950 bg-carbon-950/5 border border-carbon-950/10 px-3 py-2 rounded-lg"
         >
-          <ArrowLeft size={14} /> {expired ? 'Solo ver mis datos' : 'Volver a Don Punto'}
+          <ArrowLeft size={14} /> {expired ? 'Ver mi menú' : 'Volver a Don Punto'}
         </button>
       )}
       <button

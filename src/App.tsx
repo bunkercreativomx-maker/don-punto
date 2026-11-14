@@ -61,7 +61,7 @@ function TrialBanner({ trialEnd, expired, onPlans }: { trialEnd?: string; expire
     <div className={cn('mb-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 rounded-2xl px-4 py-3 no-print border', urgent ? 'bg-maiz-50 border-maiz-300 text-carbon-900' : 'bg-agave-50 border-agave-200 text-carbon-800')}>
       <p className="text-sm min-w-0">
         {expired ? (
-          <><b>Tu prueba gratis terminó.</b> Tus datos están guardados y puedes verlos, pero para volver a cobrar necesitas tu plan.</>
+          <><b>Tu prueba gratis terminó.</b> Tus datos están guardados y puedes ver tu menú. Para volver a usar Don Punto necesitas tu plan.</>
         ) : left <= 1 ? (
           <><b>Tu prueba gratis termina mañana</b> ({fmtDay(trialEnd)}). Elige tu plan para seguir vendiendo sin cortes.</>
         ) : (
@@ -81,7 +81,7 @@ function TrialEndedPOS({ onPlans }: { onPlans?: () => void }) {
     <div className="mx-auto max-w-xl rounded-3xl border border-carbon-950/10 bg-white p-8 sm:p-10 text-center shadow-[0_12px_32px_-18px_rgba(13,16,14,0.18)]">
       <div className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-full bg-maiz-100 text-maiz-800"><Lock size={26} /></div>
       <h2 className="font-display text-2xl sm:text-3xl font-bold text-carbon-950">Tu prueba gratis terminó</h2>
-      <p className="mt-3 text-carbon-600">Tu menú, tus ventas y tus reportes siguen aquí. Suscríbete para volver a cobrar; todo queda como lo dejaste.</p>
+      <p className="mt-3 text-carbon-600">Esta sección es parte de tu plan. Tus ventas, reportes y ajustes siguen guardados; suscríbete y todo queda como lo dejaste. Mientras tanto puedes ver tu menú en Catálogo.</p>
       <button type="button" onClick={onPlans} className="mt-7 inline-flex items-center justify-center rounded-full bg-agave-600 hover:bg-agave-700 px-7 py-3.5 font-semibold text-white">Suscribirme para seguir vendiendo</button>
     </div>
   );
@@ -554,20 +554,26 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
   const needCashier = requiresCashierLogin() && !operator;
 
   const incoming = useIncomingOrders();
+  // Prueba vencida sin pago: solo el Catálogo (su menú); todo lo demás bloqueado
+  const trialLocked = (t: Tab) => !!expired && t !== 'menu';
   const goTo = (tab: Tab) => {
     setNavOpen(false);
-    if (canAccess(tab)) setActiveTab(tab);
+    // Prueba vencida: sin pedir PIN, directo al aviso de suscripción
+    if (canAccess(tab) || trialLocked(tab)) setActiveTab(tab);
     else setPinFor(tab);
   };
   const handleSettingsClick = () => goTo('settings');
 
   // Si alguien bloquea o cambia de cajero, salir de pantallas que ya no puede ver
   useEffect(() => {
-    if (!canAccess(activeTab)) setActiveTab('pos');
+    if (!canAccess(activeTab) && !trialLocked(activeTab)) setActiveTab('pos');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [operator, activeTab]);
   // Nunca pintar una pantalla sin permiso, ni por un instante
-  const shownTab: Tab = canAccess(activeTab) ? activeTab : 'pos';
+  const shownTab: Tab = canAccess(activeTab) || trialLocked(activeTab) ? activeTab : 'pos';
+  // Prueba vencida sin pago: solo el Catálogo (su menú); todo lo demás bloqueado
+  const viewTab: Tab | 'locked' = trialLocked(shownTab) ? 'locked' : shownTab;
+  useEffect(() => { if (expired) setActiveTab('menu'); }, [expired]);
 
   const NAV: { tab: Tab; label: string; Icon: typeof BarChart3; pro?: boolean; sep?: boolean }[] = [
     { tab: 'pos', label: 'Punto de Venta', Icon: ShoppingBasket },
@@ -590,6 +596,7 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
   // El escáner agrega productos al catálogo: pide el mismo permiso que Catálogo
   const openScanner = () => {
     setNavOpen(false);
+    if (expired) { onPlans?.(); return; }
     if (canAccess('menu')) setIsScannerOpen(true);
     else setPinFor('menu');
   };
@@ -728,7 +735,7 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
 
         <div className="flex flex-col gap-1 flex-grow w-full px-3">
           {NAV.map(({ tab, label, Icon, pro, sep }) => {
-            const locked = !canAccess(tab);
+            const locked = !canAccess(tab) || trialLocked(tab);
             return (
               <div key={tab} className="contents">
                 {sep && <div className="w-full my-1"><div className="h-px bg-carbon-950/5 w-full" /></div>}
@@ -856,7 +863,7 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
                   <button onClick={() => lockSession()} className="rounded-full bg-carbon-100 hover:bg-carbon-200 px-3 py-1 text-xs font-semibold text-carbon-800">Cambiar</button>
                 </div>
               )}
-              {(shownTab === 'profits' || shownTab === 'pricing' || shownTab === 'menu') && (
+              {!expired && (viewTab === 'profits' || viewTab === 'pricing' || viewTab === 'menu') && (
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
                     <button
                         onClick={() => setIsImportModalOpen(true)}
@@ -884,7 +891,8 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
             </header>
 
             <main className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-              {shownTab === 'profits' && (() => {
+              {viewTab === 'locked' && <TrialEndedPOS onPlans={onPlans} />}
+              {viewTab === 'profits' && (() => {
                 const filteredProfits = rows.filter(r => r.name.toLowerCase().includes(profitsSearch.toLowerCase()));
                 const totalProfitsPages = Math.max(1, Math.ceil(filteredProfits.length / PAGE_SIZE));
                 const safeProfitsPage = Math.min(profitsPage, totalProfitsPages);
@@ -931,7 +939,7 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
                     </div>
                 </div>
               ); })()}
-              {shownTab === 'pricing' && (() => {
+              {viewTab === 'pricing' && (() => {
                 const filteredPricing = rows.filter(r => r.name.toLowerCase().includes(pricingSearch.toLowerCase()));
                 const totalPricingPages = Math.max(1, Math.ceil(filteredPricing.length / PAGE_SIZE));
                 const safePricingPage = Math.min(pricingPage, totalPricingPages);
@@ -965,18 +973,18 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
                     )}
                 </div>
               ); })()}
-              {shownTab === 'pos' && (expired ? <TrialEndedPOS onPlans={onPlans} /> : <POSDashboard menu={{ rows, settings, categories, modifierGroups, addProducts, removeRow }} />)}
-              {shownTab === 'online' && <OnlineOrdersModule rows={rows} categories={categories} modifierGroups={modifierGroups} onNeedPin={() => setPinFor('online')} />}
-              {shownTab === 'reports' && <POSReports onUpgrade={onBilling} />}
-              {shownTab === 'tickets' && <POSTicketsHistory />}
-              {shownTab === 'inventory' && <InventoryModule />}
-              {shownTab === 'engineering' && <MenuEngineeringModule />}
-              {shownTab === 'recipes' && <RecipesModule />}
-              {shownTab === 'financial' && <FinancialModule />}
-              {shownTab === 'clients' && <ClientsModule onUpgrade={onBilling} />}
-              {shownTab === 'branches' && <BranchesModule onUpgrade={onBilling} />}
-              {shownTab === 'team' && <TeamModule onUpgrade={onBilling} adminPin={posSettings.adminPin} />}
-              {shownTab === 'menu' && (
+              {viewTab === 'pos' && <POSDashboard menu={{ rows, settings, categories, modifierGroups, addProducts, removeRow }} />}
+              {viewTab === 'online' && <OnlineOrdersModule rows={rows} categories={categories} modifierGroups={modifierGroups} onNeedPin={() => setPinFor('online')} />}
+              {viewTab === 'reports' && <POSReports onUpgrade={onBilling} />}
+              {viewTab === 'tickets' && <POSTicketsHistory />}
+              {viewTab === 'inventory' && <InventoryModule />}
+              {viewTab === 'engineering' && <MenuEngineeringModule />}
+              {viewTab === 'recipes' && <RecipesModule />}
+              {viewTab === 'financial' && <FinancialModule />}
+              {viewTab === 'clients' && <ClientsModule onUpgrade={onBilling} />}
+              {viewTab === 'branches' && <BranchesModule onUpgrade={onBilling} />}
+              {viewTab === 'team' && <TeamModule onUpgrade={onBilling} adminPin={posSettings.adminPin} />}
+              {viewTab === 'menu' && (
                 <MenuManagement 
                     categories={categories}
                     modifierGroups={modifierGroups}
@@ -992,7 +1000,7 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
                     updateProduct={updateRow}
                 />
               )}
-              {shownTab === 'settings' && (
+              {viewTab === 'settings' && (
                   <div className="max-w-2xl space-y-6">
 
                       <NotificationsCard />
