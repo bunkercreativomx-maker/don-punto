@@ -135,6 +135,9 @@ En **Equipo** (solo dueño). **Plan Básico:** 2 usuarios, el dueño y **1 cajer
 ### Sucursales (plan Pro)
 En **Sucursales** (solo dueño): **Agregar sucursal** (nombre y dirección opcional). Todas comparten menú y recetas; ventas, tickets, corte, inventario y gastos van por separado. En cada caja o tablet toca **Cobrar aquí** (o usa el selector de sucursal arriba del menú lateral) para que las ventas caigan en la sucursal correcta. Ves el reporte de todas juntas (hoy, 30 días, vs. mes anterior, ticket promedio, hora pico). También **Renombrar** o **Quitar**.
 
+### Menú por sucursal (plan Pro, 2+ sucursales)
+En **Catálogo** → cuadro **Menú por sucursal** (toca para abrirlo). Elige la sucursal arriba; cada producto tiene una palomita (si la quitas: **No se vende** en esa sucursal y no sale en su caja) y un precio: en gris el normal; escribe otro si en esa sucursal cuesta distinto (se marca en amarillo; bórralo para regresar al normal). Tiene buscador, filtro por categoría y **Solo cambios**. La caja de cada sucursal solo muestra sus productos con su precio. La tienda en línea usa el menú de la sucursal principal. Los precios de apps son iguales en todas las sucursales.
+
 ### Financiero
 **Financiero** (solo dueño): elige el período (**Hoy**, **Esta Semana**, **Este Mes**, **Personalizado**). Ves las ventas del período por canal (Tienda, Uber, DiDi, Rappi) y **Por forma de pago** (Efectivo, Tarjeta, Transferencia, DiDi Efectivo, Uber, DiDi, Rappi, con número de cuentas; la tabla de ventas trae la columna **Pago**) y capturas gastos fijos (luz, agua, renta, nómina, compras, etc.) y **Gastos Extras**. Al final: **RESULTADO DEL PERÍODO** con **GANANCIA** o **PÉRDIDA**.
 
