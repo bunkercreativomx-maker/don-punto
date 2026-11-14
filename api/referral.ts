@@ -159,7 +159,7 @@ async function report(req: any, res: any) {
   const tierRows = [['1 – 50', '10%'], ['51 – 150', '15%'], ['151 o más', '20%']]
     .map(([n, p]) => `<tr${Math.round(rep.rate * 100) + '%' === p ? ' class="on"' : ''}><td>${n}</td><td>${p}</td></tr>`).join('');
   const body = rep.rows.length
-    ? rep.rows.map((r: any) => `<tr><td><b>${esc(r.restaurant)}</b><small>${esc(r.email)}</small></td><td>${fmtDate(r.since)}</td><td>${esc(r.plan || '—')}</td><td><span class="st ${r.paying ? 'ok' : ''}">${esc(r.estado)}</span></td><td class="n">${mxn(r.paid)}</td><td class="n">${mxn(r.commission)}</td></tr>`).join('')
+    ? rep.rows.map((r: any) => `<tr><td class="r"><b>${esc(r.restaurant)}</b><small>${esc(r.email)}</small></td><td data-l="Registro">${fmtDate(r.since)}</td><td data-l="Plan">${esc(r.plan || '—')}</td><td data-l="Estado"><span class="st ${r.paying ? 'ok' : ''}">${esc(r.estado)}</span></td><td class="n" data-l="Cobrado">${mxn(r.paid)}</td><td class="n" data-l="Comisión">${mxn(r.commission)}</td></tr>`).join('')
     : `<tr><td colspan="6" class="empty">Todavía no hay restaurantes registrados con el código <b>${esc(aff.code)}</b>.</td></tr>`;
 
   res.setHeader('Cache-Control', 'no-store');
@@ -175,6 +175,7 @@ header img{height:40px}h1{font-size:22px;margin:18px 0 4px}p.sub{margin:0;color:
 .st{padding:3px 9px;border-radius:999px;background:#eef1ee;font-size:12px;font-weight:600}.st.ok{background:#d9f2e3;color:#0f5132}
 .grid2{display:grid;grid-template-columns:1fr 1.4fr;gap:12px;margin-top:16px}@media(max-width:700px){.grid2{grid-template-columns:1fr}}
 .tiers tr.on td{background:#d9f2e3;font-weight:700}.box{background:#fff;border:1px solid #dfe5e0;border-radius:16px;padding:16px;font-size:13px;color:#3b4540;line-height:1.55}.box h3{margin:0 0 8px;font-size:14px;color:#0D100E}.box ul{margin:0;padding-left:18px}
+@media(max-width:640px){table.list thead{display:none}table.list tr{display:block;padding:12px 14px;border-bottom:1px solid #eef1ee}table.list td{display:flex;justify-content:space-between;gap:12px;border:0;padding:4px 0;white-space:normal}table.list td.r{display:block;padding-bottom:8px}table.list td[data-l]::before{content:attr(data-l);color:#5b6660;font-size:12px;font-weight:600}table.list td.empty{display:block}}
 .code{font-family:ui-monospace,monospace;background:#0D100E;color:#83F404;padding:3px 8px;border-radius:8px;font-weight:700}
 </style></head><body><main>
 <header><img src="/brand/logo-3d-compact.webp" alt="Don Punto" onerror="this.style.display='none'"><span>Código: <span class="code">${esc(aff.code)}</span></span></header>
@@ -187,8 +188,8 @@ header img{height:40px}h1{font-size:22px;margin:18px 0 4px}p.sub{margin:0;color:
 <div class="card"><span>Nivel</span><b>${Math.round(rep.rate * 100)}%</b></div>
 <div class="card hi"><span>Comisión del mes</span><b>${mxn(rep.commission)}</b></div>
 </div>
-<div class="wrap"><table><thead><tr><th>Restaurante</th><th>Registro</th><th>Plan</th><th>Estado</th><th class="n">Cobrado</th><th class="n">Comisión</th></tr></thead><tbody>${body}</tbody></table></div>
-<div class="grid2"><div class="wrap" style="margin:0"><table class="tiers"><thead><tr><th>Restaurantes que pagan en el mes</th><th>Comisión</th></tr></thead><tbody>${tierRows}</tbody></table></div>
+<div class="wrap"><table class="list"><thead><tr><th>Restaurante</th><th>Registro</th><th>Plan</th><th>Estado</th><th class="n">Cobrado</th><th class="n">Comisión</th></tr></thead><tbody>${body}</tbody></table></div>
+<div class="grid2"><div class="wrap" style="margin:0"><table class="tiers"><thead><tr><th>Pagan en el mes</th><th>Comisión</th></tr></thead><tbody>${tierRows}</tbody></table></div>
 <div class="box"><h3>Cómo se calcula</h3><ul>
 <li>Solo cuentan restaurantes que se registraron con el código desde el ${fmtDate(aff.start_date)}. Los clientes que ya eran de Don Punto no cuentan.</li>
 <li>La comisión es sobre lo que de verdad se cobró en el mes (menos reembolsos). La prueba de 15 días no genera comisión.</li>
