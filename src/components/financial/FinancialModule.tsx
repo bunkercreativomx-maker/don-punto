@@ -3,6 +3,8 @@ import { Plus, Trash2, Save, TrendingUp, TrendingDown, DollarSign, ChevronDown, 
 import clsx from 'clsx';
 import { usePOS } from '../../hooks/usePOS';
 import { storeGet, storeSet } from '../../lib/cloudStore';
+import { ALL_METHODS, METHOD_LABEL } from '../../lib/corte';
+import { txPortion, txUses, paymentLabel } from '../../lib/payments';
 
 // ── Tipos ──────────────────────────────────────────────
 interface CustomExpense {
@@ -139,7 +141,15 @@ export function FinancialModule() {
       return acc;
     }, { Tienda: 0, Uber: 0, Didi: 0, Rappi: 0 } as Record<string, number>);
 
-    return { total, byDestination };
+    // Por forma de pago: siempre las 7, aunque estén en $0 (pago mixto reparte con txPortion)
+    const byMethod = ALL_METHODS.map(m => ({
+      method: m,
+      label: METHOD_LABEL[m] || m,
+      amount: filteredTxs.reduce((acc, tx) => acc + txPortion(tx, m), 0),
+      count: filteredTxs.filter(tx => txUses(tx, m)).length,
+    }));
+
+    return { total, byDestination, byMethod };
   }, [filteredTxs]);
 
   // Total expenses
@@ -286,6 +296,17 @@ export function FinancialModule() {
               })}
             </div>
 
+            <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Por forma de pago</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3 mb-4">
+              {salesSummary.byMethod.map(m => (
+                <div key={m.method} className="rounded-xl border border-carbon-950/10 bg-slate-800/30 p-3">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 truncate">{m.label}</div>
+                  <div className="font-black text-sm mt-0.5 text-carbon-950 tabular-nums">${F(m.amount)}</div>
+                  <div className="text-[10px] text-slate-500">{m.count} {m.count === 1 ? 'cuenta' : 'cuentas'}</div>
+                </div>
+              ))}
+            </div>
+
             {/* Transaction table */}
             {filteredTxs.length > 0 ? (
               <div className="overflow-x-auto max-h-64 overflow-y-auto custom-scrollbar">
@@ -295,6 +316,7 @@ export function FinancialModule() {
                       <th className="text-left py-2 pr-3 font-bold text-slate-500">Fecha</th>
                       <th className="text-left py-2 pr-3 font-bold text-slate-500">Cliente</th>
                       <th className="text-left py-2 pr-3 font-bold text-slate-500">Origen</th>
+                      <th className="text-left py-2 pr-3 font-bold text-slate-500">Pago</th>
                       <th className="text-right py-2 font-bold text-slate-500">Monto</th>
                     </tr>
                   </thead>
@@ -316,6 +338,7 @@ export function FinancialModule() {
                             {tx.destination}
                           </span>
                         </td>
+                        <td className="py-1.5 pr-3 text-slate-400 whitespace-nowrap">{paymentLabel(tx)}</td>
                         <td className="py-1.5 text-right font-bold text-emerald-400 tabular-nums">${F(tx.amount)}</td>
                       </tr>
                     ))}
