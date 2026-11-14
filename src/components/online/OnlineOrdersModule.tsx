@@ -6,7 +6,8 @@ import { pb } from '../../lib/pocketbase';
 import { buildMenu, compressImage, slugify, money, SLUG_RE, RESERVED_SLUGS, type OMenu } from '../../lib/onlineStore';
 import { getPushState, enablePush, type PushState } from '../../lib/pwa';
 import { InstallAppButton } from '../pwa/InstallApp';
-import { useSession, isPro } from '../../lib/session';
+import { useSession, isPro, currentBranch, getBranches } from '../../lib/session';
+import { getActiveBranch, MAIN_BRANCH } from '../../lib/cloudStore';
 import { usePOS } from '../../hooks/usePOS';
 import { applySaleToInventory } from '../../lib/inventoryAuto';
 import { apiPost } from '../../lib/api';
@@ -60,6 +61,12 @@ export function chime() {
   } catch { /* el navegador no deja sonar sin un toque previo */ }
 }
 
+/** Cada sucursal tiene su tienda en línea. La principal usa branch vacío (tiendas de antes). */
+const storeBranch = () => (getActiveBranch() === MAIN_BRANCH ? '' : getActiveBranch());
+const storeFilter = (uid: string) => storeBranch()
+  ? pb.filter('owner = {:o} && branch = {:b}', { o: uid, b: storeBranch() })
+  : pb.filter("owner = {:o} && (branch = '' || branch = 'main')", { o: uid });
+
 /** Pedidos nuevos sin atender. El timbre suena cada 5 s hasta que alguien acepte o rechace (o se silencie un rato). */
 export function useIncomingOrders() {
   const [pending, setPending] = useState(0);
@@ -75,12 +82,27 @@ export function useIncomingOrders() {
     const uid = pb.authStore.record?.id;
     if (!uid) return;
     let alive = true;
-    const refresh = () => pb.collection('web_orders').getList(1, 1, { filter: pb.filter('owner = {:o} && status = "new"', { o: uid }), fields: 'id', requestKey: null })
-      .then((r) => alive && setPending(r.totalItems)).catch(() => undefined);
+    // Solo los pedidos de la tienda de ESTA sucursal
+    let storeId: string | null = null;
+    const getStore = async () => {
+      if (storeId) return storeId;
+      const s = await pb.collection('stores').getFirstListItem(storeFilter(uid), { fields: 'id', requestKey: null }).catch(() => null);
+      storeId = s?.id || null;
+      return storeId;
+    };
+    const refresh = async () => {
+      const sid = await getStore();
+      if (!sid) { if (alive) setPending(0); return; }
+      pb.collection('web_orders').getList(1, 1, { filter: pb.filter('store = {:s} && status = "new"', { s: sid }), fields: 'id', requestKey: null })
+        .then((r) => alive && setPending(r.totalItems)).catch(() => undefined);
+    };
     refresh();
     const poll = setInterval(refresh, 30_000); // por si se cae la conexión en tiempo real
     let unsub: (() => void) | undefined;
-    pb.collection('web_orders').subscribe('*', (e) => {
+    pb.collection('web_orders').subscribe('*', async (e) => {
+      storeId = null; // por si se acaba de crear la tienda de esta sucursal
+      const sid = await getStore();
+      if (!sid || e.record.store !== sid) return;
       refresh();
       if (e.action === 'create') {
         chime();
@@ -108,7 +130,7 @@ export function OnlineOrdersModule({ rows, categories, modifierGroups, onNeedPin
 
   const load = useCallback(async () => {
     try {
-      const s = await pb.collection('stores').getFirstListItem(pb.filter('owner = {:o}', { o: uid }), { requestKey: null });
+      const s = await pb.collection('stores').getFirstListItem(storeFilter(uid), { requestKey: null });
       setStore(s);
     } catch (e: any) {
       if (e?.status === 404) setStore(null);
@@ -124,16 +146,28 @@ export function OnlineOrdersModule({ rows, categories, modifierGroups, onNeedPin
   useEffect(() => {
     const cur = storeRef.current;
     if (!cur || !canEdit) return;
-    const next = buildMenu(rows, categories, modifierGroups, cur.menu as OMenu);
-    if (stableJSON({ ...next, syncedAt: null }) === stableJSON({ ...(cur.menu || {}), syncedAt: null })) return;
-    pb.collection('stores').update(cur.id, { menu: next }, { requestKey: 'menu-sync' }).then(setStore).catch(() => undefined);
-  }, [storeId, rows, categories, modifierGroups, canEdit]);
+    let alive = true;
+    // Mantiene al día las tiendas de TODAS las sucursales (el catálogo es uno solo), cada una con su menú
+    (async () => {
+      const all = await pb.collection('stores').getFullList({ filter: pb.filter('owner = {:o}', { o: uid }), requestKey: null }).catch(() => [cur]);
+      for (const s of all) {
+        if (!alive) return;
+        const next = buildMenu(rows, categories, modifierGroups, s.menu as OMenu, s.branch || MAIN_BRANCH);
+        if (stableJSON({ ...next, syncedAt: null }) === stableJSON({ ...(s.menu || {}), syncedAt: null })) continue;
+        const saved = await pb.collection('stores').update(s.id, { menu: next }, { requestKey: 'menu-sync-' + s.id }).catch(() => null);
+        if (saved && alive && saved.id === storeRef.current?.id) setStore(saved);
+      }
+    })();
+    return () => { alive = false; };
+  }, [storeId, rows, categories, modifierGroups, canEdit, uid]);
 
   if (loading) return <div className="py-24 grid place-items-center"><Loader2 className="w-6 h-6 animate-spin text-carbon-400" /></div>;
 
   if (!store) {
     if (!canEdit) return <LockedNotice onNeedPin={onNeedPin} text="Para crear la página de pedidos en línea entra con el PIN del dueño." />;
-    return <Setup uid={uid} suggestedName={posSettings.businessName || ''} phone={posSettings.businessPhone || ''} address={posSettings.businessAddress || ''} rows={rows} categories={categories} modifierGroups={modifierGroups} onCreated={setStore} />;
+    const multi = getBranches().length > 1;
+    if (multi && getActiveBranch() !== MAIN_BRANCH && !isPro()) return <LockedNotice onNeedPin={onNeedPin} text="Una tienda en línea por sucursal es del plan Pro." />;
+    return <Setup uid={uid} branchName={multi ? currentBranch().name : ''} suggestedName={[posSettings.businessName || '', multi ? currentBranch().name : ''].filter(Boolean).join(' ')} phone={posSettings.businessPhone || ''} address={posSettings.businessAddress || ''} rows={rows} categories={categories} modifierGroups={modifierGroups} onCreated={setStore} />;
   }
 
   const link = `${window.location.origin}/${store.slug}`;
@@ -173,7 +207,7 @@ function LockedNotice({ onNeedPin, text }: { onNeedPin: () => void; text: string
 }
 
 // ---------------------------------------------------------------- alta
-function Setup({ uid, suggestedName, phone, address, rows, categories, modifierGroups, onCreated }: { uid: string; suggestedName: string; phone: string; address: string; rows: ProductRowData[]; categories: Category[]; modifierGroups: ModifierGroup[]; onCreated: (s: Rec) => void }) {
+function Setup({ uid, branchName, suggestedName, phone, address, rows, categories, modifierGroups, onCreated }: { uid: string; branchName: string; suggestedName: string; phone: string; address: string; rows: ProductRowData[]; categories: Category[]; modifierGroups: ModifierGroup[]; onCreated: (s: Rec) => void }) {
   const [name, setName] = useState(suggestedName);
   const [slug, setSlug] = useState(slugify(suggestedName));
   const [busy, setBusy] = useState(false);
@@ -186,9 +220,9 @@ function Setup({ uid, suggestedName, phone, address, rows, categories, modifierG
     setBusy(true);
     try {
       const rec = await pb.collection('stores').create({
-        owner: uid, slug, name: name.trim(), phone, address, color: COLORS[0], published: false, accepting: true,
+        owner: uid, branch: storeBranch(), slug, name: name.trim(), phone, address, color: COLORS[0], published: false, accepting: true,
         pickup: true, delivery: false, delivery_fee: 0, min_order: 0, prep_minutes: 20, pay_cash: true, pay_codi: false,
-        menu: buildMenu(rows, categories, modifierGroups, null),
+        menu: buildMenu(rows, categories, modifierGroups, null, getActiveBranch()),
       });
       onCreated(rec);
     } catch (e: any) {
@@ -201,6 +235,7 @@ function Setup({ uid, suggestedName, phone, address, rows, categories, modifierG
       <div className="rounded-3xl bg-white p-6 sm:p-8 ring-1 ring-carbon-950/5">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-agave-50 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-agave-700">Incluido en tu plan</span>
         <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight text-carbon-900">Tu propia página para recibir pedidos</h2>
+        {branchName && <p className="mt-2 rounded-xl bg-maiz-50 px-3 py-2 text-[13px] font-semibold text-carbon-800 ring-1 ring-maiz-200">Esta página es de la sucursal <b>{branchName}</b>: usa su menú y sus precios, y sus pedidos llegan a la caja de esta sucursal. Cada sucursal crea la suya.</p>}
         <p className="mt-2 text-carbon-600">Tus clientes ven tu menú con fotos y piden para recoger o a domicilio. Sin comisiones por pedido: el pedido te llega aquí y tú cobras directo.</p>
         <div className="mt-6 space-y-4">
           <label className="block"><span className="text-[13px] font-semibold text-carbon-600">Nombre del restaurante</span>
@@ -326,11 +361,11 @@ function OrdersBoard({ store, rows }: { store: Rec; rows: ProductRowData[] }) {
   const load = useCallback(async () => {
     const since = new Date(Date.now() - 36 * 3600 * 1000).toISOString().replace('T', ' ');
     const r = await pb.collection('web_orders').getList<WebOrder>(1, 100, {
-      filter: pb.filter('owner = {:o} && (status = "new" || status = "accepted" || status = "ready" || status = "on_way" || created >= {:s})', { o: uid, s: since }),
+      filter: pb.filter('store = {:st} && (status = "new" || status = "accepted" || status = "ready" || status = "on_way" || created >= {:s})', { st: store.id, s: since }),
       sort: '-created', requestKey: null,
     });
     setOrders(r.items);
-  }, [uid]);
+  }, [store.id]);
   useEffect(() => {
     load();
     let unsub: (() => void) | undefined;

@@ -49,7 +49,7 @@ export function BranchesModule({ onUpgrade }: { onUpgrade: () => void }) {
       <ProUpsell
         title="Todas tus sucursales en un solo lugar"
         text="El plan Básico es para un negocio con una sucursal. Con Pro agregas todas las que tengas: cada una cobra con su propia caja y tú ves el reporte de todas juntas."
-        bullets={['Cada sucursal con sus ventas, tickets, corte e inventario', 'Reporte que junta todas: cuál vende más y cuál va para abajo', 'Horario pico y ticket promedio por sucursal', 'Menú por sucursal: qué se vende y su precio en cada una']}
+        bullets={['Cada sucursal con sus ventas, tickets, corte e inventario', 'Reporte que junta todas: cuál vende más y cuál va para abajo', 'Horario pico y ticket promedio por sucursal', 'Menú por sucursal y tienda en línea propia en cada una']}
         onUpgrade={onUpgrade}
       />
     );

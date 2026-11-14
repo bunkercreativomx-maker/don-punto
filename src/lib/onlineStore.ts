@@ -30,7 +30,7 @@ export function slugify(s: string) {
 /** Copia publicada del menú: precios del Catálogo + datos propios de la página (foto, descripción, oculto, agotado). */
 export function buildMenu(rows: ProductRowData[], categories: Category[], groups: ModifierGroup[], prev?: OMenu | null, branchId = 'main'): OMenu {
   const old = new Map((prev?.products || []).map((p) => [p.id, p]));
-  // La tienda en línea usa el menú (y precios) de la sucursal principal. Lo que no se vende ahí va
+  // Cada tienda usa el menú (y precios) de su sucursal. Lo que no se vende ahí va
   // oculto con off=true (conserva foto/descripción y el "oculto" que eligió el dueño para cuando regrese).
   const sold = new Map(rowsForBranch(rows, branchId).map((r) => [r.id, r]));
   const products: OProduct[] = rows

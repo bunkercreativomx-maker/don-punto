@@ -200,7 +200,8 @@ async function createOrder(token: string, body: any, ip: string) {
   }
   try {
     await sendToUser(s.owner, {
-      title: type === 'delivery' && payment === 'cash' ? `💵 Pedido #${number}: pide pagar en efectivo` : `🛎️ Pedido en línea #${number}`,
+      // Con varias sucursales, el aviso dice de cuál tienda es
+      title: (type === 'delivery' && payment === 'cash' ? `💵 Pedido #${number}: pide pagar en efectivo` : `🛎️ Pedido en línea #${number}`) + (s.branch ? ` · ${s.name}` : ''),
       body: `${name} · ${type === 'delivery' ? `A domicilio (${distance.toFixed(1)} km)` : 'Para recoger'} · $${total}${payment === 'codi' ? ' · CoDi' : type === 'delivery' ? ' · ¿Aceptas efectivo?' : ''}`,
       url: '/?tab=online', tag: 'order-' + created.data.id, sticky: true,
     });

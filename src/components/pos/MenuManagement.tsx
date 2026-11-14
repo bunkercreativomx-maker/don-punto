@@ -598,7 +598,7 @@ function BranchMenuBox({ products, categories, updateProduct }: {
                         })}
                         {list.length === 0 && <p className="text-xs text-slate-500">No hay productos con ese filtro.</p>}
                     </div>
-                    <p className="text-[11px] text-slate-500">El precio en gris es el normal; escribe otro solo si en <b>{branch.name}</b> cuesta distinto (se marca en amarillo). Bórralo para regresar al normal. La tienda en línea usa el menú de <b>{branches[0].name}</b>.</p>
+                    <p className="text-[11px] text-slate-500">El precio en gris es el normal; escribe otro solo si en <b>{branch.name}</b> cuesta distinto (se marca en amarillo). Bórralo para regresar al normal. Cada sucursal puede tener su propia tienda en línea (Pedidos en línea, desde la caja de esa sucursal) con este menú.</p>
                 </div>
             )}
         </div>
