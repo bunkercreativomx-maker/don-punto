@@ -6,7 +6,8 @@ import { LockKeyhole, Store, UserCog, PackageCheck, HeartHandshake, BarChart3, F
 } from 'lucide-react';
 import { Logo, Mark, Wordmark } from '../brand/Logo';
 import { InstallAppButton } from '../pwa/InstallApp';
-import { whatsappLink, supportLink, SUPPORT_EMAIL } from '../../config';
+import { whatsappLink, supportLink, SUPPORT_EMAIL, PLANS, FOUNDER } from '../../config';
+import { useFounders, priceFor } from '../../lib/founders';
 
 interface LandingPageProps {
   onLogin: () => void;
@@ -154,7 +155,8 @@ function Shot({ src, alt, className = '' }: { src: string; alt: string; classNam
 }
 
 const FAQS = [
-  { q: '¿Cómo funciona la prueba gratis?', a: 'Tienes 15 días gratis con todo tu plan. Registras tu tarjeta al empezar, pero no se cobra nada hasta el día 16. Te avisamos al celular 3 días antes; si cancelas antes, no pagas nada.' },
+  { q: '¿Cómo funciona la prueba gratis?', a: 'Creas tu cuenta y usas Don Punto completo 15 días, sin tarjeta. Antes de que termine te avisamos. Si te gusta, eliges tu plan y sigues cobrando; si no, no pasa nada: no se te cobra y tus datos se quedan guardados.' },
+  { q: '¿Qué es el precio de fundador?', a: `Los primeros ${FOUNDER.limit} negocios que se suscriban pagan $${FOUNDER.prices.basico} al mes en Básico (en lugar de $${PLANS.basico.price}) o $${FOUNDER.prices.pro} en Pro (en lugar de $${PLANS.pro.price}), y ese precio se les queda de por vida mientras sigan suscritos. Además les cargamos su menú desde una foto y les damos una videollamada de 15 minutos para dejarlos listos.` },
   { q: '¿La tienda en línea cobra comisión?', a: 'No. Está incluida en tu plan. Tus clientes te pagan directo: efectivo al recoger o transferencia CoDi a tu cuenta. Don Punto no se queda con ningún porcentaje de tus pedidos.' },
   { q: '¿Tengo que firmar contrato?', a: 'No. Pagas mes a mes y cancelas cuando quieras desde "Mi plan" dentro de tu cuenta. No hay penalizaciones.' },
   { q: '¿Necesito comprar equipo?', a: 'No. Funciona en la computadora, tablet o celular que ya tienes. Puedes instalarla como app y abrirla desde tu pantalla de inicio.' },
@@ -270,6 +272,10 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
   const whatsapp = whatsappLink('Hola, quiero información de Don Punto.');
   const contact = supportLink('Hola, quiero información de Don Punto.');
   const [open, setOpen] = useState<number | null>(0);
+  const founders = useFounders();
+  const founderOpen = !founders || founders.left > 0;
+  const basico = priceFor('basico', founders);
+  const pro = priceFor('pro', founders);
 
   return (
     <div className="min-h-[100dvh] bg-[#FAFAF7] text-carbon-950 overflow-x-hidden selection:bg-maiz-200">
@@ -289,7 +295,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
               Entrar
             </button>
             <button onClick={onSubscribe} className="whitespace-nowrap rounded-full bg-agave-600 hover:bg-agave-700 px-3.5 sm:px-5 py-2 text-[13px] sm:text-sm font-semibold text-white transition-colors">
-              Crear cuenta
+            Empieza gratis
             </button>
           </div>
         </div>
@@ -316,7 +322,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
               </p>
               <div className="mt-9 flex flex-col sm:flex-row gap-3">
                 <button onClick={onSubscribe} className="group inline-flex items-center justify-center gap-3 rounded-full bg-agave-600 hover:bg-agave-700 pl-7 pr-2 py-2 text-base font-semibold text-white transition-colors">
-                  Crear mi cuenta
+                  Cobra tu primera venta hoy, gratis
                   <span className="grid h-9 w-9 place-items-center rounded-full bg-white/15 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5">
                     <ArrowRight size={18} />
                   </span>
@@ -326,7 +332,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 </a>
               </div>
               <ul className="mt-8 flex flex-col sm:flex-row sm:flex-wrap gap-x-6 gap-y-2 text-sm text-carbon-600">
-                {['15 días gratis', 'Luego desde $350 al mes', 'Sin contratos'].map((t) => (
+                {['15 días gratis, sin tarjeta', founderOpen ? `Precio de fundador desde $${FOUNDER.prices.basico} al mes` : `Luego desde $${PLANS.basico.price} al mes`, 'Sin contratos'].map((t) => (
                   <li key={t} className="flex items-center gap-2"><Check size={16} className="text-agave-500" /> {t}</li>
                 ))}
               </ul>
@@ -563,7 +569,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
           <h2 className="font-display text-4xl sm:text-5xl font-bold tracking-[-0.03em]">Empiezas hoy mismo</h2>
           <ol className="mt-12 grid gap-8 md:grid-cols-3">
             {[
-              ['Crea tu cuenta', 'Tu correo y el nombre de tu negocio. Eliges tu plan y listo.'],
+              ['Crea tu cuenta', 'Tu correo y el nombre de tu negocio. Sin tarjeta: entras directo y tienes 15 días gratis.'],
               ['Sube tu menú', 'Captúralo, impórtalo desde una hoja de cálculo o tómale foto y la IA lo digitaliza.'],
               ['Cobra y cuadra', 'Vende en mostrador y apps, imprime tickets y haz tu corte con el IVA ya separado.'],
             ].map(([t, d], i) => (
@@ -581,25 +587,39 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
           <div className="mx-auto max-w-6xl px-5 sm:px-8 py-24 sm:py-32">
             <div className="max-w-2xl">
               <h2 className="font-display text-4xl sm:text-5xl font-bold tracking-[-0.03em]">Precio claro, sin contratos</h2>
-              <p className="mt-5 text-lg text-carbon-600">Pruébalo 15 días gratis. Después pagas mes a mes en pesos y cancelas desde tu cuenta cuando quieras.</p>
+              <p className="mt-5 text-lg text-carbon-600">Pruébalo 15 días gratis y sin tarjeta. Después pagas mes a mes en pesos y cancelas desde tu cuenta cuando quieras.</p>
             </div>
+            {founderOpen && (
+              <div className="mt-10 max-w-4xl rounded-[1.4rem] bg-maiz-50 ring-1 ring-maiz-300 p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center gap-5">
+                <div className="shrink-0">
+                  <p className="font-display text-5xl font-bold tabular-nums text-carbon-950">{founders ? founders.left : FOUNDER.limit}<span className="text-2xl text-carbon-500"> / {FOUNDER.limit}</span></p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-maiz-800">lugares de fundador</p>
+                </div>
+                <p className="text-carbon-700 leading-relaxed">
+                  <b className="text-carbon-950">Precio de fundador de por vida.</b> Los primeros {FOUNDER.limit} negocios pagan ${FOUNDER.prices.basico} en lugar de ${PLANS.basico.price} (Pro ${FOUNDER.prices.pro} en lugar de ${PLANS.pro.price}) mientras sigan suscritos. Y te cargamos tu menú desde una foto, con una videollamada de 15 minutos para dejarte listo.
+                </p>
+              </div>
+            )}
             <div className="mt-14 grid gap-6 lg:grid-cols-2 max-w-4xl">
               <Plan
                 name="Básico"
-                price={350}
+                price={basico.price}
+                regular={basico.founder ? basico.regular : undefined}
                 text="Para un negocio con una sucursal que quiere orden y vender más."
                 items={['1 sucursal, ventas ilimitadas', 'Tienda en línea propia, sin comisión por pedido', 'Calculadora de precios para apps de delivery', 'Tu menú desde una foto con IA', 'Combos sugeridos para mover tus platillos', 'Corte de caja con IVA, inventario y recetario', '2 usuarios: tú y 1 cajero con su PIN', 'Reportes y ganancias protegidos con PIN', 'Respaldo en la nube y app instalable']}
-                cta="Prueba 15 días gratis"
-                note="Luego $350 al mes. Cancela cuando quieras."
+                cta="Cobra tu primera venta hoy, gratis"
+                note={`15 días gratis, sin tarjeta. Luego $${basico.price} al mes${basico.founder ? ' de por vida' : ''}.`}
                 onClick={onSubscribe}
               />
               <Plan
                 featured
                 name="Pro"
-                price={799}
+                price={pro.price}
+                regular={pro.founder ? pro.regular : undefined}
                 text="Para negocios con equipo, varias sucursales y ganas de crecer."
                 items={['Todo lo del plan Básico, incluida la tienda en línea', 'Varias sucursales con reporte de todas juntas', 'Empleados ilimitados (meseros, cajeros y gerentes) con su PIN y reporte por persona', 'Inventario que se descuenta solo y avisos al celular', 'Clientes frecuentes y recompensas por visita', 'Reportes avanzados con hoja de cálculo y PDF', 'Facturas de proveedor leídas con IA', 'Soporte prioritario']}
-                cta="Elegir Pro"
+                cta="Empieza gratis con Pro"
+                note={`15 días gratis, sin tarjeta. Luego $${pro.price} al mes${pro.founder ? ' de por vida' : ''}.`}
                 onClick={onSubscribe}
               />
             </div>
@@ -647,7 +667,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
               <h2 className="mt-8 font-display text-4xl sm:text-6xl font-bold leading-[1.02] tracking-[-0.035em]">Deja de adivinar cuánto ganas.</h2>
               <p className="mt-5 text-lg text-agave-100">Crea tu cuenta en un minuto y cobra tu primera venta hoy.</p>
               <button onClick={onSubscribe} className="mt-9 rounded-full bg-white px-8 py-4 text-base font-semibold text-agave-800 hover:bg-agave-50 transition-colors">
-                Crear mi cuenta
+                Cobra tu primera venta hoy, gratis
               </button>
             </div>
           </div>
@@ -704,7 +724,7 @@ function Notification({ time, title, body, muted }: { time: string; title: strin
   );
 }
 
-function Plan({ name, price, text, items, cta, note, onClick, featured }: { name: string; price: number; text: string; items: string[]; cta: string; note?: string; onClick: () => void; featured?: boolean }) {
+function Plan({ name, price, regular, text, items, cta, note, onClick, featured }: { name: string; price: number; regular?: number; text: string; items: string[]; cta: string; note?: string; onClick: () => void; featured?: boolean }) {
   return (
     <div className={featured ? 'rounded-[1.6rem] bg-agave-950 p-1.5 shadow-[0_40px_80px_-40px_rgba(4,33,26,0.7)]' : 'rounded-[1.6rem] bg-carbon-100 p-1.5'}>
       <div className={`h-full rounded-[1.25rem] p-8 sm:p-10 flex flex-col ${featured ? 'bg-agave-900 text-white ring-1 ring-white/10' : 'bg-white ring-1 ring-carbon-200/70'}`}>
@@ -715,8 +735,10 @@ function Plan({ name, price, text, items, cta, note, onClick, featured }: { name
         <p className={`mt-2 ${featured ? 'text-agave-100/80' : 'text-carbon-600'}`}>{text}</p>
         <p className="mt-8 flex items-baseline gap-2">
           <span className="font-display text-6xl font-bold tracking-tight tabular-nums">${price}</span>
+          {regular && <span className={`text-xl font-semibold line-through tabular-nums ${featured ? 'text-agave-100/50' : 'text-carbon-400'}`}>${regular}</span>}
           <span className={featured ? 'text-agave-100/70' : 'text-carbon-500'}>MXN al mes</span>
         </p>
+        {regular && <p className={`mt-1 text-sm font-semibold ${featured ? 'text-maiz-300' : 'text-maiz-700'}`}>Precio de fundador, de por vida</p>}
         <ul className="mt-8 space-y-3 flex-1">
           {items.map((it) => (
             <li key={it} className="flex gap-3">

@@ -1,5 +1,6 @@
 import { adminToken, pbFetch } from './_lib/server.js';
 import { sendToUser, kvGet, kvSet } from './_lib/push.js';
+import { pbDate } from './_lib/membership.js';
 
 // Resumen diario de ventas por push (Vercel Cron). Idempotente: una vez por día.
 // Cd. Juárez usa el mismo horario que Denver (con horario de verano); algunos runtimes no traen la zona nueva
@@ -38,6 +39,7 @@ async function run(req: any, res: any) {
   await kvSet('daily_summary_last', today);
 
   const token = await adminToken();
+  const trialNotices = await trialReminders(token).catch((e) => { console.error('trial reminders', e?.message); return -1; });
   const subs = await pbFetch(`/api/collections/push_subscriptions/records?perPage=500&fields=owner&filter=${encodeURIComponent('daily_summary = true')}`, { token });
   const owners = [...new Set<string>((subs.data?.items || []).map((s: any) => s.owner))];
   const since = new Date(Date.now() - 36 * 3600 * 1000).toISOString().replace('T', ' ');
@@ -62,5 +64,29 @@ async function run(req: any, res: any) {
     );
     if (sent) notified++;
   }
-  return res.status(200).json({ today, owners: owners.length, notified });
+  return res.status(200).json({ today, owners: owners.length, notified, trialNotices });
+}
+
+// Avisos de la prueba gratis sin tarjeta (una vez por etapa): faltan 3 días, mañana termina, ya terminó.
+async function trialReminders(token: string): Promise<number> {
+  const r = await pbFetch(`/api/collections/subscriptions/records?perPage=500&fields=id,owner,trial_end&filter=${encodeURIComponent("status = 'trialing' && trial_end != ''")}`, { token });
+  let sent = 0;
+  for (const s of r.data?.items || []) {
+    const end = pbDate(s.trial_end);
+    const days = Math.ceil((end - Date.now()) / 86400000);
+    const stage = days <= 0 ? (Date.now() - end < 7 * 86400000 ? 'ended' : '') : days === 1 ? 'd1' : days <= 3 ? 'd3' : '';
+    if (!stage) continue;
+    const key = `trial_notice:${s.owner}`;
+    const prev = await kvGet(key);
+    if (prev?.value?.[stage]) continue;
+    const msg: Record<string, [string, string]> = {
+      d3: [`Te quedan ${days} días de prueba gratis`, 'Elige tu plan para seguir vendiendo sin cortes. Si entras como fundador, tu precio queda congelado.'],
+      d1: ['Mañana termina tu prueba gratis', 'Toca para elegir tu plan. Tus ventas, menú y reportes se quedan como están.'],
+      ended: ['Tu prueba gratis terminó', 'Tus datos están guardados. Elige tu plan para volver a cobrar.'],
+    };
+    await sendToUser(s.owner, { title: msg[stage][0], body: msg[stage][1], url: '/?planes=1', tag: 'membresia' }).catch(() => 0);
+    await kvSet(key, { ...(prev?.value || {}), [stage]: new Date().toISOString() });
+    sent++;
+  }
+  return sent;
 }

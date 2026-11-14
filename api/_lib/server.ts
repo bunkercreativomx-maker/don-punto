@@ -2,6 +2,8 @@
 
 // .trim(): las variables pegadas en Vercel a veces traen espacios o tabuladores invisibles
 const env = (k: string) => (process.env[k] || '').trim();
+import { subActive } from './membership.js';
+
 export const PB_URL = (env('PB_URL') || 'https://donpunto-pb.bunkercreativomx.workers.dev').replace(/\/$/, '');
 export const APP_URL = (env('APP_URL') || 'https://donpunto.com').replace(/\/$/, '');
 // El WAF de Cloudflare frente a PocketBase bloquea agentes que no parecen navegador
@@ -63,7 +65,7 @@ export async function getMember(req: any): Promise<Member> {
 
   const subs = await pbFetch(`/api/collections/subscriptions/records?perPage=1&filter=${q(`owner = "${user.id}"`)}&expand=plan`, { token: fresh });
   const subscription = subs.ok ? subs.data?.items?.[0] ?? null : null;
-  const active = subscription?.status === 'active' || subscription?.status === 'trialing';
+  const active = subActive(subscription);
   const planName = String(subscription?.expand?.plan?.name || '').toLowerCase();
   const plan = planName.startsWith('b') ? 'basico' : planName.startsWith('p') ? 'pro' : 'cortesia';
   return { user, token: fresh, subscription, active, plan };

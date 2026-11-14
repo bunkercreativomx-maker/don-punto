@@ -19,5 +19,9 @@ export const PLANS = {
 } as const;
 export type PlanKey = keyof typeof PLANS;
 
+// Precio de fundador: primeros 100 negocios, congelado de por vida (debe cuadrar con api/_lib/membership.ts)
+export const FOUNDER = { limit: 100, prices: { basico: 299, pro: 699 } as Record<PlanKey, number> };
+export const TRIAL_DAYS = 15;
+
 // Llave pública VAPID (es pública por diseño; la privada vive en el servidor)
 export const VAPID_PUBLIC_KEY = 'BFAmuE_BQLFG8j_QfAoueV7dfqz7s_XS3xCvO8e-z84XTrDU7FNuu9ksBlnWvcYcjtiOGkQ7T9AAvmf8bx6kTv0';

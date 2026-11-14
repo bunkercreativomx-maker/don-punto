@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { adminToken, pbFetch, PB_URL, HttpError, sendError, rateLimit, readJsonBody } from './_lib/server.js';
 import { sendToUser } from './_lib/push.js';
+import { subActive } from './_lib/membership.js';
 
 // Pedidos en línea (página pública donpunto.com/<tienda>), incluido en todos los planes.
 //  GET  ?slug=x       → página pública de la tienda (menú publicado + formas de entrega/cobro)
@@ -63,7 +64,7 @@ async function storeBySlug(token: string, slug: string) {
 async function ownerActive(token: string, owner: string) {
   const r = await pbFetch(`/api/collections/subscriptions/records?perPage=1&filter=${q(`owner = "${esc(owner)}"`)}`, { token });
   const s = r.data?.items?.[0];
-  return s?.status === 'active' || s?.status === 'trialing';
+  return subActive(s);
 }
 
 function publicStore(s: any, active: boolean) {

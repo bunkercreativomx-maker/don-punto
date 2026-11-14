@@ -1,13 +1,18 @@
-import { CreditCard, CheckCircle2, Lock, Sparkles, LogOut, MessageCircle, Loader2, AlertTriangle } from 'lucide-react';
+import { CreditCard, CheckCircle2, Lock, Sparkles, LogOut, MessageCircle, Loader2, AlertTriangle, ArrowLeft, Crown } from 'lucide-react';
 import { useState } from 'react';
 import { apiPost, ApiError } from '../../lib/api';
-import { supportLink, PLANS, type PlanKey } from '../../config';
+import { supportLink, PLANS, FOUNDER, type PlanKey } from '../../config';
+import { useFounders, priceFor, daysLeft, fmtDay } from '../../lib/founders';
 
 interface SubscriptionGateProps {
   status: string;
   email: string | null;
   verifyingPayment: boolean;
   hasStripeCustomer: boolean;
+  /** Prueba gratis sin tarjeta (vigente o vencida) */
+  trialEnd?: string;
+  /** Regresar a la app (en prueba) o entrar a ver los datos (prueba vencida) */
+  onBack?: () => void;
   onLogout: () => void;
 }
 
@@ -16,9 +21,13 @@ const FEATURES: Record<PlanKey, string[]> = {
   pro: ['Todo lo del plan Básico', 'Varias sucursales con reporte consolidado', 'Empleados ilimitados: meseros, cajeros y gerentes', 'Inventario automático y alertas', 'Clientes frecuentes y recompensas', 'Reportes avanzados, Excel y PDF', 'Facturas de proveedor con IA'],
 };
 
-export function SubscriptionGate({ status, email, verifyingPayment, hasStripeCustomer, onLogout }: SubscriptionGateProps) {
+export function SubscriptionGate({ status, email, verifyingPayment, hasStripeCustomer, trialEnd, onBack, onLogout }: SubscriptionGateProps) {
   const [loadingPlan, setLoadingPlan] = useState<PlanKey | 'portal' | null>(null);
   const [error, setError] = useState('');
+  const founders = useFounders();
+  const expired = status === 'expired';
+  const inTrial = !expired && !!trialEnd && daysLeft(trialEnd) > 0;
+  const showFounder = !hasStripeCustomer && (!founders || founders.left > 0);
 
   const contact = supportLink(`Hola, quiero activar mi cuenta de Don Punto (${email ?? ''}).`);
   const pastDue = status === 'past_due' || status === 'incomplete';
@@ -67,6 +76,14 @@ export function SubscriptionGate({ status, email, verifyingPayment, hasStripeCus
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 py-16 relative overflow-x-hidden">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-[1000px] h-[500px] bg-indigo-500/20 blur-[120px] pointer-events-none" />
 
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="absolute top-4 left-4 z-20 flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-carbon-950 bg-carbon-950/5 border border-carbon-950/10 px-3 py-2 rounded-lg"
+        >
+          <ArrowLeft size={14} /> {expired ? 'Solo ver mis datos' : 'Volver a Don Punto'}
+        </button>
+      )}
       <button
         onClick={onLogout}
         className="absolute top-4 right-4 z-20 flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-carbon-950 bg-carbon-950/5 border border-carbon-950/10 px-3 py-2 rounded-lg"
@@ -80,18 +97,32 @@ export function SubscriptionGate({ status, email, verifyingPayment, hasStripeCus
             {pastDue ? <AlertTriangle size={32} /> : <Lock size={32} />}
           </div>
           <h1 className="text-3xl md:text-5xl font-black text-carbon-950 tracking-tight mb-4">
-            {pastDue ? 'Tu pago está pendiente' : 'Activa tu restaurante'}
+            {pastDue ? 'Tu pago está pendiente' : expired ? 'Tu prueba gratis terminó' : inTrial ? 'Elige tu plan' : 'Activa tu restaurante'}
           </h1>
           <p className="text-slate-400 text-base md:text-lg max-w-xl mx-auto">
             {pastDue
               ? 'No pudimos cobrar tu membresía. Actualiza tu tarjeta para seguir usando Don Punto. Tus datos están a salvo.'
-              : 'Empieza con 15 días gratis. No se cobra nada hasta el día 16 y cancelas cuando quieras desde tu cuenta.'}
+              : expired
+                ? 'Tu menú, tus ventas y tus reportes están guardados. Elige tu plan para volver a cobrar; todo queda como lo dejaste.'
+                : inTrial
+                  ? `Te quedan ${daysLeft(trialEnd)} días de prueba gratis. Si te suscribes hoy, no se cobra nada hasta el ${fmtDay(trialEnd)}.`
+                  : 'Elige tu plan. Pagas mes a mes en pesos y cancelas cuando quieras desde tu cuenta.'}
           </p>
           {email && <p className="text-slate-500 text-xs mt-3">Cuenta: {email}</p>}
         </div>
 
         {error && (
           <div className="max-w-3xl mx-auto mb-6 p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl text-sm text-rose-300 text-center">{error}</div>
+        )}
+
+        {!pastDue && showFounder && (
+          <div className="max-w-3xl mx-auto mb-8 rounded-2xl border border-maiz-300 bg-maiz-50 p-4 sm:p-5 flex gap-3 text-left">
+            <Crown size={22} className="text-maiz-700 shrink-0 mt-0.5" />
+            <div className="text-sm text-carbon-800">
+              <b className="text-carbon-950">Precio de fundador de por vida{founders ? `: quedan ${founders.left} de ${founders.limit} lugares` : ` para los primeros ${FOUNDER.limit} negocios`}.</b>{' '}
+              Pagas ${FOUNDER.prices.basico} en lugar de ${PLANS.basico.price} (Pro ${FOUNDER.prices.pro} en lugar de ${PLANS.pro.price}) mientras sigas suscrito. Además te cargamos tu menú desde una foto y te damos una videollamada de 15 min para dejarte listo.
+            </div>
+          </div>
         )}
 
         {pastDue && hasStripeCustomer ? (
@@ -108,6 +139,7 @@ export function SubscriptionGate({ status, email, verifyingPayment, hasStripeCus
           <div className="grid md:grid-cols-2 gap-6 md:gap-8 max-w-3xl mx-auto">
             {(['basico', 'pro'] as PlanKey[]).map((key) => {
               const pro = key === 'pro';
+              const pr = showFounder ? priceFor(key, founders) : { price: PLANS[key].price, regular: PLANS[key].price, founder: false };
               return (
                 <div
                   key={key}
@@ -123,10 +155,12 @@ export function SubscriptionGate({ status, email, verifyingPayment, hasStripeCus
                     </div>
                   )}
                   <h3 className="text-xl font-bold text-carbon-950 mb-2">{PLANS[key].name}</h3>
-                  <div className="flex items-baseline gap-2 mb-6">
-                    <span className="text-4xl font-black text-carbon-950">${PLANS[key].price}</span>
+                  <div className="flex items-baseline gap-2 mb-1">
+                    <span className="text-4xl font-black text-carbon-950">${pr.price}</span>
+                    {pr.founder && <span className="text-lg font-bold text-slate-500 line-through">${pr.regular}</span>}
                     <span className="text-slate-400 text-sm font-bold uppercase tracking-widest">MXN / mes</span>
                   </div>
+                  <p className="text-xs font-bold text-maiz-700 mb-6 min-h-4">{pr.founder ? 'Precio de fundador, de por vida' : ''}</p>
                   <ul className="space-y-3 mb-8 flex-grow">
                     {FEATURES[key].map((f) => (
                       <li key={f} className="flex items-center gap-3 text-sm text-slate-200">
@@ -143,7 +177,7 @@ export function SubscriptionGate({ status, email, verifyingPayment, hasStripeCus
                       'w-full py-4 rounded-2xl font-black text-carbon-950 transition-all flex items-center justify-center gap-2 disabled:opacity-60'
                     }
                   >
-                    {loadingPlan === key ? <Loader2 className="animate-spin" size={20} /> : <><CreditCard size={20} /> {hasStripeCustomer ? `ELEGIR ${PLANS[key].name.toUpperCase()}` : "PROBAR 15 DÍAS GRATIS"}</>}
+                    {loadingPlan === key ? <Loader2 className="animate-spin" size={20} /> : <><CreditCard size={20} /> {`SUSCRIBIRME A ${PLANS[key].name.toUpperCase()}`}</>}
                   </button>
                 </div>
               );
@@ -152,6 +186,7 @@ export function SubscriptionGate({ status, email, verifyingPayment, hasStripeCus
         )}
 
         <div className="text-center mt-8 space-y-3">
+          {inTrial && <p className="text-sm text-slate-400">Registras tu tarjeta hoy y el primer cobro es el {fmtDay(trialEnd)}. Te avisamos antes y cancelas cuando quieras.</p>}
           <p className="text-[11px] text-slate-500 uppercase tracking-widest">Pago seguro procesado por Stripe · Precios en pesos mexicanos</p>
           {contact && (
             <a href={contact} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-sm font-bold text-emerald-400 hover:text-emerald-300">

@@ -3,7 +3,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { AuthPage } from './components/auth/AuthPage';
 import { SubscriptionGate } from './components/auth/SubscriptionGate';
 import { pb } from './lib/pocketbase';
-import { hydrateUser, attachUserOffline, clearUser, flushAll, onSyncStatus, type SyncStatus } from './lib/cloudStore';
+import { hydrateUser, attachUserOffline, clearUser, flushAll, onSyncStatus, setReadOnly, type SyncStatus } from './lib/cloudStore';
 import { apiPost } from './lib/api';
 import { supportLink } from './config';
 import { Mark } from './components/brand/Logo';
@@ -28,7 +28,8 @@ function Splash({ text = 'Cargando Don Punto…' }: { text?: string }) {
 }
 
 type Phase = 'checking' | 'landing' | 'auth' | 'loading' | 'ready';
-interface SubInfo { status: string; hasStripeCustomer: boolean; plan?: Plan }
+// status: 'active' (pagada o en prueba vigente), 'expired' (prueba sin tarjeta vencida), 'inactive', 'past_due', ...
+interface SubInfo { status: string; hasStripeCustomer: boolean; plan?: Plan; trialEnd?: string; canTrial?: boolean }
 
 const subCacheKey = (uid: string) => `dp:${uid}:__sub`;
 
@@ -37,17 +38,33 @@ async function fetchSubscription(uid: string): Promise<SubInfo> {
     const s = await pb.collection('subscriptions').getFirstListItem(pb.filter('owner = {:o}', { o: uid }), { expand: 'plan', requestKey: null });
     const planName = String((s.expand as any)?.plan?.name || '').toLowerCase();
     const plan: Plan = planName.startsWith('b') ? 'basico' : planName.startsWith('p') ? 'pro' : 'cortesia';
-    const info = { status: s.status === 'trialing' ? 'active' : (s.status as string) || 'inactive', hasStripeCustomer: !!s.stripe_customer_id, plan };
+    // Prueba gratis sin tarjeta: 'trialing' + trial_end (vence sola por fecha)
+    const end = s.trial_end ? new Date(String(s.trial_end).replace(' ', 'T')).toISOString() : undefined;
+    const info: SubInfo = normalizeSub({
+      status: s.status === 'trialing' ? 'trialing' : (s.status as string) || 'inactive',
+      hasStripeCustomer: !!s.stripe_customer_id,
+      plan,
+      trialEnd: s.status === 'trialing' ? end : undefined,
+      canTrial: s.status === 'inactive' && !s.stripe_customer_id && !s.stripe_subscription_id && !s.trial_end,
+    });
     localStorage.setItem(subCacheKey(uid), JSON.stringify(info));
     return info;
   } catch (e: any) {
     if (e?.status === 404) {
-      const info = { status: 'inactive', hasStripeCustomer: false };
+      const info = { status: 'inactive', hasStripeCustomer: false, canTrial: true };
       localStorage.setItem(subCacheKey(uid), JSON.stringify(info));
       return info;
     }
     throw e;
   }
+}
+
+/** 'trialing' → 'active' mientras dure la prueba, 'expired' al vencer (también para la copia guardada sin internet) */
+function normalizeSub(info: SubInfo): SubInfo {
+  if (info.trialEnd && (info.status === 'trialing' || info.status === 'active' || info.status === 'expired')) {
+    return { ...info, status: new Date(info.trialEnd).getTime() > Date.now() ? 'active' : 'expired' };
+  }
+  return info;
 }
 
 function SyncBadge() {
@@ -78,7 +95,13 @@ function RootApp() {
   const [email, setEmail] = useState<string | null>(null);
   const [sub, setSub] = useState<SubInfo>({ status: 'checking', hasStripeCustomer: false });
   const [verifying, setVerifying] = useState(false);
+  // Pantalla de planes encima de la app (desde el aviso de prueba, "Mi plan" o el push ?planes=1)
+  const [showPlans, setShowPlans] = useState(() => new URLSearchParams(window.location.search).get('planes') === '1');
+  const [viewOnly, setViewOnly] = useState(false);
   const booted = useRef(false);
+
+  // Solo ver: con la prueba vencida no se sube nada a la nube (se guarda en el equipo y sube al pagar)
+  useEffect(() => { setReadOnly(sub.status === 'expired'); }, [sub.status]);
 
   const bootstrap = useCallback(async (user: any, offline = false) => {
     setPhase('loading');
@@ -88,7 +111,7 @@ function RootApp() {
     if (offline) {
       attachUserOffline(user.id);
       const cached = localStorage.getItem(subCacheKey(user.id));
-      setSub(cached ? JSON.parse(cached) : { status: 'inactive', hasStripeCustomer: false });
+      setSub(cached ? normalizeSub(JSON.parse(cached)) : { status: 'inactive', hasStripeCustomer: false });
       setPhase('ready');
       return;
     }
@@ -109,7 +132,17 @@ function RootApp() {
     }
 
     try {
-      const [info] = await Promise.all([fetchSubscription(user.id), hydrateUser(user.id, legacyMenu)]);
+      let [info] = await Promise.all([fetchSubscription(user.id), hydrateUser(user.id, legacyMenu)]);
+      // Cuenta nueva: arranca la prueba gratis de 15 días sin tarjeta (el servidor valida que sea la primera vez)
+      if (info.canTrial) {
+        try {
+          const r = await apiPost<{ started: boolean }>('/api/trial', {});
+          if (r.started) track('StartTrial', { value: 0, currency: 'MXN' });
+          info = await fetchSubscription(user.id);
+        } catch (err) {
+          console.error('prueba gratis', err);
+        }
+      }
       setSub(info);
     } catch (e: any) {
       console.error('carga inicial', e);
@@ -172,14 +205,14 @@ function RootApp() {
       if (params.get('trial') === '1') track('StartTrial', { value: 0, currency: 'MXN', predicted_ltv: price, content_name: PLANS[planKey].name });
       else track('Subscribe', { value: price, currency: 'MXN', content_name: PLANS[planKey].name });
     }
-    if (sub.status === 'active') return;
+    if (sub.status === 'active' && sub.hasStripeCustomer && !sub.trialEnd) return;
     setVerifying(true);
     let tries = 0;
     const iv = setInterval(async () => {
       tries++;
       try {
         const info = await fetchSubscription(uid);
-        if (info.status === 'active' || tries > 25) {
+        if ((info.status === 'active' && info.hasStripeCustomer) || tries > 25) {
           setSub(info);
           setVerifying(false);
           clearInterval(iv);
@@ -205,6 +238,11 @@ function RootApp() {
   }, []);
 
   const billing = useCallback(async () => {
+    // Sin cliente de Stripe (prueba gratis): no hay portal todavía → pantalla de planes
+    if (!sub.hasStripeCustomer) {
+      setShowPlans(true);
+      return;
+    }
     try {
       const { url } = await apiPost<{ url: string }>('/api/stripe-portal', {});
       window.location.assign(url);
@@ -213,7 +251,7 @@ function RootApp() {
       if (link && window.confirm(`${e.message}\n\n¿Quieres escribirle a soporte?`)) window.open(link, '_blank');
       else if (!link) alert(e.message);
     }
-  }, [email]);
+  }, [email, sub.hasStripeCustomer]);
 
   if (phase === 'checking' || phase === 'loading') {
     return <Splash text={phase === 'loading' ? 'Cargando tus datos…' : undefined} />;
@@ -239,23 +277,26 @@ function RootApp() {
     );
   }
 
-  if (sub.status !== 'active' || verifying) {
+  const inApp = sub.status === 'active' || sub.status === 'expired';
+  if (!inApp || verifying || showPlans || (sub.status === 'expired' && !viewOnly)) {
     return withChat(
       <SubscriptionGate
         status={sub.status}
         email={email}
         verifyingPayment={verifying}
         hasStripeCustomer={sub.hasStripeCustomer}
+        trialEnd={sub.trialEnd}
+        onBack={inApp && !verifying ? () => { setShowPlans(false); if (sub.status === 'expired') setViewOnly(true); window.history.replaceState({}, '', '/'); } : undefined}
         onLogout={logout}
       />
     );
   }
 
-  setPlan(sub.plan || 'cortesia');
+  setPlan(sub.status === 'expired' ? 'basico' : sub.plan || 'cortesia');
   return withChat(
     <>
       <Suspense fallback={<Splash text="Cargando tus datos…" />}>
-        <App key={uid} userEmail={email} onLogout={logout} onBilling={billing} />
+        <App key={uid} userEmail={email} onLogout={logout} onBilling={billing} trialEnd={sub.trialEnd} expired={sub.status === 'expired'} onPlans={() => setShowPlans(true)} />
       </Suspense>
       <SyncBadge />
     </>

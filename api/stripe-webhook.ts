@@ -54,6 +54,8 @@ async function upsertSubscription(uid: string, sub: any) {
   };
   const pid = await planId(token, sub.metadata?.plan);
   if (pid) fields.plan = pid;
+  // Precio de fundador: se marca una vez y no se quita (cuenta para el cupo de 100)
+  if (sub.metadata?.founder === '1') fields.founder = true;
 
   // Buscar por suscripción de Stripe primero, luego por dueño
   let existing = await pbFetch(`/api/collections/subscriptions/records?perPage=1&filter=${encodeURIComponent(`stripe_subscription_id = "${sub.id}"`)}`, { token });
@@ -86,7 +88,7 @@ async function upsertSubscription(uid: string, sub: any) {
     let m = msg[String(fields.status)];
     if (sub.status === 'trialing') {
       const end = sub.trial_end ? new Date(sub.trial_end * 1000).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', timeZone: 'America/Denver' }) : '';
-      m = ['Tu prueba gratis de 15 días empezó', `No se te cobra nada hasta el ${end}. Cancela desde "Mi plan" cuando quieras.`];
+      m = ['Tu plan quedó listo', `No se te cobra nada hasta el ${end}. Cancela desde "Mi plan" cuando quieras.`];
     }
     if (m) await sendToUser(owner, { title: m[0], body: m[1], url: '/', tag: 'membresia' }).catch(() => 0);
   }

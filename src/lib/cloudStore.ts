@@ -241,8 +241,17 @@ export function onSyncStatus(fn: (s: SyncStatus) => void): () => void {
   };
 }
 
+// Prueba vencida = solo ver: los cambios se quedan en este equipo y suben cuando vuelva a tener plan
+let readOnly = false;
+export function setReadOnly(v: boolean): void {
+  const was = readOnly;
+  readOnly = v;
+  if (was && !v) void flushAll();
+}
+
 function schedule(key: string, delay = 1200) {
   dirty.add(key);
+  if (readOnly) return;
   emit(navigator.onLine ? 'pending' : 'offline');
   clearTimeout(timers.get(key));
   timers.set(key, setTimeout(() => void flushKey(key), delay));

@@ -31,6 +31,7 @@ import { WelcomeTour, shouldAutoStartTour } from './components/onboarding/Welcom
 import { PinPad } from './components/access/PinPad';
 import { useSession, findOperatorByPin, ROLE_LABEL, signIn, canAccess as canAccessAs, lockSession, requiresCashierLogin, currentBranch, getBranches, isPro, TAB_LABEL, CAJA_CONFIGURABLE, getCajaTabs, setCajaTabs, type Tab } from './lib/session';
 import { setActiveBranch } from './lib/cloudStore';
+import { daysLeft, fmtDay } from './lib/founders';
 import { TeamModule } from './components/team/TeamModule';
 import { BranchesModule } from './components/branches/BranchesModule';
 import { ClientsModule } from './components/clients/ClientsModule';
@@ -44,6 +45,46 @@ export interface AppProps {
   userEmail: string | null;
   onLogout: () => void;
   onBilling: () => void;
+  /** Prueba gratis sin tarjeta: fecha en que termina */
+  trialEnd?: string;
+  /** Prueba vencida: solo ver (no se cobra) */
+  expired?: boolean;
+  onPlans?: () => void;
+}
+
+/** Aviso de la prueba gratis (y de prueba vencida) arriba de cada pantalla */
+function TrialBanner({ trialEnd, expired, onPlans }: { trialEnd?: string; expired?: boolean; onPlans?: () => void }) {
+  if (!trialEnd) return null;
+  const left = daysLeft(trialEnd);
+  const urgent = expired || left <= 3;
+  return (
+    <div className={cn('mb-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 rounded-2xl px-4 py-3 no-print border', urgent ? 'bg-maiz-50 border-maiz-300 text-carbon-900' : 'bg-agave-50 border-agave-200 text-carbon-800')}>
+      <p className="text-sm min-w-0">
+        {expired ? (
+          <><b>Tu prueba gratis terminó.</b> Tus datos están guardados y puedes verlos, pero para volver a cobrar necesitas tu plan.</>
+        ) : left <= 1 ? (
+          <><b>Tu prueba gratis termina mañana</b> ({fmtDay(trialEnd)}). Elige tu plan para seguir vendiendo sin cortes.</>
+        ) : (
+          <><b>Prueba gratis: te quedan {left} días</b> (hasta el {fmtDay(trialEnd)}). Sin tarjeta.</>
+        )}
+      </p>
+      <button type="button" onClick={onPlans} className={cn('sm:ml-auto shrink-0 rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap', urgent ? 'bg-carbon-950 text-white hover:bg-carbon-800' : 'bg-white text-agave-700 ring-1 ring-agave-300 hover:bg-agave-100')}>
+        {expired ? 'Suscribirme para seguir vendiendo' : 'Elegir mi plan'}
+      </button>
+    </div>
+  );
+}
+
+/** Punto de venta bloqueado al terminar la prueba */
+function TrialEndedPOS({ onPlans }: { onPlans?: () => void }) {
+  return (
+    <div className="mx-auto max-w-xl rounded-3xl border border-carbon-950/10 bg-white p-8 sm:p-10 text-center shadow-[0_12px_32px_-18px_rgba(13,16,14,0.18)]">
+      <div className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-full bg-maiz-100 text-maiz-800"><Lock size={26} /></div>
+      <h2 className="font-display text-2xl sm:text-3xl font-bold text-carbon-950">Tu prueba gratis terminó</h2>
+      <p className="mt-3 text-carbon-600">Tu menú, tus ventas y tus reportes siguen aquí. Suscríbete para volver a cobrar; todo queda como lo dejaste.</p>
+      <button type="button" onClick={onPlans} className="mt-7 inline-flex items-center justify-center rounded-full bg-agave-600 hover:bg-agave-700 px-7 py-3.5 font-semibold text-white">Suscribirme para seguir vendiendo</button>
+    </div>
+  );
 }
 
 /** Qué puede abrir la caja sin PIN */
@@ -66,7 +107,7 @@ function CajaAccessEditor() {
   );
 }
 
-function App({ userEmail, onLogout, onBilling }: AppProps) {
+function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: AppProps) {
   useEffect(() => { btAutoReconnect(); }, []);
   const {
     settings,
@@ -770,6 +811,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
               </div>
               {incoming.pending > 0 && shownTab !== 'online' && <span className="ml-auto grid h-6 min-w-6 shrink-0 place-items-center rounded-full bg-maiz-400 px-1.5 text-xs font-black text-carbon-950">{incoming.pending}</span>}
             </div>
+            <TrialBanner trialEnd={trialEnd} expired={expired} onPlans={onPlans} />
             <header className="mb-6 flex flex-col sm:flex-row items-baseline sm:items-center justify-between gap-4 no-print">
               <div>
                 <h1 className="font-display text-2xl sm:text-3xl font-bold text-carbon-950 tracking-[-0.02em]">
@@ -923,7 +965,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                     )}
                 </div>
               ); })()}
-              {shownTab === 'pos' && <POSDashboard menu={{ rows, settings, categories, modifierGroups, addProducts, removeRow }} />}
+              {shownTab === 'pos' && (expired ? <TrialEndedPOS onPlans={onPlans} /> : <POSDashboard menu={{ rows, settings, categories, modifierGroups, addProducts, removeRow }} />)}
               {shownTab === 'online' && <OnlineOrdersModule rows={rows} categories={categories} modifierGroups={modifierGroups} onNeedPin={() => setPinFor('online')} />}
               {shownTab === 'reports' && <POSReports onUpgrade={onBilling} />}
               {shownTab === 'tickets' && <POSTicketsHistory />}
