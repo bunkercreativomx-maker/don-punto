@@ -667,7 +667,7 @@ function MenuEditor({ store, onChange, categories }: { store: Rec; onChange: (s:
   };
   const groups = useMemo(() => {
     const cats = [...categories.map((c) => ({ id: c.id, name: c.name })), { id: '', name: 'Sin categoría' }];
-    return cats.map((c) => ({ ...c, items: menu.products.filter((p) => (p.categoryId || '') === c.id || (c.id === '' && !categories.some((x) => x.id === p.categoryId))) })).filter((c) => c.items.length);
+    return cats.map((c) => ({ ...c, items: menu.products.filter((p) => !p.off).filter((p) => (p.categoryId || '') === c.id || (c.id === '' && !categories.some((x) => x.id === p.categoryId))) })).filter((c) => c.items.length);
   }, [menu.products, categories]);
   const visible = menu.products.filter((p) => !p.hidden).length;
   const withPhoto = menu.products.filter((p) => !p.hidden && p.photo).length;

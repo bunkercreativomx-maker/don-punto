@@ -7,6 +7,8 @@ function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
 import type { Category, ModifierGroup, Modifier, ProductRowData } from '../../types/calculator';
+import { isPro, getBranches, useSession } from '../../lib/session';
+import { branchInfo, withBranch } from '../../lib/branchMenu';
 
 interface MenuManagementProps {
     categories: Category[];
@@ -321,6 +323,7 @@ export function MenuManagement({
 
             {/* Categoría de productos: solo pendientes + buscador (antes era una lista larga con todo) */}
             <ProductCategoryBox products={products} categories={categories} updateProduct={updateProduct} />
+            <BranchMenuBox products={products} categories={categories} updateProduct={updateProduct} />
 
             {/* Modal for Modifier Group Add/Edit */}
             {isModGroupModalOpen && (
@@ -490,6 +493,114 @@ function ProductCategoryBox({ products, categories, updateProduct }: {
                 {found.length > 0 && <div className="space-y-2">{found.map(p => <Row key={p.id} p={p} />)}</div>}
                 {q.trim().length >= 2 && found.length === 0 && <p className="text-xs text-slate-500">No encontré productos con ese nombre.</p>}
             </div>
+        </div>
+    );
+}
+
+// Menú por sucursal (plan Pro, 2+ sucursales): qué se vende en cada una y su precio propio
+function BranchMenuBox({ products, categories, updateProduct }: {
+    products: ProductRowData[];
+    categories: Category[];
+    updateProduct: (id: string, updates: Partial<ProductRowData>) => void;
+}) {
+    useSession(); // re-render si cambian sucursales/plan
+    const branches = getBranches();
+    const [open, setOpen] = useState(false);
+    const [bid, setBid] = useState(branches[0]?.id || 'main');
+    const [q, setQ] = useState('');
+    const [cat, setCat] = useState('');
+    const [onlyChanged, setOnlyChanged] = useState(false);
+    if (!isPro() || branches.length < 2 || products.length === 0) return null;
+    const branch = branches.find(b => b.id === bid) || branches[0];
+    const norm = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const summary = (id: string) => {
+        let off = 0, own = 0;
+        products.forEach(p => { const b = branchInfo(p, id); if (b.off) off++; else if (typeof b.price === 'number') own++; });
+        return { off, own };
+    };
+    const list = products.filter(p => {
+        if (cat && p.categoryId !== cat) return false;
+        if (q.trim() && !norm(p.name).includes(norm(q.trim()))) return false;
+        if (onlyChanged) { const b = branchInfo(p, branch.id); return !!b.off || typeof b.price === 'number'; }
+        return true;
+    });
+    const commitPrice = (p: ProductRowData, raw: string) => {
+        const t = raw.trim().replace(',', '.');
+        const v = t === '' ? undefined : Math.round(parseFloat(t) * 100) / 100;
+        if (v !== undefined && (Number.isNaN(v) || v < 0)) return;
+        const price = v !== undefined && v === (p.salePrice || 0) ? undefined : v;
+        if (price === branchInfo(p, branch.id).price) return;
+        updateProduct(p.id, { branches: withBranch(p, branch.id, { price }) });
+    };
+    return (
+        <div className="lg:col-span-2 bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-2xl p-6 space-y-4">
+            <button type="button" onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between gap-3 text-left">
+                <div>
+                    <h3 className="text-lg font-bold text-carbon-950">Menú por sucursal</h3>
+                    <p className="text-xs text-slate-400">Elige qué productos se venden en cada sucursal y, si cambia, su precio en tienda. Sin cambios = se vende con el precio normal.</p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                        {branches.map(b => { const s = summary(b.id); return (
+                            <span key={b.id} className="text-[10px] font-bold rounded-md bg-slate-800/40 border border-carbon-950/10 px-2 py-0.5 text-slate-500">
+                                {b.name}: {s.off ? `${s.off} no se venden` : 'todo'}{s.own ? ` · ${s.own} con precio propio` : ''}
+                            </span>
+                        ); })}
+                    </div>
+                </div>
+                <span className="shrink-0 text-slate-500">{open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}</span>
+            </button>
+            {open && (
+                <div className="space-y-3">
+                    <div className="flex flex-wrap gap-2">
+                        {branches.map(b => (
+                            <button key={b.id} type="button" onClick={() => setBid(b.id)}
+                                className={cn("px-3 py-1.5 rounded-lg text-xs font-bold border", b.id === branch.id ? "bg-agave-600 border-agave-600 text-white" : "bg-white border-carbon-950/10 text-carbon-700")}>
+                                {b.name}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar producto…" className="flex-1 bg-slate-900 border border-carbon-950/10 rounded-xl px-4 py-2.5 text-sm text-carbon-950 outline-none focus:border-agave-500" />
+                        <select value={cat} onChange={(e) => setCat(e.target.value)} className="sm:w-56 bg-slate-900 border border-carbon-950/10 rounded-xl px-3 py-2.5 text-sm text-carbon-950 outline-none">
+                            <option value="">Todas las categorías</option>
+                            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                        <label className="flex items-center gap-2 text-xs font-bold text-slate-500 px-2">
+                            <input type="checkbox" checked={onlyChanged} onChange={(e) => setOnlyChanged(e.target.checked)} /> Solo cambios
+                        </label>
+                    </div>
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-2 content-start max-h-[60vh] overflow-y-auto custom-scrollbar pr-1 rounded-xl">
+                        {list.map(p => {
+                            const b = branchInfo(p, branch.id);
+                            const sold = !b.off;
+                            return (
+                                <div key={p.id} className={cn("flex items-center gap-3 border rounded-xl px-3 py-2", sold ? "bg-slate-950/40 border-carbon-950/10" : "bg-rose-50/60 border-rose-200")}>
+                                    <label className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer">
+                                        <input type="checkbox" checked={sold} onChange={(e) => updateProduct(p.id, { branches: withBranch(p, branch.id, { off: !e.target.checked }) })} className="w-4 h-4 accent-emerald-600 shrink-0" />
+                                        <span className={cn("min-w-0 break-words text-sm font-bold", sold ? "text-slate-200" : "text-slate-500 line-through")}>{p.name}</span>
+                                    </label>
+                                    {sold ? (
+                                        <div className="shrink-0 flex items-center gap-1">
+                                            <span className="text-[10px] text-slate-500">$</span>
+                                            <input
+                                                key={`${p.id}:${branch.id}:${b.price ?? ''}:${p.salePrice}`}
+                                                defaultValue={typeof b.price === 'number' ? String(b.price) : ''}
+                                                placeholder={String(p.salePrice || 0)}
+                                                inputMode="decimal"
+                                                onBlur={(e) => commitPrice(p, e.target.value)}
+                                                onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                                                title="Vacío = precio normal"
+                                                className={cn("w-20 rounded-lg border px-2 py-1.5 text-xs text-right outline-none", typeof b.price === 'number' ? "border-amber-400 bg-amber-50 font-bold text-carbon-950" : "border-carbon-950/10 bg-slate-900 text-carbon-950")}
+                                            />
+                                        </div>
+                                    ) : <span className="shrink-0 text-[10px] font-black text-rose-500 uppercase">No se vende</span>}
+                                </div>
+                            );
+                        })}
+                        {list.length === 0 && <p className="text-xs text-slate-500">No hay productos con ese filtro.</p>}
+                    </div>
+                    <p className="text-[11px] text-slate-500">El precio en gris es el normal; escribe otro solo si en <b>{branch.name}</b> cuesta distinto (se marca en amarillo). Bórralo para regresar al normal. La tienda en línea usa el menú de <b>{branches[0].name}</b>.</p>
+                </div>
+            )}
         </div>
     );
 }

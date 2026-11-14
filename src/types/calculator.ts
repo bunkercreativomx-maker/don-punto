@@ -51,6 +51,14 @@ export interface ProductRowData {
     discountPct?: number;
     subsidyPct?: number;
     shippingCost?: number;
+    // Menú por sucursal (plan Pro): sin entrada = se vende con el precio normal.
+    // off = no se vende en esa sucursal; price = precio en tienda propio de esa sucursal.
+    branches?: Record<string, BranchProduct>;
+}
+
+export interface BranchProduct {
+    off?: boolean;
+    price?: number;
 }
 
 export interface CalculationResult {

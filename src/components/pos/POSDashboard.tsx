@@ -13,12 +13,13 @@ import { CashShiftBar } from './CashShiftBar';
 import { getOpenShift, useCashShift, requestOpenShift } from '../../lib/cashShift';
 import { PrintArea } from '../print/PrintArea';
 import { runPrint } from '../../lib/print';
-import { fetchUnseenItems } from '../../lib/cloudStore';
+import { fetchUnseenItems, getActiveBranch } from '../../lib/cloudStore';
 import { salePayments, equalParts } from '../../lib/payments';
 import type { PaymentPart } from '../../types/pos';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import type { ProductRowData } from '../../types/calculator';
+import { rowsForBranch } from '../../lib/branchMenu';
 import { money } from '../../lib/format';
 
 function cn(...inputs: (string | undefined | null | false)[]) {
@@ -59,7 +60,9 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
   useCashShift(); // re-render al abrir/cerrar turno
   // El menú viene de App (misma fuente que Catálogo) para que agregar/borrar aquí no lo pise otra pantalla
   const ownCalc = useCalculator([], { persist: !menu });
-  const { rows, settings: calcGlobalSettings, categories, modifierGroups } = menu || ownCalc;
+  const { rows: allRows, settings: calcGlobalSettings, categories, modifierGroups } = menu || ownCalc;
+  // Solo los productos que se venden en ESTA sucursal, con su precio propio si lo tiene
+  const rows = useMemo(() => rowsForBranch(allRows, getActiveBranch()), [allRows]);
 
   const [paymentMethod, setPaymentMethod] = useState<POSPaymentMethod>('Efectivo');
   const [orderDestination, setOrderDestination] = useState<OrderDestination>('Tienda');
@@ -197,7 +200,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
     const name = newProd.name.trim();
     const price = Math.round((parseFloat(newProd.price.replace(',', '.')) || 0) * 100) / 100;
     if (!name) { showToast('Escribe el nombre del producto'); return; }
-    if (rows.some(r => r.name.trim().toLowerCase() === name.toLowerCase())) { showToast('Ya existe un producto con ese nombre'); return; }
+    if (allRows.some(r => r.name.trim().toLowerCase() === name.toLowerCase())) { showToast('Ya existe un producto con ese nombre'); return; }
     menu.addProducts([{ id: crypto.randomUUID(), name, costPrice: 0, salePrice: price, categoryId: newProd.categoryId || undefined }]);
     setNewProd(null);
     showToast(`Se agregó "${name}"`);

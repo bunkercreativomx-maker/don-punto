@@ -1,9 +1,10 @@
 // Pedidos en línea: tipos y utilidades compartidas entre el panel del restaurante y la página pública.
 import type { ProductRowData, Category, ModifierGroup } from '../types/calculator';
+import { rowsForBranch } from './branchMenu';
 
 export interface OMod { id: string; name: string; price: number }
 export interface OGroup { id: string; name: string; type: 'single' | 'multiple'; min?: number; max?: number; options: OMod[] }
-export interface OProduct { id: string; name: string; description?: string; price: number; categoryId?: string; groups?: string[]; photo?: string; hidden?: boolean; soldOut?: boolean }
+export interface OProduct { id: string; name: string; description?: string; price: number; categoryId?: string; groups?: string[]; photo?: string; hidden?: boolean; soldOut?: boolean; off?: boolean; userHidden?: boolean }
 export interface OMenu { categories: { id: string; name: string }[]; groups: OGroup[]; products: OProduct[]; syncedAt?: string }
 
 /** Rutas de donpunto.com que nunca pueden ser de un restaurante (mismo listado que api/order.ts) */
@@ -27,17 +28,24 @@ export function slugify(s: string) {
 }
 
 /** Copia publicada del menú: precios del Catálogo + datos propios de la página (foto, descripción, oculto, agotado). */
-export function buildMenu(rows: ProductRowData[], categories: Category[], groups: ModifierGroup[], prev?: OMenu | null): OMenu {
+export function buildMenu(rows: ProductRowData[], categories: Category[], groups: ModifierGroup[], prev?: OMenu | null, branchId = 'main'): OMenu {
   const old = new Map((prev?.products || []).map((p) => [p.id, p]));
+  // La tienda en línea usa el menú (y precios) de la sucursal principal. Lo que no se vende ahí va
+  // oculto con off=true (conserva foto/descripción y el "oculto" que eligió el dueño para cuando regrese).
+  const sold = new Map(rowsForBranch(rows, branchId).map((r) => [r.id, r]));
   const products: OProduct[] = rows
     .filter((r) => r.name?.trim())
     .map((r) => {
       const o = old.get(r.id);
+      const b = sold.get(r.id);
       const gids = groups.filter((g) => r.modifierGroupIds?.includes(g.id) || (r.categoryId && g.appliedToCategories?.includes(r.categoryId))).map((g) => g.id);
-      return {
-        id: r.id, name: r.name.trim(), price: Number(r.salePrice) || 0, categoryId: r.categoryId || '', groups: gids,
-        description: o?.description ?? r.description ?? '', photo: o?.photo, hidden: o ? !!o.hidden : false, soldOut: !!o?.soldOut,
+      const userHidden = o ? (o.off ? !!o.userHidden : !!o.hidden) : false;
+      const base: OProduct = {
+        id: r.id, name: r.name.trim(), price: Number((b || r).salePrice) || 0, categoryId: r.categoryId || '', groups: gids,
+        description: o?.description ?? r.description ?? '', photo: o?.photo, hidden: b ? userHidden : true, soldOut: !!o?.soldOut,
       };
+      if (!b) { base.off = true; base.userHidden = userHidden; }
+      return base;
     });
   return {
     categories: categories.map((c) => ({ id: c.id, name: c.name })),
