@@ -786,9 +786,9 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                         <div key={p.id} className="relative group/card">
                         <button
                             onClick={() => handleProductClick(p)}
-                            className="bg-white border border-carbon-950/10 p-4 rounded-2xl text-left shadow-[0_1px_2px_rgba(13,16,14,0.05)] hover:border-agave-400 hover:shadow-[0_10px_24px_-14px_rgba(14,111,77,0.45)] active:scale-[0.98] transition-all duration-200 group relative overflow-hidden h-32 flex flex-col justify-between"
+                            className="bg-white border border-carbon-950/10 p-4 rounded-2xl text-left shadow-[0_1px_2px_rgba(13,16,14,0.05)] hover:border-agave-400 hover:shadow-[0_10px_24px_-14px_rgba(14,111,77,0.45)] active:scale-[0.98] transition-all duration-200 group relative overflow-hidden w-full h-32 flex flex-col justify-between"
                         >
-                            <div className="font-semibold text-carbon-900 group-hover:text-agave-700 text-[15px] leading-tight line-clamp-2">{p.name}</div>
+                            <div className="font-semibold text-carbon-900 group-hover:text-agave-700 text-[15px] leading-tight line-clamp-2 pr-6">{p.name}</div>
                             <div className="font-display font-bold text-carbon-950 text-xl tracking-tight tabular-nums">${money(getItemPrice(p.id, []))}</div>
                             {(() => {
                                 const hasMods = (p.modifierGroupIds && p.modifierGroupIds.length > 0) || 
@@ -806,7 +806,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                                 onClick={(e) => { e.stopPropagation(); deleteProduct(p); }}
                                 title="Eliminar producto"
                                 aria-label={`Eliminar ${p.name}`}
-                                className="absolute bottom-2 right-2 p-1.5 rounded-lg text-rose-500 bg-white/90 border border-rose-200 hover:bg-rose-50 hover:text-rose-600 transition-all"
+                                className="absolute bottom-3 right-3 p-1.5 rounded-lg text-rose-400 bg-white border border-rose-200 hover:bg-rose-50 hover:text-rose-600 transition-all"
                             >
                                 <Trash2 size={14} />
                             </button>
@@ -817,7 +817,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                         <button
                             type="button"
                             onClick={() => setNewProd({ name: '', price: '', categoryId: activeCategoryId || '' })}
-                            className="border-2 border-dashed border-agave-400/60 text-agave-700 rounded-2xl h-32 flex flex-col items-center justify-center gap-1 font-bold text-sm hover:bg-agave-50 transition-all"
+                            className="w-full border-2 border-dashed border-agave-400/60 text-agave-700 rounded-2xl h-32 flex flex-col items-center justify-center gap-1 font-bold text-sm hover:bg-agave-50 transition-all"
                         >
                             <Plus size={20} /> Agregar producto
                         </button>
