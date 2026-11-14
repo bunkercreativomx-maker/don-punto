@@ -38,7 +38,8 @@ const OWNER_ONLY: Tab[] = ['settings', 'financial', 'team', 'branches'];
 
 // ---------------------------------------------------------------- equipo
 export type Role = 'mesero' | 'cajero' | 'gerente';
-export interface Employee { id: string; name: string; pin: string; role: Role; branchId?: string; active: boolean }
+/** tipsOnly = mesero "solo para propinas": no tiene PIN ni entra al sistema; la caja lo elige al cobrar. No cuenta en el límite del plan. */
+export interface Employee { id: string; name: string; pin: string; role: Role; branchId?: string; active: boolean; tipsOnly?: boolean }
 const TEAM_KEY = 'donPuntoEquipo';
 export function getTeam(): Employee[] {
   try { return JSON.parse(storeGet(TEAM_KEY) || '[]'); } catch { return []; }
@@ -51,9 +52,17 @@ export function teamLimit(): number { return isPro() ? Infinity : BASIC_TEAM_LIM
 export function roleAllowed(r: Role): boolean { return isPro() || BASIC_ROLES.includes(r); }
 /** Empleados que pueden entrar hoy según el plan (si bajó de Pro a Básico, solo el primer cajero activo). */
 export function usableTeam(): Employee[] {
-  const active = getTeam().filter((e) => e.active);
+  const active = getTeam().filter((e) => e.active && !e.tipsOnly && e.pin);
   if (isPro()) return active;
   return active.filter((e) => roleAllowed(e.role)).slice(0, BASIC_TEAM_LIMIT);
+}
+
+/** Meseros que la caja puede elegir al cobrar: los de "solo propinas" (ambos planes) + meseros con PIN que pueden entrar, de esta sucursal. */
+export function tipWaiters(): Employee[] {
+  const usable = new Set(usableTeam().map((e) => e.id));
+  const br = getActiveBranch();
+  return getTeam().filter((e) => e.active && e.role === 'mesero' && (e.tipsOnly || usable.has(e.id)) && (!e.branchId || e.branchId === br))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 // ---------------------------------------------------------------- sucursales

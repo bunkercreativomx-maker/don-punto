@@ -15,7 +15,11 @@ const ROLE_INFO: Record<Role, string> = {
 
 export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adminPin: string }) {
   useSession();
-  const team = getTeam();
+  const allTeam = getTeam();
+  const team = allTeam.filter((e) => !e.tipsOnly);
+  const tipsTeam = allTeam.filter((e) => e.tipsOnly);
+  const [tipName, setTipName] = useState('');
+  const [tipBranch, setTipBranch] = useState('');
   const branches = getBranches();
   const { transactions } = usePOS();
   const [form, setForm] = useState<{ name: string; pin: string; role: Role; branchId: string }>({ name: '', pin: '', role: 'cajero', branchId: '' });
@@ -64,11 +68,17 @@ export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adm
     if (!/^\d{4,6}$/.test(pin)) return setError('El PIN debe ser de 4 a 6 números.');
     if (pin === (adminPin || '1234')) return setError('Ese PIN es el del dueño. Usa otro.');
     if (team.some((e) => e.pin === pin)) return setError('Otro empleado ya usa ese PIN.');
-    saveTeam([...team, { id: crypto.randomUUID(), name, pin, role: form.role, branchId: form.branchId || undefined, active: true }]);
+    saveTeam([...allTeam, { id: crypto.randomUUID(), name, pin, role: form.role, branchId: form.branchId || undefined, active: true }]);
     setForm({ name: '', pin: '', role: 'cajero', branchId: '' });
   };
-  const update = (id: string, patch: Partial<Employee>) => saveTeam(team.map((e) => (e.id === id ? { ...e, ...patch } : e)));
-  const remove = (id: string) => { if (confirm('¿Eliminar a este empleado? Sus ventas pasadas se conservan.')) saveTeam(team.filter((e) => e.id !== id)); };
+  const update = (id: string, patch: Partial<Employee>) => saveTeam(allTeam.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+  const remove = (id: string) => { if (confirm('¿Eliminar a este empleado? Sus ventas pasadas se conservan.')) saveTeam(allTeam.filter((e) => e.id !== id)); };
+  const addTipWaiter = () => {
+    const name = tipName.trim();
+    if (!name) return;
+    saveTeam([...allTeam, { id: crypto.randomUUID(), name, pin: '', role: 'mesero', branchId: tipBranch || undefined, active: true, tipsOnly: true }]);
+    setTipName('');
+  };
   const input = 'w-full rounded-xl border border-carbon-950/15 bg-white px-3 py-2.5 text-sm text-carbon-900 outline-none focus:border-agave-500';
 
   return (
@@ -115,6 +125,34 @@ export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adm
                     <option value="gerente" disabled={!pro}>Gerente{pro ? '' : ' (Pro)'}</option>
                   </select>
                   <button onClick={() => { const pin = prompt(`Nuevo PIN para ${e.name} (4 a 6 números):`) || ''; if (/^\d{4,6}$/.test(pin) && pin !== adminPin && !team.some((x) => x.pin === pin && x.id !== e.id)) update(e.id, { pin }); else if (pin) alert('PIN inválido o ya en uso.'); }} className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-carbon-700 hover:bg-carbon-100">Cambiar PIN</button>
+                  <button onClick={() => update(e.id, { active: !e.active })} title={e.active ? 'Desactivar' : 'Activar'} className="rounded-lg p-2 text-carbon-600 hover:bg-carbon-100"><Power size={15} /></button>
+                  <button onClick={() => remove(e.id)} title="Eliminar" className="rounded-lg p-2 text-rose-600 hover:bg-rose-50"><Trash2 size={15} /></button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-3xl border border-carbon-950/10 bg-white p-6" data-tour="tip-waiters">
+          <h3 className="font-display text-lg font-bold text-carbon-950">Meseros para propinas ({tipsTeam.length})</h3>
+          <p className="mt-1 text-xs text-carbon-500">No entran al sistema ni necesitan PIN, y no cuentan en el límite de tu plan. La caja elige al mesero al cobrar y su propina sale a su nombre en el corte.</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <input className={input + ' flex-1 min-w-[160px]'} placeholder="Nombre del mesero (ej. Pepe)" value={tipName} onChange={(e) => setTipName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addTipWaiter(); }} />
+            {pro && branches.length > 1 && <select className={input + ' w-auto'} value={tipBranch} onChange={(e) => setTipBranch(e.target.value)}>
+              <option value="">Todas las sucursales</option>
+              {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>}
+            <button onClick={addTipWaiter} disabled={!tipName.trim()} className="disabled:opacity-40 inline-flex items-center gap-2 rounded-full bg-agave-600 hover:bg-agave-700 px-5 py-2.5 text-sm font-semibold text-white"><Plus size={16} /> Agregar</button>
+          </div>
+          {tipsTeam.length > 0 && (
+            <div className="mt-4 divide-y divide-carbon-950/10">
+              {tipsTeam.map((e) => (
+                <div key={e.id} className="py-2.5 flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${e.active ? 'bg-maiz-50 text-maiz-800' : 'bg-carbon-100 text-carbon-400'}`}>{e.name.slice(0, 1).toUpperCase()}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className={`font-semibold truncate ${e.active ? 'text-carbon-900' : 'text-carbon-400 line-through'}`}>{e.name}</div>
+                    {branches.length > 1 && <div className="text-xs text-carbon-500">{branches.find((b) => b.id === e.branchId)?.name || 'Todas las sucursales'}</div>}
+                  </div>
                   <button onClick={() => update(e.id, { active: !e.active })} title={e.active ? 'Desactivar' : 'Activar'} className="rounded-lg p-2 text-carbon-600 hover:bg-carbon-100"><Power size={15} /></button>
                   <button onClick={() => remove(e.id)} title="Eliminar" className="rounded-lg p-2 text-rose-600 hover:bg-rose-50"><Trash2 size={15} /></button>
                 </div>

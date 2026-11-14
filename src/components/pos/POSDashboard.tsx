@@ -4,7 +4,7 @@ import { useCalculator } from '../../hooks/useCalculator';
 import type { CartItem, POSPaymentMethod, OrderDestination, OpenTicket, ServiceType, OrderTypeInfo, ReopenInfo } from '../../types/pos';
 import { orderTypeLines, orderTypeLabel, pickOrderType } from '../../lib/orderType';
 import { Plus, Trash2, ShoppingCart, Minus, CreditCard, Save, History, Bike, Lock, Search, X, CheckCircle, Gift, UserPlus, AlertTriangle, Check } from 'lucide-react';
-import { isPro, authorizeWithPin, useSession, lockSession } from '../../lib/session';
+import { isPro, authorizeWithPin, useSession, lockSession, tipWaiters } from '../../lib/session';
 import { getClients, addClient, recordVisit, rewardReady, rewardDiscount, getLoyalty, type Client } from '../../lib/clients';
 import { applySaleToInventory, type StockAlert } from '../../lib/inventoryAuto';
 import { apiPost } from '../../lib/api';
@@ -208,6 +208,11 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
     showToast(`Se agregó "${name}"`);
   };
   const [resumedWaiter, setResumedWaiter] = useState<{ id: string; name: string } | null>(null);
+  // Meseros que la caja puede elegir (incluye "solo propinas"); si la cuenta trae un mesero que ya no está en la lista, se conserva
+  const waiterOptions: { id: string; name: string }[] = (() => {
+    const list = tipWaiters().map((e) => ({ id: e.id, name: e.name }));
+    return resumedWaiter && !list.some((w) => w.id === resumedWaiter.id) ? [resumedWaiter, ...list] : list;
+  })();
 
   const requirePin = (action: () => void) => {
     setPinAction(() => action);
@@ -1053,6 +1058,17 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                                 <Gift size={12} /> {courtesy ? 'CORTESÍA' : 'Cortesía'}
                             </button>
                         </div>}
+                        {!waiterMode && orderDestination === 'Tienda' && (waiterOptions.length > 0 || resumedWaiter) && (
+                            <div className="flex items-center gap-2 bg-slate-950/50 border border-carbon-950/10 rounded-xl px-3 py-1.5">
+                                <label htmlFor="pos-waiter" className="text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Mesero:</label>
+                                <select id="pos-waiter" value={resumedWaiter?.id || ''}
+                                    onChange={(e) => { const w = waiterOptions.find((x) => x.id === e.target.value); setResumedWaiter(w ? { id: w.id, name: w.name } : null); }}
+                                    className={cn("min-w-0 flex-grow bg-transparent text-xs font-bold outline-none text-right", resumedWaiter ? "text-carbon-950" : "text-slate-500")}>
+                                    <option value="">Sin mesero</option>
+                                    {waiterOptions.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}
+                                </select>
+                            </div>
+                        )}
                         {!waiterMode && orderDestination === 'Tienda' && !courtesy && (
                             <div className="flex items-center gap-2 bg-slate-950/50 border border-carbon-950/10 rounded-xl px-3 py-1.5">
                                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Propina:</span>
