@@ -3,7 +3,7 @@ import { usePOS } from '../../hooks/usePOS';
 import { useCalculator } from '../../hooks/useCalculator'; 
 import type { CartItem, POSPaymentMethod, OrderDestination, OpenTicket, ServiceType, OrderTypeInfo } from '../../types/pos';
 import { orderTypeLines, orderTypeLabel, pickOrderType } from '../../lib/orderType';
-import { Plus, Trash2, ShoppingCart, Minus, CreditCard, Save, History, Bike, Lock, Search, X, CheckCircle, Gift, UserPlus, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, ShoppingCart, Minus, CreditCard, Save, History, Bike, Lock, Search, X, CheckCircle, Gift, UserPlus, AlertTriangle, Check } from 'lucide-react';
 import { isPro, authorizeWithPin, useSession, lockSession } from '../../lib/session';
 import { getClients, addClient, recordVisit, rewardReady, rewardDiscount, getLoyalty, type Client } from '../../lib/clients';
 import { applySaleToInventory, type StockAlert } from '../../lib/inventoryAuto';
@@ -25,6 +25,16 @@ function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
 
+
+const PAY_COLOR: Record<string, string> = {
+    'Efectivo': '#15803d',
+    'Tarjeta': '#1d4ed8',
+    'Transferencia': '#7e22ce',
+    'Didi': '#ea580c',
+    'Didi Efectivo': '#a16207',
+    'Uber': '#111827',
+    'Rappi': '#e11d48',
+};
 export function POSDashboard() {
   const { addTransaction, openTickets, saveTicket, deleteOpenTicket, refreshOpenTickets, settings, updateSettings, transactions } = usePOS();
   // Cuentas abiertas de otros dispositivos (meseros, otra caja): cada 10 s con la pantalla visible y al volver a ella
@@ -688,17 +698,29 @@ export function POSDashboard() {
 
                 <div className="flex items-center justify-between mb-6 p-4 bg-slate-950/50 rounded-2xl border border-carbon-950/10">
                     <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Método de Pago</div>
-                    <div className="flex gap-2">
-                        {availablePaymentMethods.map(m => (
-                            <button
-                                key={m}
-                                onClick={() => setPaymentMethod(m)}
-                                className={cn(
-                                    "px-3 py-1.5 rounded-lg text-[10px] font-black transition-all",
-                                    paymentMethod === m ? "bg-carbon-950/10 text-carbon-950 border border-carbon-950/20" : "text-slate-600 hover:text-slate-400"
-                                )}
-                            >{m.toUpperCase()}</button>
-                        ))}
+                    <div className="flex flex-wrap justify-end gap-2">
+                        {availablePaymentMethods.map(m => {
+                            // Color fijo por forma de pago para que la caja vea de un vistazo cómo está cobrando
+                            const c = PAY_COLOR[m] || '#475569';
+                            const on = paymentMethod === m;
+                            return (
+                                <button
+                                    key={m}
+                                    onClick={() => setPaymentMethod(m)}
+                                    aria-pressed={on}
+                                    style={on
+                                        ? { background: c, borderColor: c, color: '#fff', boxShadow: `0 6px 16px -6px ${c}` }
+                                        : { background: `${c}14`, borderColor: `${c}55`, color: c }}
+                                    className={cn(
+                                        "px-4 py-2 rounded-xl text-xs font-black border-2 transition-all active:scale-95 flex items-center gap-1.5",
+                                        on && "scale-105"
+                                    )}
+                                >
+                                    {on && <Check size={14} strokeWidth={3} />}
+                                    {m.toUpperCase()}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
