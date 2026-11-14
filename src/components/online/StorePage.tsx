@@ -195,22 +195,35 @@ function Menu({ slug, onOrdered }: { slug: string; onOrdered: (t: string) => voi
           </header>
 
           {/* Buscador + categorías */}
-          <nav className="sticky top-0 z-20 -mx-3 mt-4 bg-[#F6F5F1]/95 px-3 pb-3 pt-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-0 lg:px-0">
+          <nav id="store-nav" className="sticky top-0 z-20 -mx-3 mt-4 bg-[#F6F5F1]/95 px-3 pb-3 pt-3 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-0 lg:px-0">
             <div className="relative">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-400" />
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={`Buscar en el menú${totalItems > 8 ? ` (${totalItems} platillos)` : ''}`}
                 className="w-full rounded-2xl border border-carbon-200 bg-white py-3 pl-11 pr-10 text-[15px] outline-none transition-colors focus:border-carbon-400" />
               {search && <button onClick={() => setSearch('')} aria-label="Limpiar" className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-carbon-500 hover:bg-carbon-100"><X className="h-4 w-4" /></button>}
             </div>
-            {sections.length > 1 && !q && (
-              <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto">
-                {sections.map((s) => (
-                  <button key={s.id} onClick={() => { const el = document.getElementById('cat-' + s.id); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 140, behavior: 'smooth' }); }}
-                    className={`shrink-0 rounded-full px-4 py-1.5 text-[13px] font-semibold transition-colors ${activeCat === s.id ? 'text-white' : 'bg-white text-carbon-700 ring-1 ring-carbon-200 hover:bg-carbon-50'}`}
-                    style={activeCat === s.id ? { background: brand } : undefined}>{s.name}</button>
-                ))}
-              </div>
-            )}
+            {sections.length > 1 && !q && (() => {
+              const goCat = (id: string) => { const el = document.getElementById('cat-' + id); if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - ((document.getElementById('store-nav')?.offsetHeight ?? 130) - 2), behavior: 'smooth' }); };
+              return (<>
+                {/* Celular: lista desplegable */}
+                <div className="mt-3 md:hidden">
+                  <label className="sr-only" htmlFor="store-cat">Categoría</label>
+                  <select id="store-cat" value={activeCat} onChange={(e) => { setActiveCat(e.target.value); goCat(e.target.value); }}
+                    className="w-full appearance-none rounded-2xl border border-carbon-200 bg-white py-3 pl-4 pr-10 text-[15px] font-semibold text-carbon-800 outline-none focus:border-carbon-400"
+                    style={{ backgroundRepeat: 'no-repeat', backgroundSize: '16px', backgroundPosition: 'right 14px center', backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23334155' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")" }}>
+                    {sections.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.items.length})</option>)}
+                  </select>
+                </div>
+                {/* Tablet/compu: etiquetas en renglones (sin scroll de lado, se ven todas) */}
+                <div className="mt-3 hidden flex-wrap gap-1.5 md:flex">
+                  {sections.map((s) => (
+                    <button key={s.id} onClick={() => goCat(s.id)}
+                      className={`whitespace-nowrap rounded-full px-3 py-1 text-[12.5px] font-semibold transition-colors ${activeCat === s.id ? 'text-white' : 'bg-white text-carbon-700 ring-1 ring-carbon-200 hover:bg-carbon-50'}`}
+                      style={activeCat === s.id ? { background: brand } : undefined}>{s.name}</button>
+                  ))}
+                </div>
+              </>);
+            })()}
           </nav>
 
           {/* Platillos */}
