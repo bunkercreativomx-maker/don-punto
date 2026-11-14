@@ -13,6 +13,16 @@ export interface OrderTypeInfo {
   orderRef?: string;
   /** Pedido de la tienda en línea */
   online?: 'pickup' | 'delivery';
+  /** Cuenta que viene de reabrir una venta cobrada (para el corte: antes → después) */
+  reopenedFrom?: ReopenInfo;
+}
+
+export interface ReopenInfo {
+  /** Venta original que se reabrió */
+  txId: string;
+  /** Monto que tenía antes de reabrirla */
+  amount: number;
+  detail?: string;
 }
 
 export interface CartItem {

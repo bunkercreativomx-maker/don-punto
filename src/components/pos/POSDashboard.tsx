@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { usePOS } from '../../hooks/usePOS';
 import { useCalculator } from '../../hooks/useCalculator'; 
-import type { CartItem, POSPaymentMethod, OrderDestination, OpenTicket, ServiceType, OrderTypeInfo } from '../../types/pos';
+import type { CartItem, POSPaymentMethod, OrderDestination, OpenTicket, ServiceType, OrderTypeInfo, ReopenInfo } from '../../types/pos';
 import { orderTypeLines, orderTypeLabel, pickOrderType } from '../../lib/orderType';
 import { Plus, Trash2, ShoppingCart, Minus, CreditCard, Save, History, Bike, Lock, Search, X, CheckCircle, Gift, UserPlus, AlertTriangle, Check } from 'lucide-react';
 import { isPro, authorizeWithPin, useSession, lockSession } from '../../lib/session';
@@ -133,7 +133,9 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
     io.observe(el);
     return () => io.disconnect();
   }, []);
-  const orderType: OrderTypeInfo = pickOrderType({ service: orderDestination === 'Tienda' ? (service || undefined) : undefined, table: orderDestination === 'Tienda' && service === 'aqui' ? table : undefined, orderRef: orderDestination === 'Didi' ? orderRef : undefined });
+  // Si la cuenta viene de reabrir una venta, se arrastra el monto original para el corte (antes → después)
+  const [reopened, setReopened] = useState<ReopenInfo | null>(null);
+  const orderType: OrderTypeInfo = pickOrderType({ service: orderDestination === 'Tienda' ? (service || undefined) : undefined, table: orderDestination === 'Tienda' && service === 'aqui' ? table : undefined, orderRef: orderDestination === 'Didi' ? orderRef : undefined, reopenedFrom: reopened || undefined });
   /** Qué falta para poder cobrar o guardar la orden */
   const missingOrderInfo = (): string => {
     if (orderDestination === 'Tienda' && !service) return 'Elige si es para COMER AQUÍ o PARA LLEVAR.';
@@ -151,7 +153,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
   const busyMsg = (tk: OpenTicket) => `La MESA ${tableKey(tk.table)} ya tiene una cuenta abierta${tk.waiterName ? ` (${tk.waiterName})` : ''}. Agrégale desde TICKETS (Reanudar) o cambia el número de mesa.`;
   const localBusy = orderType.table ? busyTicket(openTickets, orderType.table) : undefined;
   const [checkingTable, setCheckingTable] = useState(false);
-  const resetOrderType = () => { setService(''); setTable(''); setOrderRef(''); setOrderError(''); };
+  const resetOrderType = () => { setService(''); setTable(''); setOrderRef(''); setOrderError(''); setReopened(null); };
   useEffect(() => { setOrderError(''); }, [orderDestination, service, orderRef, orderCustomerName, table]);
   // Clientes frecuentes (Pro)
   const pro = isPro();
@@ -251,7 +253,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
   const [pickQty, setPickQty] = useState<Record<string, number>>({});
   const [splitError, setSplitError] = useState('');
   /** Lo que falta por cobrar cuando se cobra por platillos (la parte cobrada ya salió del carrito) */
-  const [splitRest, setSplitRest] = useState<{ items: CartItem[]; customerName: string; service: ServiceType | ''; table: string; orderRef: string; waiter: { id: string; name: string } | null; guests: string; destination: OrderDestination; paidParts: number } | null>(null);
+  const [splitRest, setSplitRest] = useState<{ items: CartItem[]; customerName: string; service: ServiceType | ''; table: string; orderRef: string; waiter: { id: string; name: string } | null; guests: string; destination: OrderDestination; paidParts: number; reopened?: ReopenInfo | null } | null>(null);
 
   // Search query state
   const [searchQuery, setSearchQuery] = useState('');
@@ -476,6 +478,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
         setOrderDestination(r.destination);
         setOrderCustomerName(r.customerName);
         setService(r.service); setTable(r.table); setOrderRef(r.orderRef);
+        setReopened(r.reopened || null);
         setResumedWaiter(r.waiter);
         setGuests(r.guests);
         setSplitRest(null);
@@ -528,7 +531,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
     if (!rest.length) { setSplitError('Marcaste toda la cuenta: ciérrala y usa FINALIZAR normal.'); return; }
     setSplitRest((prev) => ({
       items: prev ? mergeItems(rest, prev.items) : rest,
-      customerName: orderCustomerName, service, table, orderRef, waiter: resumedWaiter, guests, destination: orderDestination,
+      customerName: orderCustomerName, service, table, orderRef, waiter: resumedWaiter, guests, destination: orderDestination, reopened,
       paidParts: (prev?.paidParts || 0) + 1,
     }));
     setCart(part);
@@ -599,6 +602,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
       setResumedWaiter(ticket.waiterId && ticket.waiterName ? { id: ticket.waiterId, name: ticket.waiterName } : null);
       setGuests(ticket.guests ? String(ticket.guests) : '');
       setService(ticket.service || ''); setTable(ticket.table || ''); setOrderRef(ticket.orderRef || ''); setOrderError('');
+      setReopened(ticket.reopenedFrom || null);
       deleteOpenTicket(ticket.id);
       setIsTicketsModalOpen(false);
   };

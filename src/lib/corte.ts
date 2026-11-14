@@ -75,6 +75,9 @@ export interface CorteData {
   propinas: number;
   reimpresiones: number;
   reaperturas: number;
+  /** Cuentas reabiertas: monto antes y en cuánto se volvió a cobrar (null = no se volvió a cobrar) */
+  reaperturasDetalle: { date: string; detail?: string; byName?: string; antes: number; despues: number | null; diff: number | null }[];
+  reaperturasDiff: number;
   incidencias: { date: string; type: string; amount: number; detail?: string; byName?: string }[];
 }
 
@@ -216,6 +219,13 @@ export function buildCorte(a: BuildArgs): CorteData {
   const evs = a.events.filter((e) => inWindow(e.date));
   const reimpresiones = evs.filter((e) => e.type === 'reimpresion').length;
   const reaperturas = evs.filter((e) => e.type === 'reapertura').length;
+  // Antes → después: la venta nueva trae reopenedFrom.txId = venta reabierta (si se cobró por partes, se suman)
+  const reaperturasDetalle = evs.filter((e) => e.type === 'reapertura').map((e) => {
+    const nuevas = a.allTxs.filter((t) => t.reopenedFrom?.txId === e.txId);
+    const despues = nuevas.length ? r2(sum(nuevas.map((t) => t.amount))) : null;
+    return { date: e.date, detail: e.detail, byName: e.byName, antes: r2(e.amount), despues, diff: despues === null ? null : r2(despues - e.amount) };
+  }).sort((x, y) => x.date.localeCompare(y.date));
+  const reaperturasDiff = r2(sum(reaperturasDetalle.map((x) => x.diff ?? 0)));
   const incidencias = [
     ...canc.map((c) => ({ date: c.date, type: 'Cancelación', amount: c.amount, detail: c.detail, byName: c.byName })),
     ...evs.filter((e) => e.type === 'reapertura').map((e) => ({ date: e.date, type: 'Reapertura', amount: e.amount, detail: e.detail, byName: e.byName })),
@@ -250,7 +260,7 @@ export function buildCorte(a: BuildArgs): CorteData {
     canceladas: { count: canc.length, amount: cancAmt, pct: total + cancAmt ? (cancAmt / (total + cancAmt)) * 100 : 0 },
     cortesias: { count: cortesiaTx.length, amount: sum(cortesiaTx.map((t) => t.discountAmount || 0)) },
     descuentos: { count: descTx.length, amount: sum(descTx.map((t) => t.discountAmount || 0)) },
-    propinas, reimpresiones, reaperturas, incidencias,
+    propinas, reimpresiones, reaperturas, reaperturasDetalle, reaperturasDiff, incidencias,
   };
 }
 

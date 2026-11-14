@@ -176,6 +176,18 @@ export function CorteCaja({ d, branchName, logoUrl }: { d: CorteData; branchName
         </Box>
       </div>
 
+      {d.reaperturasDetalle.length > 0 && (
+        <Box title="CUENTAS REABIERTAS · ANTES → DESPUÉS">
+          {d.reaperturasDetalle.map((x, i) => (
+            <div key={i} className="cd-row">
+              <span>{ft(x.date)}{x.detail ? ` · ${x.detail.slice(0, 60)}` : ''}{x.byName ? ` · ${x.byName}` : ''}</span>
+              <span>{$(x.antes)} → {x.despues === null ? 'SIN COBRAR' : $(x.despues)}{x.diff !== null ? `  (${x.diff < 0 ? '−' : '+'}${$(Math.abs(x.diff))})` : ''}</span>
+            </div>
+          ))}
+          <div className="cd-row"><span><b>Total de diferencias</b></span><span><b>{d.reaperturasDiff < 0 ? '−' : '+'}{$(Math.abs(d.reaperturasDiff))}</b></span></div>
+        </Box>
+      )}
+
       {d.incidencias.length > 0 && (
         <Box title="EVENTOS DE SEGURIDAD (CANCELACIONES, REAPERTURAS Y CORTESÍAS)">
           {d.incidencias.slice(0, 30).map((e, i) => (

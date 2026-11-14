@@ -26,5 +26,6 @@ export function pickOrderType(o: OrderTypeInfo): OrderTypeInfo {
   if (o.table?.trim()) r.table = o.table.trim();
   if (o.orderRef?.trim()) r.orderRef = o.orderRef.trim().replace(/^#+/, '');
   if (o.online) r.online = o.online;
+  if (o.reopenedFrom) r.reopenedFrom = o.reopenedFrom;
   return r;
 }

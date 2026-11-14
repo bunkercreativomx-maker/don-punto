@@ -102,6 +102,7 @@ export function usePOS() {
       waiterId: tx.waiterId, waiterName: tx.waiterName,
       ...(tx.guests ? { guests: tx.guests } : {}),
       ...pickOrderType(tx),
+      reopenedFrom: { txId: tx.id, amount: tx.amount, ...(tx.customerName ? { detail: tx.customerName } : {}) },
     };
     setTransactions((prev) => prev.filter((t) => t.id !== id));
     setOpenTickets((prev) => [ticket, ...prev]);

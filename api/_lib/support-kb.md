@@ -89,7 +89,7 @@ No hay un método "transferencia" al cobrar en el Punto de Venta; sí aparece co
 - **Reimprimir:** ve a **Tickets**, busca por folio, cliente o producto (filtros **Hoy**, **Ayer**, **Todos** o fecha), selecciona el ticket y toca **CLIENTE** o **COCINA**. Reimprimir no crea otra venta; las reimpresiones de cliente quedan anotadas en el corte.
 
 ### Cancelar o corregir una venta ya cobrada
-- **Corregir:** en **Tickets**, selecciona la venta y toca **REABRIR** (PIN de dueño o gerente). La venta sale del registro y vuelve a **Tickets Abiertos** para corregirla y cobrarla de nuevo. Queda anotado en el corte. No se puede reabrir si su turno ya se cerró.
+- **Corregir:** en **Tickets**, selecciona la venta y toca **REABRIR** (PIN de dueño o gerente). La venta sale del registro y vuelve a **Tickets Abiertos** para corregirla y cobrarla de nuevo. En el corte (pantalla, PDF y ticket térmico) sale la sección **Cuentas reabiertas** con el monto de antes, el de después y la diferencia (o **SIN COBRAR** si no se volvió a cobrar). No se puede reabrir si su turno ya se cerró.
 - **Cancelar (borrar) una venta:** en **Reportes**, elige la fecha, y en la lista de transacciones toca el bote de basura de esa venta. Queda registrada como cancelación en el corte y en el reporte por persona.
 
 ### Turnos y corte de caja

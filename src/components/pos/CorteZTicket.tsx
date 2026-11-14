@@ -78,6 +78,21 @@ export function CorteZTicket({ d }: { d: CorteData }) {
       <R l="Reimpresiones:" v={String(d.reimpresiones)} />
       <R l="Reaperturas:" v={String(d.reaperturas)} />
 
+      {d.reaperturasDetalle.length > 0 && (
+        <>
+          <H t="Cuentas reabiertas" />
+          {d.reaperturasDetalle.map((x, i) => (
+            <div key={i} className="mb-1">
+              <p className="text-[10px] font-bold">{fdt(new Date(x.date))}{x.detail ? ` ${x.detail}` : ''}{x.byName ? ` (${x.byName})` : ''}</p>
+              <R l="Antes:" v={$(x.antes)} />
+              <R l="Despues:" v={x.despues === null ? 'SIN COBRAR' : $(x.despues)} />
+              {x.diff !== null && <R l="Diferencia:" v={`${x.diff < 0 ? '-' : '+'}${$(Math.abs(x.diff))}`} b />}
+            </div>
+          ))}
+          <R l="Total diferencias:" v={`${d.reaperturasDiff < 0 ? '-' : '+'}${$(Math.abs(d.reaperturasDiff))}`} b />
+        </>
+      )}
+
       <div className="text-center pt-6 mt-4 border-t border-black border-dotted">
         <p className="mb-6">______________________</p>
         <p className="font-bold text-xs uppercase">Firma del cajero</p>
