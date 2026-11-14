@@ -204,7 +204,7 @@ function Setup({ uid, suggestedName, phone, address, rows, categories, modifierG
         <p className="mt-2 text-carbon-600">Tus clientes ven tu menú con fotos y piden para recoger o a domicilio. Sin comisiones por pedido: el pedido te llega aquí y tú cobras directo.</p>
         <div className="mt-6 space-y-4">
           <label className="block"><span className="text-[13px] font-semibold text-carbon-600">Nombre del restaurante</span>
-            <input value={name} onChange={(e) => { setName(e.target.value); setSlug(slugify(e.target.value)); }} className="mt-1 w-full rounded-xl border border-carbon-200 px-4 py-3 outline-none focus:border-agave-500" placeholder="Café Veracruzano" />
+            <input value={name} onChange={(e) => { setName(e.target.value); setSlug(slugify(e.target.value)); }} className="mt-1 w-full rounded-xl border border-carbon-200 px-4 py-3 outline-none focus:border-agave-500" placeholder="El nombre de tu tienda" />
           </label>
           <SlugField slug={slug} setSlug={setSlug} check={check} />
           {err && <p className="text-sm font-semibold text-red-600">{err}</p>}
