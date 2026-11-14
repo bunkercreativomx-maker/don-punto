@@ -216,17 +216,45 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
               if (!headers.some(h => PRICE_KEYS.includes(h))) {
                   const body = grid.slice(headerIdx + 1, headerIdx + 60);
                   const isNum = (c: number) => body.filter(r => toPrice(r[c]) > 0 && /^[\s$\d.,]+$/.test(String(r[c]))).length / Math.max(1, body.filter(r => r.some(x => String(x).trim())).length);
-                  const byName = headers.findIndex(h => /precio|price|pvp|importe|venta|\$/.test(h));
+                  const byName = ((i: number) => i >= 0 ? i : headers.findIndex(h => /importe|precio de venta|\$/.test(h) && !/disponible/.test(h)))(headers.findIndex(h => /precio|price|pvp/.test(h) && !/disponible|opcion/.test(h)));
                   const byCost = headers.findIndex(h => /costo|cost/.test(h));
                   const byNum = [...Array(Math.max(headers.length, ...body.map(r => r.length))).keys()].find(i => isNum(i) > 0.5 && !/id|sku|clave|codigo|cantidad|stock/.test(headers[i] || ''));
                   const pc = byName >= 0 ? byName : byNum !== undefined ? byNum : byCost;
                   if (pc !== undefined && pc >= 0) headers[pc] = 'precio';
               }
-              const json: any[] = grid.slice(headerIdx + 1).map(r => {
+              let json: any[] = grid.slice(headerIdx + 1).map(r => {
                   const o: any = {};
                   headers.forEach((h, i) => { if (h && !(h in o)) o[h] = r[i] ?? ""; });
                   return o;
               });
+              // Exportación de Loyverse: una fila por variante (Handle repetido) y la variante dice el canal
+              // ("Plaza", "DIDI", "2 Ubereats", "DiDi 20 Piezas"…). Se agrupan en un producto con precio por canal.
+              const lvPrice = headers.find(h => h === 'precio' || /^precio \[/.test(h));
+              if (headers.includes('handle') && headers.includes('opcion 1 valor') && lvPrice) {
+                  type Ch = 'tienda' | 'didi' | 'uber' | 'rappi';
+                  const chOf = (v: string): Ch => /didi/i.test(v) ? 'didi' : /uber/i.test(v) ? 'uber' : /rappi/i.test(v) ? 'rappi' : 'tienda';
+                  const out = new Map<string, any>();
+                  let cur: { handle: string, name: string, cat: string } | null = null;
+                  for (const r of json) {
+                      const handle = String(r['handle'] ?? '').trim();
+                      if (!handle) continue;
+                      if (!cur || cur.handle !== handle || String(r['nombre'] ?? '').trim()) {
+                          if (!cur || cur.handle !== handle) cur = { handle, name: String(r['nombre'] ?? '').trim(), cat: String(r['categoria'] ?? '').trim() };
+                      }
+                      if (!cur.name) continue;
+                      const v = String(r['opcion 1 valor'] ?? '').trim();
+                      const ch = chOf(v);
+                      let rest = v.replace(/didi|uber ?eats|uber|rappi|plaza/gi, '').replace(/\b(piezas|pzas)\b/gi, '').replace(/\s+/g, ' ').trim();
+                      if (/^\d$/.test(rest) && /^\d\s+\D/.test(v)) rest = '';
+                      const name = rest ? `${cur.name} ${rest}` : cur.name;
+                      const key = `${handle}|${rest.toLowerCase()}`;
+                      let row = out.get(key);
+                      if (!row) { row = { platillo: name, categoria: cur.cat, 'item id': key, __prices: {} }; out.set(key, row); }
+                      const price = toPrice(r[lvPrice]);
+                      if (row.__prices[ch] === undefined || ch !== 'tienda') row.__prices[ch] = price;
+                  }
+                  json = [...out.values()];
+              }
               const pick = (row: any, keys: string[]) => { for (const k of keys) { const v = row[k]; if (v !== undefined && String(v).trim() !== '') return v; } return ''; };
               const foundHeaders = headers.filter(Boolean).join(', ');
               
@@ -269,6 +297,7 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                       }
                   }
 
+                  const chp: Partial<Record<'tienda' | 'didi' | 'uber' | 'rappi', number>> | undefined = normalizedRow.__prices;
                   // 2. Process Product Base
                   const existingProduct = currentProducts.find(p => p.name.trim().toLowerCase() === productName.toLowerCase() || p.id === itemId);
                   const prodId = existingProduct ? existingProduct.id : undefined;
@@ -299,6 +328,14 @@ function App({ userEmail, onLogout, onBilling }: AppProps) {
                           modifierGroupIds: existingProduct && existingProduct.modifierGroupIds ? [...existingProduct.modifierGroupIds] : []
                       };
                       importedProductsMap.set(itemId, prod);
+                      if (chp) {
+                          prod.salePrice = selectedPlatforms.tienda && chp.tienda !== undefined ? chp.tienda : (existingProduct ? existingProduct.salePrice : 0);
+                          prod.didiPrice = selectedPlatforms.didi && chp.didi !== undefined ? chp.didi : existingProduct?.didiPrice;
+                          prod.uberPrice = selectedPlatforms.uber && chp.uber !== undefined ? chp.uber : existingProduct?.uberPrice;
+                          prod.rappiPrice = selectedPlatforms.rappi && chp.rappi !== undefined ? chp.rappi : existingProduct?.rappiPrice;
+                      }
+                  } else if (chp) {
+                      // mismo producto repetido: ya trae sus precios por canal
                   } else {
                       if (selectedPlatforms.didi) prod.didiPrice = basePrice;
                       if (selectedPlatforms.uber) prod.uberPrice = basePrice;
