@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Lock, Delete } from 'lucide-react';
 
 /** Teclado de PIN (sirve en pantalla táctil y con teclado físico) */
 export function PinPad({
-  title, subtitle, onSubmit, onClose, error,
-}: { title: string; subtitle?: string; onSubmit: (pin: string) => boolean | string; onClose?: () => void; error?: string }) {
+  title, subtitle, onSubmit, onClose, error, footer,
+}: { title: string; subtitle?: string; onSubmit: (pin: string) => boolean | string; onClose?: () => void; error?: string; footer?: ReactNode }) {
   const [pin, setPin] = useState('');
   const [bad, setBad] = useState<string | false>(false);
   const submit = (p = pin) => {
@@ -43,6 +43,7 @@ export function PinPad({
             <button type="button" onClick={() => press('0')} className="h-14 rounded-2xl bg-carbon-50 hover:bg-carbon-100 active:scale-95 text-xl font-bold text-carbon-900">0</button>
             <button type="button" onClick={() => submit()} className="h-14 rounded-2xl bg-agave-600 hover:bg-agave-700 text-white font-bold text-sm">Entrar</button>
           </div>
+          {footer}
           {onClose && <button type="button" onClick={onClose} className="mt-3 w-full py-2.5 text-sm font-semibold text-carbon-600 hover:text-carbon-900">Cancelar</button>}
         </div>
       </div>

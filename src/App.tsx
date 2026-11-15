@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { useCalculator } from './hooks/useCalculator';
 import type { Platform, PaymentMethod } from './types/calculator';
-import { CreditCard, BarChart3, ShoppingBasket, Calculator, Layers, User, LineChart, Settings, Plus, Lock, Key, Sparkles, Receipt, LogOut, FileSpreadsheet, TrendingUp, Package, Target, BookOpen, Wallet, Search, Users, Store, UserCog, LockOpen, ChevronDown, Bike, MessageCircle, Menu as MenuIcon, X } from 'lucide-react';
+import { CreditCard, BarChart3, ShoppingBasket, Calculator, Layers, User, LineChart, Settings, Plus, Lock, Key, Sparkles, Receipt, LogOut, FileSpreadsheet, TrendingUp, Package, Target, BookOpen, Wallet, Search, Users, Store, UserCog, LockOpen, ChevronDown, Bike, MessageCircle, Menu as MenuIcon, X, Clock } from 'lucide-react';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { ProfitGrid } from './components/ProfitGrid';
@@ -29,6 +29,7 @@ import { money } from './lib/format';
 import { openSupport } from './lib/support';
 import { WelcomeTour, shouldAutoStartTour } from './components/onboarding/WelcomeTour';
 import { PinPad } from './components/access/PinPad';
+import { ClockModal } from './components/team/ClockModal';
 import { useSession, findOperatorByPin, ROLE_LABEL, signIn, canAccess as canAccessAs, lockSession, requiresCashierLogin, currentBranch, getBranches, isPro, TAB_LABEL, CAJA_CONFIGURABLE, getCajaTabs, setCajaTabs, type Tab } from './lib/session';
 import { setActiveBranch } from './lib/cloudStore';
 import { daysLeft, fmtDay } from './lib/founders';
@@ -546,6 +547,8 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
   // ---- Acceso: quién usa este equipo y qué puede ver
   const { operator, canAccess } = useSession();
   const [pinFor, setPinFor] = useState<Tab | 'switch' | null>(null);
+  // Checador (entrada/salida del personal): se abre sin PIN de sesión; cada quien checa con el suyo
+  const [clockOpen, setClockOpen] = useState(false);
   const [branchMenu, setBranchMenu] = useState(false);
   // Celular/tablet: la barra lateral es un panel que se abre con el botón ☰ (en lg es fija)
   const [navOpen, setNavOpen] = useState(false);
@@ -648,11 +651,17 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
       )}
 
       {/* --- PIN: desbloquear pantallas / cambiar de cajero --- */}
-      {(pinFor || needCashier) && (
+      {clockOpen && <ClockModal ownerPin={posSettings.adminPin} onClose={() => setClockOpen(false)} />}
+      {(pinFor || needCashier) && !clockOpen && (
           <PinPad
               title={needCashier || pinFor === 'switch' ? '¿Quién eres?' : `Desbloquear ${TAB_LABEL[pinFor as Tab]}`}
               subtitle={needCashier || pinFor === 'switch' ? 'Escribe tu PIN para empezar.' : 'Esta sección está protegida. Escribe el PIN del dueño o de un gerente.'}
               onClose={needCashier ? undefined : () => setPinFor(null)}
+              footer={(needCashier || pinFor === 'switch') && !expired ? (
+                  <button type="button" onClick={() => { setPinFor(null); setClockOpen(true); }} className="mt-3 w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-agave-200 bg-agave-50 py-2.5 text-sm font-bold text-agave-800 hover:bg-agave-100">
+                      <Clock size={16} /> Solo checar entrada / salida
+                  </button>
+              ) : undefined}
               onSubmit={(pin) => {
                   const op = findOperatorByPin(pin, posSettings.adminPin);
                   if (!op) return false;
@@ -728,6 +737,11 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
               <button onClick={() => setPinFor('switch')} className="block text-[11px] font-bold text-agave-700 hover:text-agave-800 rounded-lg px-2 py-1 hover:bg-agave-50">Entrar</button>
             )}
           </div>
+          {!expired && (
+            <button type="button" data-tour="clock" onClick={() => { setNavOpen(false); setClockOpen(true); }} className="w-full flex items-center gap-2 rounded-xl border border-carbon-950/10 px-3 py-2 text-left text-xs font-semibold text-carbon-800 hover:bg-carbon-50">
+              <Clock size={16} className="text-agave-700 shrink-0" /> Checar entrada / salida
+            </button>
+          )}
         </div>
 
         <div className="w-full px-3">

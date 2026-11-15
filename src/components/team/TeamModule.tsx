@@ -5,6 +5,7 @@ import { usePOS } from '../../hooks/usePOS';
 import { storeGet } from '../../lib/cloudStore';
 import { money } from '../../lib/format';
 import { ProUpsell } from '../pro/ProUpsell';
+import { AttendanceReport } from './AttendanceReport';
 import type { Cancellation } from '../../types/pos';
 
 const ROLE_INFO: Record<Role, string> = {
@@ -67,7 +68,7 @@ export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adm
     if (!name) return setError('Escribe el nombre.');
     if (!/^\d{4,6}$/.test(pin)) return setError('El PIN debe ser de 4 a 6 números.');
     if (pin === (adminPin || '1234')) return setError('Ese PIN es el del dueño. Usa otro.');
-    if (team.some((e) => e.pin === pin)) return setError('Otro empleado ya usa ese PIN.');
+    if (allTeam.some((e) => e.pin === pin)) return setError('Otro empleado ya usa ese PIN.');
     saveTeam([...allTeam, { id: crypto.randomUUID(), name, pin, role: form.role, branchId: form.branchId || undefined, active: true }]);
     setForm({ name: '', pin: '', role: 'cajero', branchId: '' });
   };
@@ -79,9 +80,18 @@ export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adm
     saveTeam([...allTeam, { id: crypto.randomUUID(), name, pin: '', role: 'mesero', branchId: tipBranch || undefined, active: true, tipsOnly: true }]);
     setTipName('');
   };
+  // Meseros para propinas: PIN opcional que SOLO sirve para checar entrada/salida (no entran al sistema)
+  const setClockPin = (e: Employee) => {
+    const pin = (prompt(`PIN para que ${e.name} cheque su entrada y salida (4 a 6 números).\nSolo sirve para el checador, no para entrar al sistema.${e.pin ? '\nDéjalo vacío para quitarlo.' : ''}`) ?? '__cancel').trim();
+    if (pin === '__cancel') return;
+    if (!pin) { if (e.pin) update(e.id, { pin: '' }); return; }
+    if (!/^\d{4,6}$/.test(pin) || pin === (adminPin || '1234') || allTeam.some((x) => x.pin === pin && x.id !== e.id)) { alert('PIN inválido o ya en uso.'); return; }
+    update(e.id, { pin });
+  };
   const input = 'w-full rounded-xl border border-carbon-950/15 bg-white px-3 py-2.5 text-sm text-carbon-900 outline-none focus:border-agave-500';
 
   return (
+    <div className="space-y-6">
     <div className="grid gap-6 xl:grid-cols-5">
       <div className="xl:col-span-3 space-y-6">
         <div className="rounded-3xl border border-carbon-950/10 bg-white p-6">
@@ -124,7 +134,7 @@ export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adm
                     <option value="cajero">Cajero</option>
                     <option value="gerente" disabled={!pro}>Gerente{pro ? '' : ' (Pro)'}</option>
                   </select>
-                  <button onClick={() => { const pin = prompt(`Nuevo PIN para ${e.name} (4 a 6 números):`) || ''; if (/^\d{4,6}$/.test(pin) && pin !== adminPin && !team.some((x) => x.pin === pin && x.id !== e.id)) update(e.id, { pin }); else if (pin) alert('PIN inválido o ya en uso.'); }} className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-carbon-700 hover:bg-carbon-100">Cambiar PIN</button>
+                  <button onClick={() => { const pin = prompt(`Nuevo PIN para ${e.name} (4 a 6 números):`) || ''; if (/^\d{4,6}$/.test(pin) && pin !== (adminPin || '1234') && !allTeam.some((x) => x.pin === pin && x.id !== e.id)) update(e.id, { pin }); else if (pin) alert('PIN inválido o ya en uso.'); }} className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-carbon-700 hover:bg-carbon-100">Cambiar PIN</button>
                   <button onClick={() => update(e.id, { active: !e.active })} title={e.active ? 'Desactivar' : 'Activar'} className="rounded-lg p-2 text-carbon-600 hover:bg-carbon-100"><Power size={15} /></button>
                   <button onClick={() => remove(e.id)} title="Eliminar" className="rounded-lg p-2 text-rose-600 hover:bg-rose-50"><Trash2 size={15} /></button>
                 </div>
@@ -135,7 +145,7 @@ export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adm
 
         <div className="rounded-3xl border border-carbon-950/10 bg-white p-6" data-tour="tip-waiters">
           <h3 className="font-display text-lg font-bold text-carbon-950">Meseros para propinas ({tipsTeam.length})</h3>
-          <p className="mt-1 text-xs text-carbon-500">No entran al sistema ni necesitan PIN, y no cuentan en el límite de tu plan. La caja elige al mesero al cobrar y su propina sale a su nombre en el corte.</p>
+          <p className="mt-1 text-xs text-carbon-500">No entran al sistema y no cuentan en el límite de tu plan. La caja elige al mesero al cobrar y su propina sale a su nombre en el corte. Dales un <b>PIN para checar</b> y registran su entrada y salida en el checador.</p>
           <div className="mt-4 flex flex-wrap gap-2">
             <input className={input + ' flex-1 min-w-[160px]'} placeholder="Nombre del mesero (ej. Pepe)" value={tipName} onChange={(e) => setTipName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addTipWaiter(); }} />
             {pro && branches.length > 1 && <select className={input + ' w-auto'} value={tipBranch} onChange={(e) => setTipBranch(e.target.value)}>
@@ -151,8 +161,9 @@ export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adm
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${e.active ? 'bg-maiz-50 text-maiz-800' : 'bg-carbon-100 text-carbon-400'}`}>{e.name.slice(0, 1).toUpperCase()}</div>
                   <div className="flex-1 min-w-0">
                     <div className={`font-semibold truncate ${e.active ? 'text-carbon-900' : 'text-carbon-400 line-through'}`}>{e.name}</div>
-                    {branches.length > 1 && <div className="text-xs text-carbon-500">{branches.find((b) => b.id === e.branchId)?.name || 'Todas las sucursales'}</div>}
+                    <div className="text-xs text-carbon-500">{e.pin ? 'Checa con PIN ••••' : 'Sin PIN para checar'}{branches.length > 1 ? ` · ${branches.find((b) => b.id === e.branchId)?.name || 'Todas las sucursales'}` : ''}</div>
                   </div>
+                  <button onClick={() => setClockPin(e)} className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-carbon-700 hover:bg-carbon-100 whitespace-nowrap">{e.pin ? 'Cambiar PIN' : 'PIN para checar'}</button>
                   <button onClick={() => update(e.id, { active: !e.active })} title={e.active ? 'Desactivar' : 'Activar'} className="rounded-lg p-2 text-carbon-600 hover:bg-carbon-100"><Power size={15} /></button>
                   <button onClick={() => remove(e.id)} title="Eliminar" className="rounded-lg p-2 text-rose-600 hover:bg-rose-50"><Trash2 size={15} /></button>
                 </div>
@@ -199,6 +210,8 @@ export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adm
           </div>
         )}
       </div>
+    </div>
+    <AttendanceReport />
     </div>
   );
 }
