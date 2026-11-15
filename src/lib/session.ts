@@ -38,8 +38,14 @@ const OWNER_ONLY: Tab[] = ['settings', 'financial', 'team', 'branches'];
 
 // ---------------------------------------------------------------- equipo
 export type Role = 'mesero' | 'cajero' | 'gerente';
-/** tipsOnly = mesero "solo para propinas": no tiene PIN ni entra al sistema; la caja lo elige al cobrar. No cuenta en el límite del plan. */
-export interface Employee { id: string; name: string; pin: string; role: Role; branchId?: string; active: boolean; tipsOnly?: boolean }
+/** tipsOnly = mesero "solo para propinas": no tiene PIN ni entra al sistema; la caja lo elige al cobrar. No cuenta en el límite del plan.
+ *  clockOnly = personal que solo checa entrada/salida (cocinero, hostess…): su PIN no entra al sistema y no cuenta en el límite. `jobTitle` = su puesto. */
+export interface Employee { id: string; name: string; pin: string; role: Role; branchId?: string; active: boolean; tipsOnly?: boolean; clockOnly?: boolean; jobTitle?: string }
+/** Puestos que solo checan (sin acceso al sistema). "Otro" deja escribir el puesto. */
+export const CLOCK_JOBS = ['Cocinero(a)', 'Ayudante de cocina', 'Hostess', 'Bartender', 'Barista', 'Repartidor(a)', 'Lavaloza', 'Limpieza', 'Almacén'];
+/** Empleados que usan el sistema (cuentan en el límite del plan) */
+export const isSystemUser = (e: Employee) => !e.tipsOnly && !e.clockOnly;
+export const jobLabel = (e: Employee) => (e.clockOnly ? e.jobTitle || 'Solo checa' : e.tipsOnly ? 'Mesero (propinas)' : { mesero: 'Mesero', cajero: 'Cajero', gerente: 'Gerente' }[e.role]);
 const TEAM_KEY = 'donPuntoEquipo';
 export function getTeam(): Employee[] {
   try { return JSON.parse(storeGet(TEAM_KEY) || '[]'); } catch { return []; }
@@ -52,7 +58,7 @@ export function teamLimit(): number { return isPro() ? Infinity : BASIC_TEAM_LIM
 export function roleAllowed(r: Role): boolean { return isPro() || BASIC_ROLES.includes(r); }
 /** Empleados que pueden entrar hoy según el plan (si bajó de Pro a Básico, solo el primer cajero activo). */
 export function usableTeam(): Employee[] {
-  const active = getTeam().filter((e) => e.active && !e.tipsOnly && e.pin);
+  const active = getTeam().filter((e) => e.active && isSystemUser(e) && e.pin);
   if (isPro()) return active;
   return active.filter((e) => roleAllowed(e.role)).slice(0, BASIC_TEAM_LIMIT);
 }
@@ -61,7 +67,7 @@ export function usableTeam(): Employee[] {
 export function tipWaiters(): Employee[] {
   const usable = new Set(usableTeam().map((e) => e.id));
   const br = getActiveBranch();
-  return getTeam().filter((e) => e.active && e.role === 'mesero' && (e.tipsOnly || usable.has(e.id)) && (!e.branchId || e.branchId === br))
+  return getTeam().filter((e) => e.active && !e.clockOnly && e.role === 'mesero' && (e.tipsOnly || usable.has(e.id)) && (!e.branchId || e.branchId === br))
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 

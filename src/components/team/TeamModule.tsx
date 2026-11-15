@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Plus, Trash2, UserCog, ShieldCheck, Power } from 'lucide-react';
-import { useSession, isPro, getTeam, saveTeam, getBranches, teamLimit, roleAllowed, usableTeam, type Employee, type Role } from '../../lib/session';
+import { useSession, isPro, getTeam, saveTeam, getBranches, teamLimit, roleAllowed, usableTeam, isSystemUser, CLOCK_JOBS, type Employee, type Role } from '../../lib/session';
 import { usePOS } from '../../hooks/usePOS';
 import { storeGet } from '../../lib/cloudStore';
 import { money } from '../../lib/format';
@@ -18,12 +18,15 @@ export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adm
   useSession();
   const allTeam = getTeam();
   const team = allTeam.filter((e) => !e.tipsOnly);
+  const systemTeam = team.filter(isSystemUser);
   const tipsTeam = allTeam.filter((e) => e.tipsOnly);
   const [tipName, setTipName] = useState('');
   const [tipBranch, setTipBranch] = useState('');
   const branches = getBranches();
   const { transactions } = usePOS();
-  const [form, setForm] = useState<{ name: string; pin: string; role: Role; branchId: string }>({ name: '', pin: '', role: 'cajero', branchId: '' });
+  // job: 'r:<rol>' = usa el sistema; 'j:<puesto>' = solo checa; 'otro' = solo checa con puesto escrito
+  const [form, setForm] = useState<{ name: string; pin: string; job: string; other: string; branchId: string }>({ name: '', pin: '', job: 'r:cajero', other: '', branchId: '' });
+  const formRole: Role | null = form.job.startsWith('r:') ? (form.job.slice(2) as Role) : null;
   const [error, setError] = useState('');
   const [range, setRange] = useState<'hoy' | 'semana' | 'mes'>('hoy');
 
@@ -56,21 +59,25 @@ export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adm
 
   const pro = isPro();
   const limit = teamLimit();
-  const full = team.length >= limit;
+  const full = systemTeam.length >= limit;
   const usable = new Set(usableTeam().map((e) => e.id));
 
   const add = () => {
     setError('');
-    if (full) return setError('Tu plan Básico incluye 1 cajero. Para agregar más personal cámbiate a Pro.');
-    if (!roleAllowed(form.role)) return setError('Meseros y gerentes son del plan Pro.');
+    if (formRole && full) return setError('Tu plan Básico incluye 1 cajero. Para agregar más personal que use el sistema cámbiate a Pro. El personal que solo checa (cocina, hostess…) no tiene límite.');
+    if (formRole && !roleAllowed(formRole)) return setError('Meseros y gerentes son del plan Pro.');
+    const jobTitle = form.job === 'otro' ? form.other.trim() : form.job.startsWith('j:') ? form.job.slice(2) : '';
+    if (!formRole && !jobTitle) return setError('Escribe el puesto.');
     const name = form.name.trim();
     const pin = form.pin.trim();
     if (!name) return setError('Escribe el nombre.');
     if (!/^\d{4,6}$/.test(pin)) return setError('El PIN debe ser de 4 a 6 números.');
     if (pin === (adminPin || '1234')) return setError('Ese PIN es el del dueño. Usa otro.');
     if (allTeam.some((e) => e.pin === pin)) return setError('Otro empleado ya usa ese PIN.');
-    saveTeam([...allTeam, { id: crypto.randomUUID(), name, pin, role: form.role, branchId: form.branchId || undefined, active: true }]);
-    setForm({ name: '', pin: '', role: 'cajero', branchId: '' });
+    saveTeam([...allTeam, formRole
+      ? { id: crypto.randomUUID(), name, pin, role: formRole, branchId: form.branchId || undefined, active: true }
+      : { id: crypto.randomUUID(), name, pin, role: 'cajero', clockOnly: true, jobTitle, branchId: form.branchId || undefined, active: true }]);
+    setForm({ name: '', pin: '', job: 'r:cajero', other: '', branchId: '' });
   };
   const update = (id: string, patch: Partial<Employee>) => saveTeam(allTeam.map((e) => (e.id === id ? { ...e, ...patch } : e)));
   const remove = (id: string) => { if (confirm('¿Eliminar a este empleado? Sus ventas pasadas se conservan.')) saveTeam(allTeam.filter((e) => e.id !== id)); };
@@ -88,6 +95,33 @@ export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adm
     if (!/^\d{4,6}$/.test(pin) || pin === (adminPin || '1234') || allTeam.some((x) => x.pin === pin && x.id !== e.id)) { alert('PIN inválido o ya en uso.'); return; }
     update(e.id, { pin });
   };
+  // Cambiar el puesto de alguien ya dado de alta (entre roles del sistema y puestos que solo checan)
+  const changeJob = (e: Employee, v: string) => {
+    if (v.startsWith('r:')) {
+      const role = v.slice(2) as Role;
+      if (!isSystemUser(e) && systemTeam.length >= limit) { alert('Tu plan Básico incluye 1 cajero. Para que más personal use el sistema cámbiate a Pro.'); return; }
+      update(e.id, { role, clockOnly: false, jobTitle: undefined });
+      return;
+    }
+    const jobTitle = v === 'otro' ? (prompt('¿Cuál es el puesto?', e.clockOnly ? e.jobTitle || '' : '') || '').trim() : v.slice(2);
+    if (!jobTitle) return;
+    update(e.id, { clockOnly: true, jobTitle, role: 'cajero' });
+  };
+  const jobValue = (e: Employee) => (!e.clockOnly ? `r:${e.role}` : CLOCK_JOBS.includes(e.jobTitle || '') ? `j:${e.jobTitle}` : `c:${e.jobTitle || ''}`);
+  const jobOptions = (custom?: string) => (
+    <>
+      <optgroup label="Usa el sistema">
+        <option value="r:mesero" disabled={!pro}>Mesero{pro ? '' : ' (Pro)'}</option>
+        <option value="r:cajero">Cajero</option>
+        <option value="r:gerente" disabled={!pro}>Gerente{pro ? '' : ' (Pro)'}</option>
+      </optgroup>
+      <optgroup label="Solo checa entrada / salida">
+        {CLOCK_JOBS.map((j) => <option key={j} value={`j:${j}`}>{j}</option>)}
+        {custom && <option value={`c:${custom}`}>{custom}</option>}
+        <option value="otro">Otro puesto…</option>
+      </optgroup>
+    </>
+  );
   const input = 'w-full rounded-xl border border-carbon-950/15 bg-white px-3 py-2.5 text-sm text-carbon-900 outline-none focus:border-agave-500';
 
   return (
@@ -100,23 +134,24 @@ export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adm
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <input className={input} placeholder="Nombre (ej. Juan)" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             <input className={input} placeholder="PIN de 4 a 6 números" inputMode="numeric" maxLength={6} value={form.pin} onChange={(e) => setForm({ ...form, pin: e.target.value.replace(/\D/g, '') })} />
-            <select className={input} value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as Role })}>
-              <option value="mesero" disabled={!pro}>Mesero{pro ? '' : ' (Pro)'}</option>
-              <option value="cajero">Cajero</option>
-              <option value="gerente" disabled={!pro}>Gerente{pro ? '' : ' (Pro)'}</option>
+            <select className={input} value={form.job} onChange={(e) => setForm({ ...form, job: e.target.value })} aria-label="Puesto">
+              {jobOptions()}
             </select>
+
             {pro && <select className={input} value={form.branchId} onChange={(e) => setForm({ ...form, branchId: e.target.value })}>
               <option value="">Todas las sucursales</option>
               {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>}
+            {form.job === 'otro' && <input className={input + ' sm:col-span-2'} placeholder="Escribe el puesto (ej. Parrillero)" value={form.other} onChange={(e) => setForm({ ...form, other: e.target.value })} autoFocus />}
           </div>
-          <p className="mt-2 text-xs text-carbon-500">{ROLE_INFO[form.role]}</p>
+          <p className="mt-2 text-xs text-carbon-500">{formRole ? ROLE_INFO[formRole] : 'Solo checa su entrada y salida con su PIN. No entra al sistema y no cuenta en el límite de tu plan.'}</p>
           {error && <p className="mt-2 text-sm font-semibold text-rose-600">{error}</p>}
-          <button onClick={add} disabled={full} className="mt-4 disabled:opacity-40 inline-flex items-center gap-2 rounded-full bg-agave-600 hover:bg-agave-700 px-5 py-2.5 text-sm font-semibold text-white"><Plus size={16} /> Agregar</button>
+          <button onClick={add} disabled={!!formRole && full} className="mt-4 disabled:opacity-40 inline-flex items-center gap-2 rounded-full bg-agave-600 hover:bg-agave-700 px-5 py-2.5 text-sm font-semibold text-white"><Plus size={16} /> Agregar</button>
         </div>
 
         <div className="rounded-3xl border border-carbon-950/10 bg-white p-6">
-          <h3 className="font-display text-lg font-bold text-carbon-950">Tu equipo ({team.length}{pro ? '' : ` de ${limit}`})</h3>
+          <h3 className="font-display text-lg font-bold text-carbon-950">Tu equipo ({team.length})</h3>
+          {!pro && <p className="mt-0.5 text-xs text-carbon-500">Usan el sistema: {systemTeam.length} de {limit}. El personal que solo checa no tiene límite.</p>}
           {team.length === 0 ? (
             <p className="mt-3 text-sm text-carbon-500">Aún no hay empleados. Cuando agregues el primero, al abrir la caja se pedirá "¿Quién cobra?".</p>
           ) : (
@@ -126,13 +161,11 @@ export function TeamModule({ onUpgrade, adminPin }: { onUpgrade: () => void; adm
                   <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ${e.active ? 'bg-agave-50 text-agave-700' : 'bg-carbon-100 text-carbon-400'}`}>{e.name.slice(0, 1).toUpperCase()}</div>
                   <div className="flex-1 min-w-[140px]">
                     <div className={`font-semibold ${e.active ? 'text-carbon-900' : 'text-carbon-400 line-through'}`}>{e.name}</div>
-                    <div className="text-xs text-carbon-500">PIN •••• · {branches.find((b) => b.id === e.branchId)?.name || 'Todas las sucursales'}</div>
-                    {e.active && !usable.has(e.id) && <div className="text-[11px] font-semibold text-maiz-800">No puede entrar con el plan Básico</div>}
+                    <div className="text-xs text-carbon-500">{e.clockOnly ? 'Solo checa · ' : ''}PIN •••• · {branches.find((b) => b.id === e.branchId)?.name || 'Todas las sucursales'}</div>
+                    {e.active && isSystemUser(e) && !usable.has(e.id) && <div className="text-[11px] font-semibold text-maiz-800">No puede entrar con el plan Básico</div>}
                   </div>
-                  <select value={e.role} onChange={(ev) => update(e.id, { role: ev.target.value as Role })} className="rounded-lg border border-carbon-950/15 bg-white px-2 py-1.5 text-xs font-semibold text-carbon-800">
-                    <option value="mesero" disabled={!pro}>Mesero{pro ? '' : ' (Pro)'}</option>
-                    <option value="cajero">Cajero</option>
-                    <option value="gerente" disabled={!pro}>Gerente{pro ? '' : ' (Pro)'}</option>
+                  <select value={jobValue(e)} onChange={(ev) => changeJob(e, ev.target.value)} aria-label={`Puesto de ${e.name}`} className="max-w-[170px] rounded-lg border border-carbon-950/15 bg-white px-2 py-1.5 text-xs font-semibold text-carbon-800">
+                    {jobOptions(e.clockOnly && !CLOCK_JOBS.includes(e.jobTitle || '') ? e.jobTitle : undefined)}
                   </select>
                   <button onClick={() => { const pin = prompt(`Nuevo PIN para ${e.name} (4 a 6 números):`) || ''; if (/^\d{4,6}$/.test(pin) && pin !== (adminPin || '1234') && !allTeam.some((x) => x.pin === pin && x.id !== e.id)) update(e.id, { pin }); else if (pin) alert('PIN inválido o ya en uso.'); }} className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-carbon-700 hover:bg-carbon-100">Cambiar PIN</button>
                   <button onClick={() => update(e.id, { active: !e.active })} title={e.active ? 'Desactivar' : 'Activar'} className="rounded-lg p-2 text-carbon-600 hover:bg-carbon-100"><Power size={15} /></button>

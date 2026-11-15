@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { Clock, Download, Printer, FileSignature, Plus, Pencil, AlertTriangle, WifiOff, Loader2, X } from 'lucide-react';
 import { usePOS } from '../../hooks/usePOS';
-import { getTeam, currentBranch, useSession } from '../../lib/session';
+import { getTeam, currentBranch, useSession, jobLabel } from '../../lib/session';
 import {
   fetchClock, effectivePunches, buildShifts, weekTotals, addCorrection, flushClockQueue, pendingCount, pbDate,
   fmtTime, fmtDay, fmtHours, type ClockRecord, type Shift, type ClockKind, type Punch,
@@ -102,7 +102,7 @@ export function AttendanceReport() {
   const exportXlsx = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.shifts.map((s) => ({
-      Empleado: s.employeeName, Fecha: s.day.toLocaleDateString('es-MX'), Entrada: fmtTime(s.inP?.at), Salida: fmtTime(s.outP?.at),
+      Empleado: s.employeeName, Puesto: (() => { const e = team.find((x) => x.id === s.employeeId); return e ? jobLabel(e) : ''; })(), Fecha: s.day.toLocaleDateString('es-MX'), Entrada: fmtTime(s.inP?.at), Salida: fmtTime(s.outP?.at),
       Horas: Math.round(s.minutes / 6) / 10, Notas: shiftNote(s),
     }))), 'Jornada');
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.weeks.map((w) => ({
@@ -168,7 +168,7 @@ export function AttendanceReport() {
               return (
                 <div key={list[0].employeeId} className="rounded-2xl border border-carbon-950/10 overflow-hidden">
                   <div className="flex flex-wrap items-center justify-between gap-2 bg-carbon-50 px-4 py-2.5">
-                    <div className="font-semibold text-carbon-900">{list[0].employeeName}</div>
+                    <div className="font-semibold text-carbon-900">{list[0].employeeName}{(() => { const e = team.find((x) => x.id === list[0].employeeId); return e ? <span className="ml-2 text-xs font-medium text-carbon-500">{jobLabel(e)}</span> : null; })()}</div>
                     <div className="flex flex-wrap gap-1.5">
                       {weeks.map((w) => {
                         const over = w.minutes > w.limit * 60;
@@ -288,7 +288,7 @@ export function AttendanceReport() {
               <p>{currentBranch().name} · {RANGE_LABEL[range]}: {from.toLocaleDateString('es-MX')} al {to.toLocaleDateString('es-MX')} · Generado {fullDT(new Date())} con Don Punto</p>
               {byEmp.map((list) => (
                 <div key={list[0].employeeId} style={{ marginTop: 12, breakInside: 'avoid' }}>
-                  <h3 style={{ fontSize: 13, fontWeight: 700 }}>{list[0].employeeName}</h3>
+                  <h3 style={{ fontSize: 13, fontWeight: 700 }}>{list[0].employeeName}{(() => { const e = team.find((x) => x.id === list[0].employeeId); return e ? ` · ${jobLabel(e)}` : ''; })()}</h3>
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead><tr>{['Fecha', 'Entrada', 'Salida', 'Horas', 'Notas'].map((h) => <th key={h} style={{ textAlign: 'left', borderBottom: '1px solid #000', padding: '2px 4px' }}>{h}</th>)}</tr></thead>
                     <tbody>{list.map((s, i) => (
