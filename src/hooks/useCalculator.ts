@@ -133,6 +133,19 @@ export function useCalculator(
         );
     };
 
+    // Reordenar productos: mueve `id` al lugar de `targetId` (así funciona aunque el POS muestre solo una categoría)
+    const moveProduct = (id: string, targetId: string) => {
+        setRows((prev) => {
+            const from = prev.findIndex((r) => r.id === id);
+            const to = prev.findIndex((r) => r.id === targetId);
+            if (from < 0 || to < 0 || from === to) return prev;
+            const next = [...prev];
+            const [it] = next.splice(from, 1);
+            next.splice(to, 0, it);
+            return next;
+        });
+    };
+
     const removeRow = (id: string) => {
         setRows((prev) => prev.filter((r) => r.id !== id));
     };
@@ -433,6 +446,7 @@ export function useCalculator(
         addProducts,
         updateRow,
         removeRow,
+        moveProduct,
         results,
         pricingResults,
         syncWithStorePrices,

@@ -117,6 +117,7 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
     addProducts,
     updateRow,
     removeRow,
+    moveProduct,
     results,
     pricingResults,
     syncWithStorePrices,
@@ -973,7 +974,7 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
                     )}
                 </div>
               ); })()}
-              {viewTab === 'pos' && <POSDashboard menu={{ rows, settings, categories, modifierGroups, addProducts, removeRow }} />}
+              {viewTab === 'pos' && <POSDashboard menu={{ rows, settings, categories, modifierGroups, addProducts, removeRow, moveProduct }} />}
               {viewTab === 'online' && <OnlineOrdersModule rows={rows} categories={categories} modifierGroups={modifierGroups} onNeedPin={() => setPinFor('online')} />}
               {viewTab === 'reports' && <POSReports onUpgrade={onBilling} />}
               {viewTab === 'tickets' && <POSTicketsHistory />}

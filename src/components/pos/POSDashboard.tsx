@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { usePOS } from '../../hooks/usePOS';
 import { useCalculator } from '../../hooks/useCalculator'; 
 import type { CartItem, POSPaymentMethod, OrderDestination, OpenTicket, ServiceType, OrderTypeInfo, ReopenInfo } from '../../types/pos';
@@ -43,6 +43,7 @@ export interface POSMenuOps {
   modifierGroups: ReturnType<typeof useCalculator>['modifierGroups'];
   addProducts: (p: ProductRowData[]) => void;
   removeRow: (id: string) => void;
+  moveProduct?: (id: string, targetId: string) => void;
 }
 
 export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
@@ -286,6 +287,71 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
     }
     return result;
   }, [rows, activeCategoryId, searchQuery]);
+
+  // Reacomodar productos (solo dueño/gerente, sin búsqueda): con mouse se arrastra directo;
+  // con el dedo se mantiene presionado ~0.4 s (así no estorba el scroll normal) y se arrastra.
+  const canReorder = canEditMenu && !!menu?.moveProduct && !searchQuery.trim();
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  const dragActive = useRef(false);
+  // El bloqueo del scroll con el dedo debe estar puesto ANTES de tocar (si se agrega al tocar,
+  // el navegador ya decidió hacer scroll y cancela el arrastre)
+  const blockTouch = useRef((ev: TouchEvent) => { if (dragActive.current) ev.preventDefault(); }).current;
+  const setGridRef = useCallback((el: HTMLDivElement | null) => {
+    gridRef.current?.removeEventListener('touchmove', blockTouch);
+    gridRef.current = el;
+    el?.addEventListener('touchmove', blockTouch, { passive: false });
+  }, [blockTouch]);
+  const [dragProdId, setDragProdId] = useState<string | null>(null);
+  const suppressClick = useRef(false);
+  const moveProdRef = useRef(menu?.moveProduct);
+  moveProdRef.current = menu?.moveProduct;
+  const onCardPointerDown = (e: React.PointerEvent, p: ProductRowData) => {
+    if (!canReorder) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if ((e.target as HTMLElement).closest('[data-no-drag]')) return;
+    const touch = e.pointerType !== 'mouse';
+    const sx = e.clientX, sy = e.clientY;
+    let started = false;
+    let moved = false;
+    const start = () => { started = true; dragActive.current = true; setDragProdId(p.id); if (touch) navigator.vibrate?.(30); };
+    const timer = touch ? window.setTimeout(start, 400) : 0;
+    // Los listeners van en window: React mueve la tarjeta en el DOM al reordenar
+    const onMove = (ev: PointerEvent) => {
+      const far = Math.abs(ev.clientX - sx) > 8 || Math.abs(ev.clientY - sy) > 8;
+      if (!started) {
+        if (!far) return;
+        if (touch) { cleanup(); return; } // el dedo se movió antes de tiempo = scroll normal
+        start();
+      }
+      ev.preventDefault();
+      const cards = Array.from(gridRef.current?.querySelectorAll<HTMLElement>('[data-prod-card]') || []);
+      const over = cards.find((c) => {
+        const b = c.getBoundingClientRect();
+        return ev.clientX >= b.left && ev.clientX <= b.right && ev.clientY >= b.top && ev.clientY <= b.bottom;
+      });
+      const target = over?.dataset.prodCard;
+      if (target && target !== p.id) { moveProdRef.current?.(p.id, target); moved = true; }
+      if (ev.clientY > window.innerHeight - 60) window.scrollBy(0, 14);
+      else if (ev.clientY < 70) window.scrollBy(0, -14);
+    };
+    const cleanup = () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', cleanup);
+      window.removeEventListener('pointercancel', cleanup);
+      dragActive.current = false;
+      if (started) {
+        // El clic que llega al soltar no debe agregar el producto a la orden
+        suppressClick.current = true;
+        window.setTimeout(() => { suppressClick.current = false; }, 400);
+        setDragProdId(null);
+        if (moved) showToast('Orden del menú guardado');
+      }
+    };
+    window.addEventListener('pointermove', onMove, { passive: false });
+    window.addEventListener('pointerup', cleanup);
+    window.addEventListener('pointercancel', cleanup);
+  };
 
   // Pricing Logic (Extended to include Modifiers)
   const computePlatformPrice = (row: ProductRowData, extraBaseCost: number) => {
@@ -815,7 +881,10 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                     )}
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                {canReorder && filteredProducts.length > 1 && (
+                    <p className="text-[11px] text-slate-500 -mt-1 mb-3">Para cambiar el orden, mantén presionado un producto y arrástralo.</p>
+                )}
+                <div ref={setGridRef} className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                     {filteredProducts.length === 0 && (
                         <div className="col-span-full text-center py-12 text-slate-600">
                             <Search size={32} className="mx-auto mb-3 opacity-20" />
@@ -823,9 +892,16 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                         </div>
                     )}
                     {filteredProducts.map(p => (
-                        <div key={p.id} className="relative group/card">
+                        <div
+                            key={p.id}
+                            data-prod-card={p.id}
+                            onPointerDown={canReorder ? (e) => onCardPointerDown(e, p) : undefined}
+                            onContextMenu={canReorder ? (e) => e.preventDefault() : undefined}
+                            style={canReorder ? { WebkitTouchCallout: 'none' } : undefined}
+                            className={cn("relative group/card", canReorder && "select-none", dragProdId === p.id && "z-20 scale-105 rounded-2xl ring-2 ring-agave-500 shadow-xl opacity-90")}
+                        >
                         <button
-                            onClick={() => handleProductClick(p)}
+                            onClick={() => { if (suppressClick.current) return; handleProductClick(p); }}
                             className="bg-white border border-carbon-950/10 p-4 rounded-2xl text-left shadow-[0_1px_2px_rgba(13,16,14,0.05)] hover:border-agave-400 hover:shadow-[0_10px_24px_-14px_rgba(14,111,77,0.45)] active:scale-[0.98] transition-all duration-200 group relative overflow-hidden w-full h-32 flex flex-col justify-between"
                         >
                             <div className="font-semibold text-carbon-900 group-hover:text-agave-700 text-[15px] leading-tight line-clamp-2 pr-6">{p.name}</div>
@@ -844,6 +920,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                             <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); deleteProduct(p); }}
+                                data-no-drag
                                 title="Eliminar producto"
                                 aria-label={`Eliminar ${p.name}`}
                                 className="absolute bottom-3 right-3 p-1.5 rounded-lg text-rose-400 bg-white border border-rose-200 hover:bg-rose-50 hover:text-rose-600 transition-all"
