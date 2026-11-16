@@ -11,7 +11,7 @@ import { CorteZTicket } from './CorteZTicket';
 import { PrintArea } from '../print/PrintArea';
 import { runPrint } from '../../lib/print';
 
-interface Props { transactions: POSTransaction[]; settings: POSSettings; rows: ProductRowData[]; categories: Category[] }
+interface Props { transactions: POSTransaction[]; settings: POSSettings; rows: ProductRowData[]; categories: Category[]; compact?: boolean }
 
 export function corteForShift(shift: CashShift, p: Props): CorteData {
   return buildCorte({
@@ -22,6 +22,7 @@ export function corteForShift(shift: CashShift, p: Props): CorteData {
   });
 }
 
+const cn0 = (...c: string[]) => c.filter(Boolean).join(' ');
 const inputCls = 'w-full bg-white border-2 border-carbon-950/10 rounded-2xl px-4 py-3 text-xl font-black text-carbon-950 outline-none focus:border-indigo-500 tabular-nums';
 const btnPrimary = 'flex-[2] bg-indigo-500 hover:bg-indigo-400 disabled:opacity-50 text-white font-black py-4 rounded-2xl transition-all active:scale-95';
 const btnGhost = 'flex-grow py-4 rounded-2xl font-bold text-slate-500 hover:text-carbon-950';
@@ -74,6 +75,22 @@ export function CashShiftBar(props: Props) {
 
   return (
     <>
+      {props.compact ? (
+      /* Modo caja rápida: una sola línea delgada arriba de los productos */
+      <div className="flex items-center gap-2 min-w-0 no-print" data-shift-compact>
+        <Wallet size={15} className={cn0(openShift ? 'text-agave-600' : 'text-rose-500', 'shrink-0 hidden xl:block')} />
+        {openShift ? (
+          <>
+            <span className="hidden xl:inline text-[11px] text-carbon-600 truncate"><b className="text-carbon-900">Turno {openShift.number}</b><span className="hidden xl:inline"> · {shiftSales.length} cuentas · ${money(salesTotal)}</span></span>
+            <button onClick={() => { setAmount(''); setReason(''); setMoveType('retiro'); setModal('move'); }} title="Retiro / depósito" aria-label="Retiro / depósito" className="shrink-0 rounded-lg border border-carbon-950/10 p-1.5 text-carbon-700 hover:bg-carbon-50"><ArrowUpCircle size={14} /></button>
+            <button onClick={() => printThermal(openShift)} title="Corte X (parcial)" className="shrink-0 rounded-lg border border-carbon-950/10 px-2 py-1 text-[10px] font-black text-carbon-700 hover:bg-carbon-50">CORTE X</button>
+            <button onClick={() => { setDecl({ efectivo: '', tarjeta: '', transferencia: '' }); setModal('close'); }} title="Cerrar turno" className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-carbon-950/15 px-2 py-1 text-[10px] font-black text-carbon-800 hover:bg-carbon-50"><Lock size={12} /> CERRAR TURNO</button>
+          </>
+        ) : (
+          <button onClick={() => { setAmount(''); setModal('open'); }} className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-agave-600 px-2.5 py-1 text-[11px] font-black text-white hover:bg-agave-700"><Wallet size={13} /> ABRIR TURNO</button>
+        )}
+      </div>
+      ) : (
       <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-carbon-950/10 bg-white px-4 py-2.5 no-print">
         <Wallet size={16} className={openShift ? 'text-agave-600' : 'text-slate-500'} />
         {openShift ? (
@@ -93,6 +110,7 @@ export function CashShiftBar(props: Props) {
           </>
         )}
       </div>
+      )}
 
       {modal === 'open' && (
         <Modal kicker="Apertura de caja" title="Abrir turno" onClose={() => setModal(null)}>

@@ -18,6 +18,7 @@ import { Building2, Phone, MapPin, PrinterIcon } from 'lucide-react';
 import { Logo, Mark } from './components/brand/Logo';
 import { BluetoothPrinterCard } from './components/print/BluetoothPrinterCard';
 import { btAutoReconnect } from './lib/btPrinter';
+import { useQuickPos, useQuickPosPref, setQuickPos } from './lib/quickPos';
 import { NotificationsCard } from './components/pwa/NotificationsCard';
 import { InstallAppButton } from './components/pwa/InstallApp';
 import { InventoryModule } from './components/inventory/InventoryModule';
@@ -552,6 +553,8 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
   const [branchMenu, setBranchMenu] = useState(false);
   // Celular/tablet: la barra lateral es un panel que se abre con el botón ☰ (en lg es fija)
   const [navOpen, setNavOpen] = useState(false);
+  const quickPos = useQuickPos();
+  const quickPosPref = useQuickPosPref();
   const [tourOpen, setTourOpen] = useState(() => shouldAutoStartTour());
   const branch = currentBranch();
   const branches = getBranches();
@@ -597,6 +600,13 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
   ];
   const current = shownTab === 'settings' ? { label: 'Ajustes', Icon: Settings } : (NAV.find((n) => n.tab === shownTab) ?? NAV[0]);
   const drawerShown = navOpen || tourOpen;
+  // En «caja rápida» la barra lateral se esconde también en compu/tablet: se abre con el ☰ del POS
+  const navAsDrawer = quickPos && shownTab === 'pos' && !tourOpen;
+  useEffect(() => {
+    const open = () => setNavOpen(true);
+    window.addEventListener('dp:opennav', open);
+    return () => window.removeEventListener('dp:opennav', open);
+  }, []);
   // El escáner agrega productos al catálogo: pide el mismo permiso que Catálogo
   const openScanner = () => {
     setNavOpen(false);
@@ -682,8 +692,8 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
       )}
 
       {/* --- PREMIUM SIDEBAR --- */}
-      {drawerShown && <div className="fixed inset-0 z-[115] bg-carbon-950/40 backdrop-blur-[2px] lg:hidden no-print" onClick={() => setNavOpen(false)} aria-hidden="true" />}
-      <nav className={cn("fixed inset-y-0 left-0 z-[120] w-72 max-w-[85vw] shadow-2xl lg:shadow-none lg:static lg:w-56 lg:max-w-none lg:z-30 bg-white border-r border-carbon-950/10 flex-col items-stretch py-4 gap-3 shrink-0 no-print overflow-y-auto no-scrollbar lg:flex", drawerShown ? "flex" : "hidden")} aria-label="Secciones">
+      {drawerShown && <div className={cn("fixed inset-0 z-[115] bg-carbon-950/40 backdrop-blur-[2px] no-print", !navAsDrawer && "lg:hidden")} onClick={() => setNavOpen(false)} aria-hidden="true" />}
+      <nav className={cn("fixed inset-y-0 left-0 z-[120] w-72 max-w-[85vw] shadow-2xl bg-white border-r border-carbon-950/10 flex-col items-stretch py-4 gap-3 shrink-0 no-print overflow-y-auto no-scrollbar", !navAsDrawer && "lg:shadow-none lg:static lg:w-56 lg:max-w-none lg:z-30 lg:flex", drawerShown ? "flex" : "hidden")} aria-label="Secciones">
         <div className="flex items-center justify-start gap-2.5 px-4 pt-1 pb-2">
           <Logo size={38} />
           <button type="button" onClick={() => setNavOpen(false)} className="ml-auto lg:hidden rounded-xl p-2 text-carbon-600 hover:bg-carbon-100" aria-label="Cerrar menú"><X size={22} /></button>
@@ -834,7 +844,7 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
               {incoming.pending > 0 && shownTab !== 'online' && <span className="ml-auto grid h-6 min-w-6 shrink-0 place-items-center rounded-full bg-maiz-400 px-1.5 text-xs font-black text-carbon-950">{incoming.pending}</span>}
             </div>
             <TrialBanner trialEnd={trialEnd} expired={expired} onPlans={onPlans} />
-            <header className="mb-6 flex flex-col sm:flex-row items-baseline sm:items-center justify-between gap-4 no-print">
+            <header className={cn("mb-6 flex flex-col sm:flex-row items-baseline sm:items-center justify-between gap-4 no-print", quickPos && shownTab === 'pos' && "hidden")}>
               <div>
                 <h1 className="font-display text-2xl sm:text-3xl font-bold text-carbon-950 tracking-[-0.02em]">
                   {shownTab === 'profits' && 'Análisis de Ganancias de Tienda Física'}
@@ -1093,6 +1103,19 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
                                   >🖨️ Normal (A4/Carta)</button>
                               </div>
                               <BluetoothPrinterCard paper80={posSettings.paperSize === '80mm'} />
+                          </div>
+                          {/* Modo caja rápida (por equipo) */}
+                          <div className="border-t border-carbon-950/10 pt-6">
+                              <div className="flex items-start justify-between gap-4 rounded-2xl border border-carbon-950/10 bg-white p-4">
+                                  <div className="min-w-0">
+                                      <div className="text-sm font-bold text-carbon-950">Modo caja rápida</div>
+                                      <p className="mt-1 text-xs text-carbon-600">El Punto de venta a pantalla completa: productos en botones grandes, categorías abajo y el ticket fijo a la derecha con GUARDAR y COBRAR. Ideal para la tablet de la caja. Se guarda solo en este equipo y aplica en tablet acostada o compu (en celular se ve igual).</p>
+                                  </div>
+                                  <button type="button" role="switch" aria-checked={quickPosPref} onClick={() => setQuickPos(!quickPosPref)}
+                                      className={cn("relative mt-1 h-7 w-12 shrink-0 rounded-full transition-colors", quickPosPref ? "bg-agave-600" : "bg-slate-700")}>
+                                      <span className={cn("absolute top-1 left-1 h-5 w-5 rounded-full bg-white transition-transform", quickPosPref && "translate-x-5")} />
+                                  </button>
+                              </div>
                           </div>
                       </div>
 

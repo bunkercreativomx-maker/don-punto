@@ -74,6 +74,13 @@ Las cuentas nuevas ven un tour al entrar por primera vez: cambia el **PIN de due
 6. Toca **FINALIZAR**. Si es efectivo se abre la **Calculadora de Cambio**: escribe el **Monto Recibido** (o toca $20, $50, $100, $200, $500 o **EXACTO**), ve el cambio a entregar y toca **FINALIZAR Y COBRAR**.
 7. Si tienes encendidos los interruptores **Ticket** y/o **Cocina** (arriba del menú), se abre la ventana de impresión.
 
+### Modo caja rápida (pantalla completa para la tablet de la caja)
+Para cobrar más rápido en tablet acostada o compu: en **Punto de Venta** toca **CAJA RÁPIDA** (arriba del menú) o en **Ajustes → Modo caja rápida** prende el interruptor. Se guarda solo en ese equipo (la tablet puede usarlo y la compu del dueño no); en celular el Punto de Venta se ve igual que siempre.
+- Productos en botones grandes con el precio abajo del nombre; las **categorías** quedan abajo como pestañas (**Todos** muestra todo). La lupa de arriba busca un producto.
+- El **ticket** queda fijo a la derecha: arriba se elige dónde se vendió (**Tienda (mostrador)** o la app), en medio los platillos con − / + y bote de basura, y abajo **COMER AQUÍ / PARA LLEVAR**, la fila **Cliente, descuento, propina** (se abre al tocarla; ahí están cliente, personas, descuento, cortesía, mesero y propina), la forma de pago, el total y los botones **GUARDAR** y **COBRAR** (COBRAR hace lo mismo que FINALIZAR), más **DIVIDIR CUENTA / PAGO MIXTO**.
+- **ABIERTOS** = Tickets abiertos. El botón **⋮** del ticket prende o apaga **Imprimir ticket** e **Imprimir comanda** y tiene **Salir de caja rápida**.
+- El menú de secciones se abre con el botón **☰** de arriba a la izquierda. El turno (Corte X, retiro/depósito, Cerrar turno o Abrir turno) está en la barra de arriba.
+
 ### Dividir la cuenta o pagar con dos métodos (pago mixto)
 Solo en canal **TIENDA**. Arma la orden (o reanuda la cuenta abierta) y, debajo de **FINALIZAR**, toca **DIVIDIR CUENTA / PAGO MIXTO**. Elige una pestaña:
 - **PAGO MIXTO** (una sola persona paga parte en efectivo y parte con tarjeta): elige con qué paga primero (**Efectivo** o **Tarjeta**), escribe cuánto paga así y el sistema calcula el **Resto** con el otro método. Toca **FINALIZAR Y COBRAR**.
