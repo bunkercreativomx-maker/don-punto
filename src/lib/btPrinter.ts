@@ -1,13 +1,22 @@
 /**
- * Impresora térmica Bluetooth directa (Web Bluetooth + ESC/POS).
- * Solo Chrome/Edge en Android y computadora; iPhone/Safari no soporta Web Bluetooth.
- * Solo impresoras Bluetooth LE (BLE). Las que son solo Bluetooth clásico no aparecen en la búsqueda.
+ * Impresora térmica Bluetooth directa (ESC/POS), dos vías:
+ *  1) Bluetooth clásico (SPP) vía Web Serial — la mayoría de las térmicas de 58/80 mm.
+ *     Chrome Android 138+ y Chrome/Edge de computadora 117+. La impresora debe estar
+ *     emparejada en los ajustes de Bluetooth del equipo (igual que en Loyverse).
+ *  2) Bluetooth LE vía Web Bluetooth (respaldo, impresoras BLE sin emparejar).
+ * iPhone/Safari no soporta ninguna de las dos.
  * La impresora elegida se guarda por EQUIPO (localStorage), no en la cuenta.
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type BTDevice = any;
 type BTChar = any;
+type SPort = any;
+type Via = 'serial' | 'ble';
+
+// Perfil de puerto serie (SPP) estándar + servicios RFCOMM que usan algunas marcas
+const SPP = '00001101-0000-1000-8000-00805f9b34fb';
+const RFCOMM_IDS = [SPP, 'e7810a71-73ae-499d-8c15-faa9aef0c3f2', '49535343-fe7d-4ae5-8fa9-9fafd205e455'];
 
 // Servicios BLE más comunes en impresoras térmicas genéricas (58/80 mm)
 const SERVICES = [
@@ -19,19 +28,24 @@ const SERVICES = [
   '0000fee7-0000-1000-8000-00805f9b34fb',
   '0000ae30-0000-1000-8000-00805f9b34fb',
   '0000ae3a-0000-1000-8000-00805f9b34fb',
+  '0000ae00-0000-1000-8000-00805f9b34fb',
   '0000ff12-0000-1000-8000-00805f9b34fb',
   '0000ffb0-0000-1000-8000-00805f9b34fb',
   '0000fff0-0000-1000-8000-00805f9b34fb',
+  '0000ff80-0000-1000-8000-00805f9b34fb',
+  '0000fef0-0000-1000-8000-00805f9b34fb',
 ];
 
 const LS_ON = 'dp:btPrinter:on';
 const LS_ID = 'dp:btPrinter:id';
 const LS_NAME = 'dp:btPrinter:name';
+const LS_VIA = 'dp:btPrinter:via';
 
 export type BTStatus = 'off' | 'disconnected' | 'connecting' | 'connected' | 'printing';
 
 let device: BTDevice | null = null;
 let charac: BTChar | null = null;
+let port: SPort | null = null;
 let status: BTStatus = localStorage.getItem(LS_ON) === '1' ? 'disconnected' : 'off';
 let lastError = '';
 const listeners = new Set<() => void>();
@@ -41,19 +55,72 @@ function emit(s?: BTStatus) {
   listeners.forEach((l) => l());
 }
 
-export function btSupported(): boolean {
+const via = (): Via => (localStorage.getItem(LS_VIA) === 'ble' ? 'ble' : 'serial');
+export function serialSupported(): boolean {
+  return typeof navigator !== 'undefined' && !!(navigator as any).serial;
+}
+export function bleSupported(): boolean {
   return typeof navigator !== 'undefined' && !!(navigator as any).bluetooth;
+}
+export function btSupported(): boolean {
+  return serialSupported() || bleSupported();
 }
 export function btEnabled(): boolean {
   return localStorage.getItem(LS_ON) === '1';
 }
 export function btState() {
-  return { status, name: localStorage.getItem(LS_NAME) || '', error: lastError, supported: btSupported() };
+  return {
+    status, name: localStorage.getItem(LS_NAME) || '', error: lastError, supported: btSupported(),
+    serial: serialSupported(), ble: bleSupported(), via: btEnabled() ? via() : null,
+  };
 }
 export function btSubscribe(fn: () => void) {
   listeners.add(fn);
   return () => { listeners.delete(fn); };
 }
+
+function save(v: Via, id: string, name: string) {
+  localStorage.setItem(LS_ON, '1');
+  localStorage.setItem(LS_VIA, v);
+  localStorage.setItem(LS_ID, id);
+  localStorage.setItem(LS_NAME, name);
+  lastError = '';
+  emit('connected');
+}
+
+/* ---------- Bluetooth clásico (Web Serial / RFCOMM) ---------- */
+
+function portName(p: SPort): string {
+  const info = p?.getInfo?.() || {};
+  if (info.bluetoothServiceClassId) return 'Impresora Bluetooth';
+  if (info.usbVendorId) return 'Impresora USB';
+  return 'Impresora';
+}
+
+async function openPort(p: SPort) {
+  if (!p.writable) {
+    try { await p.open({ baudRate: 9600 }); }
+    catch (e: any) { if (!/already open/i.test(e?.message || '')) throw e; }
+  }
+  port = p;
+  p.removeEventListener?.('disconnect', onPortGone);
+  p.addEventListener?.('disconnect', onPortGone);
+}
+
+function onPortGone() {
+  port = null;
+  if (status !== 'off') emit('disconnected');
+}
+
+function humanSerialError(e: any): string {
+  const m = e?.message || String(e);
+  if (e?.name === 'NetworkError' || /open|connect|failed/i.test(m)) {
+    return 'No se pudo abrir la impresora. Revisa que esté prendida, con papel y cerca; apágala y préndela y vuelve a intentar.';
+  }
+  return m;
+}
+
+/* ---------- Bluetooth LE (Web Bluetooth) ---------- */
 
 async function findWritable(dev: BTDevice): Promise<BTChar> {
   const server = dev.gatt.connected ? dev.gatt : await dev.gatt.connect();
@@ -64,19 +131,14 @@ async function findWritable(dev: BTDevice): Promise<BTChar> {
     const c = chars.find((ch) => ch.properties.write || ch.properties.writeWithoutResponse);
     if (c) return c;
   }
-  throw new Error('Esta impresora no acepta impresión por Bluetooth LE. Usa la ventana de impresión con RawBT.');
+  throw new Error('Esta impresora no es Bluetooth LE. Emparéjala en los ajustes de Bluetooth del equipo y usa «Buscar impresoras».');
 }
 
-async function attach(dev: BTDevice) {
+async function attachBle(dev: BTDevice) {
   device = dev;
   dev.removeEventListener?.('gattserverdisconnected', onDisconnect);
   dev.addEventListener?.('gattserverdisconnected', onDisconnect);
   charac = await findWritable(dev);
-  localStorage.setItem(LS_ON, '1');
-  localStorage.setItem(LS_ID, dev.id || '');
-  localStorage.setItem(LS_NAME, dev.name || 'Impresora Bluetooth');
-  lastError = '';
-  emit('connected');
 }
 
 function onDisconnect() {
@@ -84,22 +146,73 @@ function onDisconnect() {
   if (status !== 'off') emit('disconnected');
 }
 
-/** Abre el selector de Chrome (debe llamarse desde un clic). */
+/* ---------- Buscar / conectar (desde un clic) ---------- */
+
+/**
+ * «Buscar impresoras»: muestra las impresoras Bluetooth emparejadas del equipo
+ * (Bluetooth clásico). Si el navegador no tiene Web Serial, busca Bluetooth LE.
+ */
 export async function btConnect(): Promise<void> {
-  if (!btSupported()) throw new Error('Este navegador no tiene Bluetooth. Usa Chrome en Android o en computadora.');
+  if (!serialSupported()) return btConnectBle();
+  emit('connecting');
+  try {
+    const p = await (navigator as any).serial.requestPort({ allowedBluetoothServiceClassIds: RFCOMM_IDS });
+    await disconnectAll();
+    await openPort(p);
+    save('serial', '', portName(p));
+  } catch (e: any) {
+    lastError = e?.name === 'NotFoundError' ? '' : humanSerialError(e);
+    emit(!btEnabled() ? 'off' : connected() ? 'connected' : 'disconnected');
+    if (lastError) throw new Error(lastError);
+    throw new Error('No elegiste ninguna. Si tu impresora no salió en la lista: emparéjala primero en Ajustes → Bluetooth del equipo, o toca «Buscar Bluetooth LE».');
+  }
+}
+
+/** Respaldo: impresoras Bluetooth LE (no necesitan emparejarse). */
+export async function btConnectBle(): Promise<void> {
+  if (!bleSupported()) throw new Error('Este navegador no tiene Bluetooth. Usa Chrome en Android o en computadora.');
   emit('connecting');
   try {
     const dev = await (navigator as any).bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: SERVICES });
-    await attach(dev);
+    await disconnectAll();
+    await attachBle(dev);
+    save('ble', dev.id || '', dev.name || 'Impresora Bluetooth');
   } catch (e: any) {
     lastError = e?.name === 'NotFoundError' ? '' : (e?.message || String(e));
-    emit(btEnabled() ? 'disconnected' : 'off');
+    emit(!btEnabled() ? 'off' : connected() ? 'connected' : 'disconnected');
     if (lastError) throw new Error(lastError);
   }
 }
 
+async function disconnectAll() {
+  try { device?.gatt?.disconnect(); } catch { /* nada */ }
+  device = null; charac = null;
+  if (port) { try { await port.close(); } catch { /* nada */ } }
+  port = null;
+}
+
 /** Reconecta sin clic a la impresora ya autorizada (si el navegador lo permite). */
 async function reconnect(): Promise<boolean> {
+  if (via() === 'serial') {
+    if (port?.writable) return true;
+    try {
+      const ser = (navigator as any).serial;
+      if (!ser?.getPorts) return false;
+      const list: SPort[] = await ser.getPorts();
+      const p = port || list.find((x) => x.getInfo?.().bluetoothServiceClassId) || list[0];
+      if (!p) return false;
+      emit('connecting');
+      await openPort(p);
+      lastError = '';
+      emit('connected');
+      return true;
+    } catch (e: any) {
+      lastError = humanSerialError(e);
+      port = null;
+      emit('disconnected');
+      return false;
+    }
+  }
   if (charac && device?.gatt?.connected) return true;
   try {
     if (!device) {
@@ -111,7 +224,9 @@ async function reconnect(): Promise<boolean> {
       if (!device) return false;
     }
     emit('connecting');
-    await attach(device);
+    await attachBle(device);
+    lastError = '';
+    emit('connected');
     return true;
   } catch (e: any) {
     lastError = e?.message || String(e);
@@ -121,13 +236,10 @@ async function reconnect(): Promise<boolean> {
 }
 
 export function btForget() {
-  try { device?.gatt?.disconnect(); } catch { /* nada */ }
-  try { device?.forget?.(); } catch { /* nada */ }
-  device = null;
-  charac = null;
-  localStorage.removeItem(LS_ON);
-  localStorage.removeItem(LS_ID);
-  localStorage.removeItem(LS_NAME);
+  const p = port, d = device;
+  void disconnectAll().then(() => { try { p?.forget?.(); } catch { /* nada */ } });
+  try { d?.forget?.(); } catch { /* nada */ }
+  [LS_ON, LS_ID, LS_NAME, LS_VIA].forEach((k) => localStorage.removeItem(k));
   lastError = '';
   emit('off');
 }
@@ -140,9 +252,20 @@ export function btAutoReconnect() {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function send(bytes: Uint8Array) {
-  if (!(await reconnect()) || !charac) {
-    throw new Error('La impresora Bluetooth no está conectada. Ve a Ajustes → Impresora Bluetooth → Conectar.');
+  if (!(await reconnect())) {
+    throw new Error(lastError || 'La impresora no está conectada. Ve a Ajustes → Impresora Bluetooth → Buscar impresoras.');
   }
+  if (via() === 'serial') {
+    const w = port.writable.getWriter();
+    try {
+      for (let i = 0; i < bytes.length; i += 512) {
+        await w.write(bytes.slice(i, i + 512));
+        await sleep(15); // las térmicas baratas tienen búfer chico
+      }
+    } finally { w.releaseLock(); }
+    return;
+  }
+  if (!charac) throw new Error('La impresora Bluetooth no está conectada.');
   const withResp = !!charac.properties.write;
   let size = 180;
   for (let i = 0; i < bytes.length; ) {
@@ -157,6 +280,8 @@ async function send(bytes: Uint8Array) {
     }
   }
 }
+
+const connected = () => (via() === 'serial' ? !!port?.writable : !!charac);
 
 /* ---------------- ESC/POS ---------------- */
 
@@ -297,7 +422,7 @@ export async function btPrintArea(kind: string): Promise<void> {
   if (!root || !clean(root.textContent)) throw new Error('No hay nada que imprimir.');
   const bytes = domToEscPos(root, widthFor(root));
   emit('printing');
-  try { await send(bytes); } finally { emit(charac ? 'connected' : 'disconnected'); }
+  try { await send(bytes); } finally { emit(connected() ? 'connected' : 'disconnected'); }
 }
 
 export async function btTestPrint(paper80: boolean): Promise<void> {
@@ -313,5 +438,5 @@ export async function btTestPrint(paper80: boolean): Promise<void> {
   p.blank();
   p.cut();
   emit('printing');
-  try { await send(p.bytes()); } finally { emit(charac ? 'connected' : 'disconnected'); }
+  try { await send(p.bytes()); } finally { emit(connected() ? 'connected' : 'disconnected'); }
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Bluetooth, BluetoothOff, Loader2 } from 'lucide-react';
-import { btConnect, btForget, btState, btSubscribe, btTestPrint } from '../../lib/btPrinter';
+import { Bluetooth, BluetoothOff, Loader2, Search } from 'lucide-react';
+import { btConnect, btConnectBle, btForget, btState, btSubscribe, btTestPrint } from '../../lib/btPrinter';
 
 /** Ajustes → Impresora Bluetooth (se guarda por equipo, no por cuenta). */
 export function BluetoothPrinterCard({ paper80 }: { paper80: boolean }) {
@@ -12,7 +12,7 @@ export function BluetoothPrinterCard({ paper80 }: { paper80: boolean }) {
     return (
       <div className="bg-slate-950 border border-carbon-950/10 rounded-2xl px-4 py-3 text-[11px] text-slate-500">
         <div className="flex items-center gap-2 font-black text-slate-400 uppercase tracking-widest text-[10px] mb-1"><BluetoothOff size={14} /> Impresora Bluetooth</div>
-        Este navegador no puede conectarse a impresoras Bluetooth. Usa <b>Chrome en Android o en computadora</b>. En iPhone/iPad usa la ventana de impresión normal.
+        Este navegador no puede conectarse a impresoras Bluetooth. Usa <b>Chrome en Android o en computadora</b> (actualizado). En iPhone/iPad usa la ventana de impresión normal.
       </div>
     );
   }
@@ -23,9 +23,10 @@ export function BluetoothPrinterCard({ paper80 }: { paper80: boolean }) {
     setMsg('');
     try { await fn(); setMsg(ok); } catch (e) { setMsg((e as Error).message); }
   };
+  const okMsg = 'Impresora conectada. Los tickets saldrán directo, sin ventana. Toca «Imprimir prueba».';
 
   return (
-    <div className="bg-slate-950 border border-carbon-950/10 rounded-2xl px-4 py-4 space-y-3">
+    <div className="bg-slate-950 border border-carbon-950/10 rounded-2xl px-4 py-4 space-y-3" data-tour="bt-printer">
       <div className="flex items-center gap-3">
         <Bluetooth size={18} className={st.status === 'connected' ? 'text-emerald-500' : 'text-slate-500'} />
         <div className="flex-1 min-w-0">
@@ -37,9 +38,9 @@ export function BluetoothPrinterCard({ paper80 }: { paper80: boolean }) {
         {busy && <Loader2 size={16} className="animate-spin text-slate-500" />}
       </div>
       <div className="flex flex-wrap gap-2">
-        <button disabled={busy} onClick={() => run(btConnect, 'Impresora conectada. Los tickets saldrán directo por Bluetooth.')}
-          className="px-4 py-2 rounded-xl text-xs font-black bg-indigo-500 text-white disabled:opacity-50">
-          {on ? 'Cambiar / reconectar' : 'Conectar impresora'}
+        <button disabled={busy} onClick={() => run(btConnect, okMsg)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black bg-indigo-500 text-white disabled:opacity-50">
+          <Search size={14} /> {on ? 'Buscar otra impresora' : 'Buscar impresoras'}
         </button>
         {on && (
           <>
@@ -51,10 +52,23 @@ export function BluetoothPrinterCard({ paper80 }: { paper80: boolean }) {
         )}
       </div>
       {msg && <p className="text-[11px] font-bold text-slate-400">{msg}</p>}
-      <p className="text-[10px] text-slate-500 leading-snug">
-        Prende la impresora y dale <b>Conectar</b>; elígela en la lista. Si no aparece, tu impresora es Bluetooth clásico: usa la ventana de impresión con la app RawBT.
-        Funciona en Chrome (Android y computadora). Se guarda solo en este equipo. Ancho según el papel elegido arriba (58 u 80 mm).
-      </p>
+      <ol className="text-[10px] text-slate-500 leading-snug list-decimal pl-4 space-y-0.5">
+        {st.serial ? (
+          <>
+            <li>Prende la impresora y <b>emparéjala</b> en Ajustes → Bluetooth de tu celular o compu (si pide clave: 0000 o 1234). Solo la primera vez.</li>
+            <li>Toca <b>Buscar impresoras</b>, elige la tuya y <b>Conectar</b>. Si Chrome pide permiso de «Dispositivos cercanos», acéptalo.</li>
+          </>
+        ) : (
+          <li>Prende la impresora, toca <b>Buscar impresoras</b> y elígela en la lista.</li>
+        )}
+      </ol>
+      {st.serial && st.ble && (
+        <button disabled={busy} onClick={() => run(btConnectBle, okMsg)}
+          className="text-[10px] font-bold text-slate-400 underline disabled:opacity-50">
+          ¿No sale en la lista? Buscar impresoras Bluetooth LE
+        </button>
+      )}
+      <p className="text-[10px] text-slate-500 leading-snug">Se guarda solo en este equipo. Ancho según el papel elegido arriba (58 u 80 mm).</p>
     </div>
   );
 }
