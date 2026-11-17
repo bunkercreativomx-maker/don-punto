@@ -833,7 +833,7 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
         <div className="flex-grow min-w-0 px-3 py-4 sm:px-6 sm:py-6 overflow-auto relative z-40 no-scrollbar">
           <div className="w-full">
             {/* Celular/tablet: botón ☰ + en qué sección estás */}
-            <div className="lg:hidden sticky -top-4 sm:-top-6 z-50 -mx-3 sm:-mx-6 -mt-4 sm:-mt-6 mb-4 flex items-center gap-3 border-b border-carbon-950/10 bg-white/95 backdrop-blur px-3 sm:px-6 py-2.5 no-print">
+            <div className={cn("lg:hidden sticky -top-4 sm:-top-6 z-50 -mx-3 sm:-mx-6 -mt-4 sm:-mt-6 mb-4 flex items-center gap-3 border-b border-carbon-950/10 bg-white/95 backdrop-blur px-3 sm:px-6 py-2.5 no-print", quickPos && shownTab === 'pos' && "hidden")}>
               <button type="button" onClick={() => setNavOpen(true)} className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-carbon-950 px-3 py-2 text-sm font-bold text-white" aria-label="Abrir menú de secciones">
                 <MenuIcon size={18} /> Menú
               </button>

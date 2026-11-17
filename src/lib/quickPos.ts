@@ -3,7 +3,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react';
 /**
  * «Modo caja rápida»: POS a pantalla completa (productos en botones grandes, categorías abajo,
  * ticket fijo a la derecha con GUARDAR / COBRAR). Es opción POR EQUIPO (la tablet de la caja
- * puede usarlo y la compu del dueño no) y solo aplica en pantallas grandes (≥1024 px);
+ * puede usarlo y la compu del dueño no) y solo aplica en tablet/compu (≥768 px);
  * en celular el POS se ve igual que siempre.
  */
 const KEY = 'dp:quickPOS';
@@ -31,7 +31,7 @@ export function useQuickPosPref(): boolean {
 }
 
 function useIsLarge(): boolean {
-  const q = '(min-width: 1024px)';
+  const q = '(min-width: 768px)';
   const [ok, setOk] = useState(() => typeof window !== 'undefined' && window.matchMedia(q).matches);
   useEffect(() => {
     const m = window.matchMedia(q);

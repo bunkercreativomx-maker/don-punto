@@ -69,7 +69,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
   const [paymentMethod, setPaymentMethod] = useState<POSPaymentMethod>('Efectivo');
   const [orderDestination, setOrderDestination] = useState<OrderDestination>('Tienda');
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
-  // «Modo caja rápida» (opción por equipo, solo ≥1024 px)
+  // «Modo caja rápida» (opción por equipo, solo ≥768 px)
   const quick = useQuickPos();
   const [quickSearch, setQuickSearch] = useState(false);
   const [quickMenu, setQuickMenu] = useState(false);
@@ -79,7 +79,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
   useEffect(() => {
     if (!quick) return;
     // Alto = lo que queda de la ventana: todo en una pantalla, sin scroll de la página
-    const fit = () => { const el = quickRef.current; if (!el) return; const top = el.getBoundingClientRect().top + (el.closest('.overflow-auto')?.scrollTop || 0); setQuickH(Math.max(560, Math.floor(window.innerHeight - top - 12))); };
+    const fit = () => { const el = quickRef.current; if (!el) return; const top = el.getBoundingClientRect().top + (el.closest('.overflow-auto')?.scrollTop || 0); setQuickH(Math.max(420, Math.floor(window.innerHeight - top - 12))); };
     fit(); const t = setTimeout(fit, 300);
     window.addEventListener('resize', fit);
     return () => { clearTimeout(t); window.removeEventListener('resize', fit); };
@@ -967,7 +967,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
     </>
   );
 
-  // ---- «Modo caja rápida» (solo pantallas ≥1024 px, opción por equipo) ----
+  // ---- «Modo caja rápida» (solo pantallas ≥768 px, opción por equipo) ----
   const activeCatName = activeCategoryId ? (categories.find(c => c.id === activeCategoryId)?.name || 'Categoría') : 'Todos';
   const extrasSummary = [
     orderCustomerName.trim() && orderCustomerName.trim(),
@@ -979,10 +979,10 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
   ].filter(Boolean) as string[];
   const extrasOpen = quickMore || orderError === WAITER_MSG || ((orderDestination === 'Uber' || orderDestination === 'Rappi') && !orderCustomerName.trim());
   const quickView = (
-    <div ref={quickRef} style={quickH ? { height: quickH } : undefined} className="flex gap-3 min-h-[560px] no-print" data-quick-pos>
+    <div ref={quickRef} style={quickH ? { height: quickH } : undefined} className="flex gap-3 min-h-[420px] no-print" data-quick-pos>
         {/* Productos */}
         <section className="flex-1 min-w-0 flex flex-col rounded-2xl border border-carbon-950/10 bg-slate-900 overflow-hidden">
-            <div className="flex items-center gap-3 border-b border-carbon-950/10 bg-white px-4 py-2.5">
+            <div className="flex items-center gap-1.5 lg:gap-3 border-b border-carbon-950/10 bg-white px-3 lg:px-4 py-2.5">
                 <button type="button" onClick={() => window.dispatchEvent(new Event('dp:opennav'))} aria-label="Abrir menú de secciones"
                     className="shrink-0 grid h-10 w-10 place-items-center rounded-xl bg-carbon-950 text-white"><MenuIcon size={18} /></button>
                 {quickSearch ? (
@@ -993,22 +993,22 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                             placeholder="Buscar producto…" className="w-full rounded-xl border border-carbon-950/15 bg-white pl-9 pr-3 py-2 text-sm font-semibold text-carbon-950 outline-none focus:border-agave-500" />
                     </div>
                 ) : (
-                    <h2 className="flex-1 min-w-[7rem] truncate font-display text-xl font-bold text-carbon-950">{activeCatName}</h2>
+                    <h2 className="flex-1 min-w-[4.5rem] lg:min-w-[7rem] truncate font-display text-lg lg:text-xl font-bold text-carbon-950">{activeCatName}</h2>
                 )}
                 <button type="button" onClick={() => { if (quickSearch) { setSearchQuery(''); setQuickSearch(false); } else setQuickSearch(true); }}
                     aria-label={quickSearch ? 'Cerrar búsqueda' : 'Buscar producto'} className="shrink-0 grid h-10 w-10 place-items-center rounded-xl border border-carbon-950/10 text-carbon-700 hover:bg-carbon-50">
                     {quickSearch ? <X size={18} /> : <Search size={18} />}
                 </button>
                 {operator && requiresCashierLogin() && (
-                    <button type="button" onClick={() => lockSession()} title="Cambiar de cajero" className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-carbon-950/10 bg-white pl-3 pr-1 py-1 text-[11px] text-carbon-600 hover:bg-carbon-50">
-                        <b className="max-w-[90px] truncate text-carbon-900">{operator.name}</b><span className="rounded-full bg-carbon-100 px-2 py-0.5 font-semibold text-carbon-800">Cambiar</span>
+                    <button type="button" onClick={() => lockSession()} title="Cambiar de cajero" className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-carbon-950/10 bg-white pl-3 pr-3 lg:pr-1 py-1 text-[11px] text-carbon-600 hover:bg-carbon-50">
+                        <b className="max-w-[64px] lg:max-w-[90px] truncate text-carbon-900">{operator.name}</b><span className="hidden lg:inline rounded-full bg-carbon-100 px-2 py-0.5 font-semibold text-carbon-800">Cambiar</span>
                     </button>
                 )}
-                {!waiterMode && <div className="shrink-0 max-w-[55%]"><CashShiftBar compact transactions={transactions} settings={settings} rows={rows} categories={categories} /></div>}
+                {!waiterMode && <div className="shrink-0"><CashShiftBar compact transactions={transactions} settings={settings} rows={rows} categories={categories} /></div>}
             </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto p-3">
-                <div ref={setGridRef} className="grid grid-cols-4 xl:grid-cols-5 gap-2.5">
+                <div ref={setGridRef} className="grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">
                     {filteredProducts.length === 0 && (
                         <div className="col-span-full text-center py-12 text-slate-600">
                             <Search size={32} className="mx-auto mb-3 opacity-20" />
@@ -1043,7 +1043,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
         </section>
 
         {/* Ticket fijo a la derecha */}
-        <aside ref={cartRef} className="w-[360px] xl:w-[400px] shrink-0 flex flex-col rounded-2xl border border-carbon-950/10 bg-white overflow-hidden">
+        <aside ref={cartRef} className="w-[300px] lg:w-[360px] xl:w-[400px] shrink-0 flex flex-col rounded-2xl border border-carbon-950/10 bg-white overflow-hidden">
             <div className="flex items-center gap-2 border-b border-carbon-950/10 px-4 py-2.5">
                 <h3 className="font-display text-xl font-bold text-carbon-950 mr-auto">Ticket</h3>
                 <button type="button" onClick={() => { setIsTicketsModalOpen(true); void refreshOpenTickets(); }} title="Tickets abiertos"
@@ -1087,7 +1087,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                 </select>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto px-4 py-2">
+            <div className="flex-1 min-h-[132px] overflow-y-auto px-4 py-2">
                 {cart.length === 0 ? (
                     <div className="h-full grid place-items-center text-center text-slate-500">
                         <div><ShoppingCart size={40} className="mx-auto mb-2 opacity-15" /><p className="text-sm font-medium">Toca un producto para agregarlo</p></div>
@@ -1119,7 +1119,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                 })}
             </div>
 
-            <div className="border-t border-carbon-950/10 px-4 pt-3 pb-4 space-y-2.5 max-h-[62%] overflow-y-auto">
+            <div className="shrink min-h-0 border-t border-carbon-950/10 px-4 pt-3 pb-2.5 space-y-2.5 overflow-y-auto">
                 {orderTypeBlock}
                 <button type="button" onClick={() => setQuickMore(v => !v)} aria-expanded={extrasOpen}
                     className="flex w-full items-center gap-2 rounded-xl border border-carbon-950/10 bg-slate-950/50 px-3 py-2 text-left">
@@ -1131,6 +1131,8 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                 {!waiterMode && (
                     <div className="flex flex-wrap gap-1.5" aria-label="Forma de pago">{availablePaymentMethods.map(renderPayButton)}</div>
                 )}
+            </div>
+            <div className="shrink-0 border-t border-carbon-950/10 px-4 pt-2.5 pb-3 space-y-2 [@media(max-height:680px)]:pt-2 [@media(max-height:680px)]:pb-2">
                 {totalsBlock}
                 {waiterMode ? (
                     <button disabled={cart.length === 0 || checkingTable} onClick={handleSaveTicket}
@@ -1140,11 +1142,11 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                 ) : (
                     <div className="grid grid-cols-2 gap-2.5">
                         <button disabled={cart.length === 0 || checkingTable} onClick={handleSaveTicket}
-                            className="bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 disabled:text-slate-500 text-slate-300 font-black py-4 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2 text-sm">
+                            className="bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 disabled:text-slate-500 text-slate-300 font-black py-4 [@media(max-height:680px)]:py-3 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2 text-sm">
                             <Save size={18} /> GUARDAR
                         </button>
                         <button disabled={cart.length === 0} onClick={handleCheckout}
-                            className="bg-indigo-500 hover:bg-indigo-400 disabled:bg-slate-800 disabled:text-slate-600 text-white font-black py-4 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2 text-base">
+                            className="bg-indigo-500 hover:bg-indigo-400 disabled:bg-slate-800 disabled:text-slate-600 text-white font-black py-4 [@media(max-height:680px)]:py-3 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2 text-base">
                             <CreditCard size={20} /> COBRAR
                         </button>
                     </div>
@@ -1266,7 +1268,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                     
                     <div className="flex flex-wrap items-center gap-3">
                         <button type="button" onClick={() => setQuickPos(true)} title="Pantalla completa para cobrar rápido (este equipo)"
-                            className="hidden lg:inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-agave-400/60 bg-agave-50 text-agave-700 text-[10px] font-black tracking-widest uppercase hover:bg-agave-100 shrink-0">
+                            className="hidden md:inline-flex items-center gap-2 h-10 px-4 rounded-xl border border-agave-400/60 bg-agave-50 text-agave-700 text-[10px] font-black tracking-widest uppercase hover:bg-agave-100 shrink-0">
                             <Maximize2 size={16} /> Caja rápida
                         </button>
                         <button 
@@ -1866,7 +1868,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
     )}
 
     {/* Celular/tablet: ir a la orden (está arriba) */}
-    {cart.length > 0 && !cartVisible && (
+    {cart.length > 0 && !cartVisible && !quick && (
         <button type="button" onClick={() => cartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="lg:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-[80] no-print inline-flex items-center gap-2 rounded-full bg-agave-600 px-5 py-3 text-sm font-black text-white shadow-[0_12px_28px_-10px_rgba(14,111,77,0.7)]">
             <ShoppingCart size={18} /> Ver orden ({cart.reduce((a, i) => a + i.quantity, 0)}) · ${money(waiterMode ? finalTotal : chargeTotal)}
         </button>
