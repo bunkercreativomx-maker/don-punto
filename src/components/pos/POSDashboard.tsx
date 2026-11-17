@@ -1025,17 +1025,16 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                 </div>
             </div>
 
-            {/* Categorías abajo, al alcance del dedo (en renglones, sin scroll de lado) */}
-            <nav aria-label="Categorías" className="flex flex-wrap border-t border-carbon-950/10 bg-white">
+            {/* Categorías abajo: una sola línea compacta, se desliza de lado */}
+            <nav aria-label="Categorías" onWheel={e => { const el = e.currentTarget; if (el.scrollWidth > el.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX)) el.scrollLeft += e.deltaY; }} className="flex gap-1.5 overflow-x-auto border-t border-carbon-950/10 bg-white px-2 py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {[{ id: null as string | null, name: 'Todos', n: rows.length }, ...categories.map(c => ({ id: c.id as string | null, name: c.name, n: categoryCounts[c.id] || 0 }))].map(c => {
                     const on = activeCategoryId === c.id;
                     return (
                         <button key={c.id ?? 'all'} type="button" onClick={() => setActiveCategoryId(c.id)} aria-pressed={on}
-                            className={cn("relative flex-1 min-w-[110px] px-3 py-3 text-[13px] font-bold leading-tight transition-colors border-r border-carbon-950/5 last:border-r-0",
-                                on ? "text-agave-700 bg-agave-50" : "text-carbon-700 hover:bg-carbon-50")}>
-                            {on && <span className="absolute inset-x-0 top-0 h-[3px] bg-agave-600" />}
-                            <span className="line-clamp-2">{c.name}</span>
-                            {c.n > 0 && <span className="block text-[10px] font-semibold text-slate-500">{c.n}</span>}
+                            className={cn("shrink-0 inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 text-[12px] font-bold transition-colors",
+                                on ? "border-agave-600 bg-agave-600 text-white" : "border-carbon-950/10 bg-white text-carbon-700 hover:bg-carbon-50")}>
+                            {c.name}
+                            {c.n > 0 && <span className={cn("text-[10px] font-semibold", on ? "text-white/80" : "text-slate-500")}>{c.n}</span>}
                         </button>
                     );
                 })}
