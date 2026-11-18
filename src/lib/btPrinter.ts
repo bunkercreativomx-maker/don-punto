@@ -45,6 +45,16 @@ const LS_CH = 'dp:btPrinter:ch'; // índice del canal BLE elegido (para «Probar
 const LS_IMG = 'dp:btPrinter:img'; // '1' = mandar el ticket como imagen (térmicas que no entienden texto ESC/POS, p.ej. KD582)
 
 export const btImageMode = () => localStorage.getItem(LS_IMG) === '1';
+const LS_IMGSIZE = 'dp:btPrinter:imgSize'; // tamaño de letra en modo imagen
+export type ImgSize = 'm' | 'l' | 'xl';
+export const btImageSize = (): ImgSize => { const v = localStorage.getItem(LS_IMGSIZE); return v === 'm' || v === 'xl' ? v : 'l'; };
+export function btSetImageSize(s: ImgSize) { localStorage.setItem(LS_IMGSIZE, s); emit(); }
+/** Columnas por renglón en modo imagen: menos columnas = letra más grande. */
+function imageCols(paperCols: number) {
+  const wide = paperCols >= 48;
+  const s = btImageSize();
+  return s === 'm' ? (wide ? 42 : 28) : s === 'xl' ? (wide ? 30 : 20) : (wide ? 36 : 24);
+}
 export function btSetImageMode(on: boolean) {
   if (on) localStorage.setItem(LS_IMG, '1'); else localStorage.removeItem(LS_IMG);
   dlog(`modo imagen ${on ? 'ON' : 'OFF'}`);
@@ -98,7 +108,7 @@ export function btState() {
   return {
     status, name: localStorage.getItem(LS_NAME) || '', error: lastError, supported: btSupported(),
     serial: serialSupported(), ble: bleSupported(), native: isNativeApp(), via: btEnabled() ? via() : null,
-    lastSent, image: btImageMode(),
+    lastSent, image: btImageMode(), imageSize: btImageSize(),
   };
 }
 export function btSubscribe(fn: () => void) {
@@ -321,7 +331,7 @@ export function btForget() {
   const p = port, d = device;
   void disconnectAll().then(() => { try { p?.forget?.(); } catch { /* nada */ } });
   try { d?.forget?.(); } catch { /* nada */ }
-  [LS_ON, LS_ID, LS_NAME, LS_VIA, LS_CH, LS_IMG].forEach((k) => localStorage.removeItem(k));
+  [LS_ON, LS_ID, LS_NAME, LS_VIA, LS_CH, LS_IMG, LS_IMGSIZE].forEach((k) => localStorage.removeItem(k));
   lastError = '';
   emit('off');
 }
@@ -431,7 +441,8 @@ class Builder {
   ops: Op[] = []; // mismo contenido como renglones, para el modo imagen
   width: number;
   private st = { align: 0 as 0 | 1 | 2, bold: false, big: false };
-  constructor(width: number) { this.width = width; }
+  constructor(width: number) { this.width = btImageMode() ? imageCols(width) : width; this.paper = width; }
+  paper: number;
   align(n: 0 | 1 | 2) { this.b.push(ESC, 0x61, n); this.st.align = n; }
   bold(on: boolean) { this.b.push(ESC, 0x45, on ? 1 : 0); this.st.bold = on; }
   size(big: boolean) { this.b.push(GS, 0x21, big ? 0x11 : 0x00); this.st.big = big; }
@@ -454,7 +465,13 @@ class Builder {
     const l = clean(left), r = clean(right);
     if (bold) this.bold(true);
     if (l.length + r.length + 1 <= this.width) this.raw(l + ' '.repeat(this.width - l.length - r.length) + r);
-    else {
+    else if (r.length + 6 <= this.width) {
+      // precio en el PRIMER renglón y la descripción sigue abajo (no queda el precio suelto)
+      const lw = this.width - r.length - 1;
+      const parts = wrap(l, lw);
+      this.raw(parts[0].padEnd(lw) + ' ' + r);
+      parts.slice(1).forEach((x) => this.raw(x));
+    } else {
       wrap(l, this.width).forEach((x) => this.raw(x));
       this.raw(r.padStart(this.width));
     }
@@ -463,15 +480,15 @@ class Builder {
   sep(ch = '-') { this.raw(ch.repeat(this.width)); }
   blank() { this.b.push(0x0a); this.ops.push({ t: 'blank' }); }
   cut() { this.b.push(ESC, 0x64, 4, GS, 0x56, 0x42, 0x00); this.ops.push({ t: 'cut' }); }
-  bytes() { return btImageMode() ? rasterize(this.ops, this.width) : new Uint8Array(this.b); }
+  bytes() { return btImageMode() ? rasterize(this.ops, this.width, this.paper >= 48 ? 576 : 384) : new Uint8Array(this.b); }
 }
 
 /**
  * Modo imagen: dibuja los renglones en un canvas y los manda como mapa de bits (GS v 0),
  * igual que las apps que imprimen PDF/fotos. Para térmicas baratas que pitan y no imprimen texto.
  */
-function rasterize(ops: Op[], width: number): Uint8Array {
-  const dots = width >= 48 ? 576 : 384; // 80 mm / 58 mm a 203 dpi
+function rasterize(ops: Op[], width: number, dots: number): Uint8Array {
+  // dots = 384 (58 mm) o 576 (80 mm) a 203 dpi; width = columnas (según tamaño de letra)
   const cw = dots / width;               // ancho de un carácter
   const fs = Math.floor(cw / 0.6);       // monoespaciada ≈ 0.6 em por carácter
   const lh = Math.round(fs * 1.2);
@@ -486,7 +503,8 @@ function rasterize(ops: Op[], width: number): Uint8Array {
   ops.forEach((o, i) => {
     if (o.t === 'text') {
       const size = o.big ? fs * 2 : fs;
-      g.font = `${o.bold || o.big ? 'bold ' : ''}${size}px "Courier New", Courier, monospace`;
+      // siempre en negritas: el trazo delgado sale casi invisible en papel térmico
+      g.font = `bold ${size}px "DejaVu Sans Mono", "Roboto Mono", "Droid Sans Mono", "Courier New", monospace`;
       // estirar a la rejilla de columnas para que las filas izq/der queden alineadas como en texto
       const cols = o.big ? width / 2 : width;
       const s = o.s.slice(0, cols);
@@ -605,7 +623,7 @@ export async function btTestPrint(paper80: boolean): Promise<void> {
   p.line('Prueba de impresora', { center: true });
   p.sep();
   p.row('Impresora:', localStorage.getItem(LS_NAME) || '-');
-  p.row('Modo:', btImageMode() ? 'imagen' : 'texto');
+  p.row('Modo:', btImageMode() ? `imagen ${({ m: 'mediana', l: 'grande', xl: 'extra' } as const)[btImageSize()]}` : 'texto');
   if (via() === 'ble') p.row('Canal:', btChannel() || '-');
   p.row('Fecha:', new Date().toLocaleString('es-MX'));
   p.row('Acentos:', 'áéíóú ñ Ñ ¿¡');

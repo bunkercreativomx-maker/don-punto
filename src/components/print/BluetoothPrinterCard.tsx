@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Bluetooth, BluetoothOff, Download, Loader2, Search } from 'lucide-react';
-import { btChannel, btSetImageMode, btConnect, btConnectBle, btForget, btLog, btNativeList, btNativeSelect, btNextChannel, btState, btSubscribe, btTestPrint } from '../../lib/btPrinter';
+import { btChannel, btSetImageMode, btSetImageSize, type ImgSize, btConnect, btConnectBle, btForget, btLog, btNativeList, btNativeSelect, btNextChannel, btState, btSubscribe, btTestPrint } from '../../lib/btPrinter';
 import { ANDROID_APP_URL, isAndroidBrowser, type NativePrinter } from '../../lib/nativeBridge';
 
 /** Aviso para Android en navegador: Chrome no entrega bien los datos a las térmicas → app Don Punto. */
@@ -108,6 +108,15 @@ export function BluetoothPrinterCard({ paper80 }: { paper80: boolean }) {
               <span className="truncate">{d.name}</span>
               <span className="text-[10px] font-mono text-slate-400 shrink-0">{d.address}</span>
             </button>
+          ))}
+        </div>
+      )}
+      {on && st.image && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Tamaño de letra</span>
+          {([['m', 'Mediana'], ['l', 'Grande'], ['xl', 'Extra grande']] as [ImgSize, string][]).map(([k, label]) => (
+            <button key={k} disabled={busy} onClick={() => run(async () => { btSetImageSize(k); await btTestPrint(paper80); }, `Prueba enviada con letra ${label.toLowerCase()}.`)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black disabled:opacity-50 ${st.imageSize === k ? 'bg-agave-600 text-white' : 'border border-carbon-950/10 text-carbon-950'}`}>{label}</button>
           ))}
         </div>
       )}
