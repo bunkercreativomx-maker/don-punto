@@ -1358,30 +1358,6 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                         </button>
                     )}
                 </div>
-                {newProd && (
-                    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-carbon-950/40 backdrop-blur-sm" onClick={() => setNewProd(null)}>
-                        <div className="w-full max-w-sm bg-white rounded-2xl p-5 space-y-3 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-                            <h3 className="text-lg font-bold text-carbon-950">Agregar producto</h3>
-                            <label className="block text-xs font-bold text-slate-500">Nombre
-                                <input autoFocus value={newProd.name} onChange={(e) => setNewProd({ ...newProd, name: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && saveNewProduct()} placeholder="Ej. Agua 1 litro" className="mt-1 w-full rounded-xl border border-carbon-950/15 px-3 py-2.5 text-sm text-carbon-950 outline-none focus:border-agave-500" />
-                            </label>
-                            <label className="block text-xs font-bold text-slate-500">Precio en tienda
-                                <input inputMode="decimal" value={newProd.price} onChange={(e) => setNewProd({ ...newProd, price: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && saveNewProduct()} placeholder="0.00" className="mt-1 w-full rounded-xl border border-carbon-950/15 px-3 py-2.5 text-sm text-carbon-950 outline-none focus:border-agave-500" />
-                            </label>
-                            <label className="block text-xs font-bold text-slate-500">Categoría
-                                <select value={newProd.categoryId} onChange={(e) => setNewProd({ ...newProd, categoryId: e.target.value })} className="mt-1 w-full rounded-xl border border-carbon-950/15 px-3 py-2.5 text-sm text-carbon-950 outline-none bg-white">
-                                    <option value="">Sin categoría</option>
-                                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                </select>
-                            </label>
-                            <p className="text-[11px] text-slate-500">Los precios de apps y la foto los ajustas en Plataformas / Tienda Física.</p>
-                            <div className="flex gap-2 pt-1">
-                                <button type="button" onClick={() => setNewProd(null)} className="flex-1 py-2.5 rounded-xl border border-carbon-950/15 font-bold text-sm">Cancelar</button>
-                                <button type="button" onClick={saveNewProduct} className="flex-1 py-2.5 rounded-xl bg-agave-600 text-white font-black text-sm">GUARDAR</button>
-                            </div>
-                        </div>
-                    </div>
-                )}
             </div>
 
             {/* Cart Section */}
@@ -1815,6 +1791,32 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
         </div>
     )}
 
+                {newProd && (
+                    <div className="fixed inset-0 z-[120] overflow-y-auto bg-carbon-950/40 backdrop-blur-sm no-print" onClick={() => setNewProd(null)}>
+                        <div className="min-h-full flex items-center justify-center p-4 pb-24">
+                        <div className="w-full max-w-sm bg-white rounded-2xl p-5 space-y-3 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                            <h3 className="text-lg font-bold text-carbon-950">Agregar producto</h3>
+                            <label className="block text-xs font-bold text-slate-500">Nombre
+                                <input autoFocus value={newProd.name} onChange={(e) => setNewProd({ ...newProd, name: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && saveNewProduct()} placeholder="Ej. Agua 1 litro" className="mt-1 w-full rounded-xl border border-carbon-950/15 px-3 py-2.5 text-sm text-carbon-950 outline-none focus:border-agave-500" />
+                            </label>
+                            <label className="block text-xs font-bold text-slate-500">Precio en tienda
+                                <input inputMode="decimal" value={newProd.price} onChange={(e) => setNewProd({ ...newProd, price: e.target.value })} onKeyDown={(e) => e.key === 'Enter' && saveNewProduct()} placeholder="0.00" className="mt-1 w-full rounded-xl border border-carbon-950/15 px-3 py-2.5 text-sm text-carbon-950 outline-none focus:border-agave-500" />
+                            </label>
+                            <label className="block text-xs font-bold text-slate-500">Categoría
+                                <select value={newProd.categoryId} onChange={(e) => setNewProd({ ...newProd, categoryId: e.target.value })} className="mt-1 w-full rounded-xl border border-carbon-950/15 px-3 py-2.5 text-sm text-carbon-950 outline-none bg-white">
+                                    <option value="">Sin categoría</option>
+                                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                            </label>
+                            <p className="text-[11px] text-slate-500">Los precios de apps y la foto los ajustas en Plataformas / Tienda Física.</p>
+                            <div className="flex gap-2 pt-1">
+                                <button type="button" onClick={() => setNewProd(null)} className="flex-1 py-2.5 rounded-xl border border-carbon-950/15 font-bold text-sm">Cancelar</button>
+                                <button type="button" onClick={saveNewProduct} className="flex-1 py-2.5 rounded-xl bg-agave-600 text-white font-black text-sm">GUARDAR</button>
+                            </div>
+                        </div>
+                        </div>
+                    </div>
+                )}
     {/* --- HIDDEN TICKETS FOR PRINTING --- */}
     {lastOrder && (
         <PrintArea kind="ticket" paper={settings.paperSize}>
