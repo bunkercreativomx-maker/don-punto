@@ -100,12 +100,12 @@ export function POSTicketsHistory() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-10rem)] animate-in fade-in slide-in-from-bottom-2 duration-500 no-print">
+    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 lg:gap-6 md:h-[calc(100dvh-10rem)] animate-in fade-in slide-in-from-bottom-2 duration-500 no-print">
 
       {/* LEFT SIDE: Tickets list & Filters */}
-      <div className="lg:col-span-4 flex flex-col bg-slate-900 backdrop-blur-2xl border border-carbon-950/10 rounded-3xl overflow-hidden shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] h-full">
+      <div className="md:col-span-5 lg:col-span-4 min-h-0 flex flex-col bg-slate-900 backdrop-blur-2xl border border-carbon-950/10 rounded-3xl overflow-hidden shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] md:h-full">
         {/* Header and filters */}
-        <div className="p-6 border-b border-carbon-950/10 space-y-4 shrink-0 bg-slate-900">
+        <div className="p-4 lg:p-6 border-b border-carbon-950/10 space-y-3 lg:space-y-4 shrink-0 bg-slate-900">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-black text-carbon-950 flex items-center gap-2">
               <Receipt className="text-indigo-400" size={20} /> Historial de Tickets
@@ -166,7 +166,7 @@ export function POSTicketsHistory() {
         </div>
 
         {/* Tickets Scrollable List */}
-        <div className="flex-grow overflow-y-auto no-scrollbar p-6 space-y-3">
+        <div className="flex-grow min-h-0 overflow-y-auto p-4 lg:p-6 space-y-3 max-h-[50vh] md:max-h-none">
           {filteredTickets.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full py-16 text-slate-600 text-center px-4">
               <Receipt size={40} className="opacity-10 mb-4 animate-pulse" />
@@ -250,7 +250,7 @@ export function POSTicketsHistory() {
       </div>
 
       {/* RIGHT SIDE: Ticket Live Preview & Actions */}
-      <div className="lg:col-span-8 flex flex-col bg-slate-900 backdrop-blur-2xl border border-carbon-950/10 rounded-3xl overflow-hidden shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] h-full">
+      <div className="md:col-span-7 lg:col-span-8 min-h-0 flex flex-col bg-slate-900 backdrop-blur-2xl border border-carbon-950/10 rounded-3xl overflow-hidden shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] md:h-full">
         {selectedTicket ? (
           <div className="flex flex-col h-full">
             {/* Quick Actions Header */}
