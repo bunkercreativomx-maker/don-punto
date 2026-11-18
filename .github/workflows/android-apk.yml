@@ -24,7 +24,8 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - uses: android-actions/setup-android@v3
+      - name: Android SDK (ya viene en el runner; solo aceptar licencias)
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
       - name: Dependencias Capacitor
         working-directory: native
         run: npm ci --no-audit --no-fund && npx cap sync android
