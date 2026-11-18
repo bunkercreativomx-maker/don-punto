@@ -143,13 +143,21 @@ function humanSerialError(e: any): string {
 
 /* ---------- Bluetooth LE (Web Bluetooth) ---------- */
 
+// Servicios genéricos de BLE (no son de impresión): nunca escribir ahí
+const GENERIC = new Set(['00001800-0000-1000-8000-00805f9b34fb', '00001801-0000-1000-8000-00805f9b34fb', '0000180a-0000-1000-8000-00805f9b34fb', '0000180f-0000-1000-8000-00805f9b34fb']);
+
 async function findWritable(dev: BTDevice): Promise<BTChar> {
   const server = dev.gatt.connected ? dev.gatt : await dev.gatt.connect();
   const services = await server.getPrimaryServices();
-  for (const s of services) {
+  dlog(`BLE servicios: ${services.map((s: any) => s.uuid.slice(4, 8)).join(',')}`);
+  // Primero los servicios de impresora conocidos (en el orden de SERVICES), luego el resto, nunca los genéricos
+  const rank = (u: string) => { const i = SERVICES.indexOf(u); return i < 0 ? 99 : i; };
+  const ordered = services.filter((s: any) => !GENERIC.has(s.uuid)).sort((a: any, b: any) => rank(a.uuid) - rank(b.uuid));
+  for (const s of ordered) {
     let chars: BTChar[] = [];
     try { chars = await s.getCharacteristics(); } catch { continue; }
-    const c = chars.find((ch) => ch.properties.write || ch.properties.writeWithoutResponse);
+    // Preferir escritura sin respuesta (es la que usan las térmicas); si no, con respuesta
+    const c = chars.find((ch) => ch.properties.writeWithoutResponse) || chars.find((ch) => ch.properties.write);
     if (c) return c;
   }
   throw new Error('Esta impresora no es Bluetooth LE. Emparéjala en los ajustes de Bluetooth del equipo y usa «Buscar impresoras».');
@@ -163,6 +171,7 @@ async function attachBle(dev: BTDevice) {
 }
 
 function onDisconnect() {
+  dlog('BLE: la impresora cortó la conexión');
   charac = null;
   if (status !== 'off') emit('disconnected');
 }
@@ -309,18 +318,20 @@ async function send(bytes: Uint8Array) {
     return;
   }
   if (!charac) throw new Error('La impresora Bluetooth no está conectada.');
-  const withResp = !!charac.properties.write;
-  let size = 180;
-  for (let i = 0; i < bytes.length; ) {
-    const chunk = bytes.slice(i, i + size);
-    try {
-      if (withResp) await charac.writeValueWithResponse(chunk);
-      else { await charac.writeValueWithoutResponse(chunk); await sleep(25); }
-      i += size;
-    } catch (e) {
-      if (size > 20) { size = 20; continue; } // MTU chico: reintenta en pedazos de 20
-      throw e;
+  // Paquetes de 20 bytes (MTU mínimo de BLE: las térmicas baratas se desconectan con paquetes grandes)
+  const noResp = !!charac.properties.writeWithoutResponse;
+  const size = 20;
+  dlog(`BLE escribiendo ${bytes.length} bytes en ${charac.uuid.slice(4, 8)} (${noResp ? 'sin' : 'con'} respuesta)`);
+  try {
+    for (let i = 0; i < bytes.length; i += size) {
+      const chunk = bytes.slice(i, i + size);
+      if (noResp) { await charac.writeValueWithoutResponse(chunk); await sleep(20); }
+      else await charac.writeValueWithResponse(chunk);
     }
+    dlog('BLE write ok');
+  } catch (e: any) {
+    dlog(`BLE write ERROR ${e?.name}: ${e?.message}`);
+    throw e;
   }
 }
 
