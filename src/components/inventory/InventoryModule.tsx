@@ -63,7 +63,7 @@ const GRUPOS = ['Carnes y Proteínas', 'Frutas y Verduras', 'Lácteos', 'Secos y
 const AREAS  = ['Cocina', 'Barra', 'Almacén', 'Limpieza', 'General'];
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
-const TODAY = () => new Date().toISOString().split('T')[0];
+const TODAY = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
 const BLANK_INSUMO: Omit<Insumo, 'id'> = {
   nombre: '', unidad: 'pz', grupo: 'Otros', area: 'General',

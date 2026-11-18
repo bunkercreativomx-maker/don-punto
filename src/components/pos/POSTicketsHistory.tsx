@@ -27,6 +27,8 @@ import { logEvent, getShifts } from '../../lib/cashShift';
 import { authorizeWithPin } from '../../lib/session';
 import { RotateCcw } from 'lucide-react';
 
+const localYMD = (d: Date = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
@@ -39,7 +41,7 @@ export function POSTicketsHistory() {
   const { rows } = useCalculator();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState<string>(localYMD());
   const [useDateFilter, setUseDateFilter] = useState(true);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
 
@@ -64,7 +66,7 @@ export function POSTicketsHistory() {
     return transactionsWithFolios.filter(tx => {
       // Date filter
       if (useDateFilter) {
-        const txDateStr = tx.date.split('T')[0];
+        const txDateStr = localYMD(new Date(tx.date)); // día LOCAL (en UTC, desde las 5 pm "hoy" ya era mañana)
         if (txDateStr !== selectedDate) return false;
       }
 
@@ -128,8 +130,8 @@ export function POSTicketsHistory() {
           {/* Quick date shortcuts */}
           <div className="flex gap-2 flex-wrap">
             {[
-              { label: 'Hoy', getDate: () => new Date().toISOString().split('T')[0] },
-              { label: 'Ayer', getDate: () => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().split('T')[0]; } },
+              { label: 'Hoy', getDate: () => localYMD() },
+              { label: 'Ayer', getDate: () => { const d = new Date(); d.setDate(d.getDate() - 1); return localYMD(d); } },
             ].map(s => (
               <button
                 key={s.label}
