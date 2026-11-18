@@ -45,7 +45,9 @@ export type BTStatus = 'off' | 'disconnected' | 'connecting' | 'connected' | 'pr
 
 let device: BTDevice | null = null;
 let charac: BTChar | null = null;
-let port: SPort | null = null;
+let port: SPort | null = null;        // puerto ABIERTO (solo mientras se escribe)
+let knownPort: SPort | null = null;   // puerto autorizado por el usuario (se reabre en cada ticket)
+let lastSent: { bytes: number; at: number; info: any } | null = null;
 let status: BTStatus = localStorage.getItem(LS_ON) === '1' ? 'disconnected' : 'off';
 let lastError = '';
 const listeners = new Set<() => void>();
@@ -72,6 +74,7 @@ export function btState() {
   return {
     status, name: localStorage.getItem(LS_NAME) || '', error: lastError, supported: btSupported(),
     serial: serialSupported(), ble: bleSupported(), via: btEnabled() ? via() : null,
+    lastSent,
   };
 }
 export function btSubscribe(fn: () => void) {
@@ -93,6 +96,7 @@ function save(v: Via, id: string, name: string) {
 function portName(p: SPort): string {
   const info = p?.getInfo?.() || {};
   if (info.bluetoothServiceClassId) return 'Impresora Bluetooth';
+  if (info.usbVendorId === undefined && !info.bluetoothServiceClassId) return 'Impresora (puerto serie)';
   if (info.usbVendorId) return 'Impresora USB';
   return 'Impresora';
 }
@@ -103,12 +107,14 @@ async function openPort(p: SPort) {
     catch (e: any) { if (!/already open/i.test(e?.message || '')) throw e; }
   }
   port = p;
+  knownPort = p;
   p.removeEventListener?.('disconnect', onPortGone);
   p.addEventListener?.('disconnect', onPortGone);
 }
 
 function onPortGone() {
   port = null;
+  knownPort = null;
   if (status !== 'off') emit('disconnected');
 }
 
@@ -188,7 +194,7 @@ async function disconnectAll() {
   try { device?.gatt?.disconnect(); } catch { /* nada */ }
   device = null; charac = null;
   if (port) { try { await port.close(); } catch { /* nada */ } }
-  port = null;
+  port = null; knownPort = null;
 }
 
 /** Reconecta sin clic a la impresora ya autorizada (si el navegador lo permite). */
@@ -199,7 +205,7 @@ async function reconnect(): Promise<boolean> {
       const ser = (navigator as any).serial;
       if (!ser?.getPorts) return false;
       const list: SPort[] = await ser.getPorts();
-      const p = port || list.find((x) => x.getInfo?.().bluetoothServiceClassId) || list[0];
+      const p = knownPort || list.find((x) => x.getInfo?.().bluetoothServiceClassId) || list[0];
       if (!p) return false;
       emit('connecting');
       await openPort(p);
@@ -256,13 +262,26 @@ async function send(bytes: Uint8Array) {
     throw new Error(lastError || 'La impresora no está conectada. Ve a Ajustes → Impresora Bluetooth → Buscar impresoras.');
   }
   if (via() === 'serial') {
-    const w = port.writable.getWriter();
+    const p = port;
+    const w = p.writable.getWriter();
+    let sent = 0;
     try {
-      for (let i = 0; i < bytes.length; i += 512) {
-        await w.write(bytes.slice(i, i + 512));
-        await sleep(15); // las térmicas baratas tienen búfer chico
+      for (let i = 0; i < bytes.length; i += 256) {
+        await w.write(bytes.slice(i, i + 256));
+        sent = Math.min(bytes.length, i + 256);
+        await sleep(30); // las térmicas baratas tienen búfer chico
       }
-    } finally { w.releaseLock(); }
+      // Cerrar el escritor y el puerto = la única forma de FORZAR el vaciado del búfer en Web Serial.
+      // En Android (RFCOMM) lo escrito puede quedarse en el búfer del navegador y nunca llegar al papel
+      // si el puerto se deja abierto; cada ticket abre → escribe → cierra (como hacen las apps nativas).
+      await w.close();
+    } catch (e) {
+      try { w.releaseLock(); } catch { /* nada */ }
+      throw e;
+    }
+    try { await p.close(); } catch { /* nada */ }
+    if (port === p) port = null;
+    lastSent = { bytes: sent, at: Date.now(), info: p.getInfo?.() || {} };
     return;
   }
   if (!charac) throw new Error('La impresora Bluetooth no está conectada.');
@@ -281,7 +300,7 @@ async function send(bytes: Uint8Array) {
   }
 }
 
-const connected = () => (via() === 'serial' ? !!port?.writable : !!charac);
+const connected = () => (via() === 'serial' ? !!knownPort : !!charac);
 
 /* ---------------- ESC/POS ---------------- */
 

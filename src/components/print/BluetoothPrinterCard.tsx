@@ -52,6 +52,9 @@ export function BluetoothPrinterCard({ paper80 }: { paper80: boolean }) {
         )}
       </div>
       {msg && <p className="text-[11px] font-bold text-slate-400">{msg}</p>}
+      {on && st.lastSent && (
+        <p className="text-[10px] text-slate-500">Último envío: {st.lastSent.bytes} bytes a las {new Date(st.lastSent.at).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}. Si no salió papel: apaga y prende la impresora, toca «Buscar otra impresora» y elige la misma.</p>
+      )}
       <ol className="text-[10px] text-slate-500 leading-snug list-decimal pl-4 space-y-0.5">
         {st.serial ? (
           <>
