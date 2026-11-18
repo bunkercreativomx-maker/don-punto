@@ -706,7 +706,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
 
   // ---- Piezas compartidas por la vista normal y el «Modo caja rápida» ----
   const chooseDestination = (d: OrderDestination) => { setOrderDestination(d); if (d !== 'Tienda') { setService(''); setTable(''); } if (d !== 'Didi') setOrderRef(''); };
-  const renderPayButton = (m: POSPaymentMethod) => {
+  const renderPayButton = (m: POSPaymentMethod, quick = false) => {
     // Color fijo por forma de pago para que la caja vea de un vistazo cómo está cobrando
     const c = PAY_COLOR[m] || '#475569';
     const on = paymentMethod === m;
@@ -719,11 +719,11 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                 ? { background: c, borderColor: c, color: '#fff', boxShadow: `0 6px 16px -6px ${c}` }
                 : { background: `${c}14`, borderColor: `${c}55`, color: c }}
             className={cn(
-                "px-4 py-2 rounded-xl text-xs font-black border-2 transition-all active:scale-95 flex items-center gap-1.5",
-                on && "scale-105"
+                quick ? "px-2.5 py-1 rounded-lg text-[10px] font-black border-2 transition-all active:scale-95 flex items-center gap-1" : "px-4 py-2 rounded-xl text-xs font-black border-2 transition-all active:scale-95 flex items-center gap-1.5",
+                on && !quick && "scale-105"
             )}
         >
-            {on && <Check size={14} strokeWidth={3} />}
+            {on && <Check size={quick ? 12 : 14} strokeWidth={3} />}
             {m.toUpperCase()}
         </button>
     );
@@ -1025,13 +1025,13 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                 </div>
             </div>
 
-            {/* Categorías abajo: una sola línea compacta, se desliza de lado */}
-            <nav aria-label="Categorías" onWheel={e => { const el = e.currentTarget; if (el.scrollWidth > el.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX)) el.scrollLeft += e.deltaY; }} className="flex gap-1.5 overflow-x-auto border-t border-carbon-950/10 bg-white px-2 py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {/* Categorías abajo: botones chicos en renglones, todas a la vista */}
+            <nav aria-label="Categorías" className="flex flex-wrap gap-1 border-t border-carbon-950/10 bg-white px-2 py-1.5 max-h-[96px] overflow-y-auto">
                 {[{ id: null as string | null, name: 'Todos', n: rows.length }, ...categories.map(c => ({ id: c.id as string | null, name: c.name, n: categoryCounts[c.id] || 0 }))].map(c => {
                     const on = activeCategoryId === c.id;
                     return (
                         <button key={c.id ?? 'all'} type="button" onClick={() => setActiveCategoryId(c.id)} aria-pressed={on}
-                            className={cn("shrink-0 inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg border px-3 text-[12px] font-bold transition-colors",
+                            className={cn("shrink-0 inline-flex h-7 items-center gap-1 whitespace-nowrap rounded-md border px-2.5 text-[11px] font-bold transition-colors",
                                 on ? "border-agave-600 bg-agave-600 text-white" : "border-carbon-950/10 bg-white text-carbon-700 hover:bg-carbon-50")}>
                             {c.name}
                             {c.n > 0 && <span className={cn("text-[10px] font-semibold", on ? "text-white/80" : "text-slate-500")}>{c.n}</span>}
@@ -1042,16 +1042,16 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
         </section>
 
         {/* Ticket fijo a la derecha */}
-        <aside ref={cartRef} className="w-[300px] lg:w-[360px] xl:w-[400px] shrink-0 flex flex-col rounded-2xl border border-carbon-950/10 bg-white overflow-hidden">
-            <div className="flex items-center gap-2 border-b border-carbon-950/10 px-4 py-2.5">
-                <h3 className="font-display text-xl font-bold text-carbon-950 mr-auto">Ticket</h3>
+        <aside ref={cartRef} className="w-[290px] lg:w-[320px] xl:w-[350px] shrink-0 flex flex-col [&_[data-tour=order-type]_button]:py-1.5 [&_[data-tour=order-type]_button]:text-[10px] [&_.text-3xl]:text-2xl [&_.mb-2]:mb-0 rounded-2xl border border-carbon-950/10 bg-white overflow-hidden">
+            <div className="flex items-center gap-2 border-b border-carbon-950/10 px-3 py-2">
+                <h3 className="font-display text-lg font-bold text-carbon-950 mr-auto">Ticket</h3>
                 <button type="button" onClick={() => { setIsTicketsModalOpen(true); void refreshOpenTickets(); }} title="Tickets abiertos"
-                    className="relative inline-flex h-10 items-center gap-1.5 rounded-xl border border-carbon-950/10 px-3 text-[11px] font-black text-carbon-700 hover:bg-carbon-50">
+                    className="relative inline-flex h-8 items-center gap-1.5 rounded-lg border border-carbon-950/10 px-2.5 text-[10px] font-black text-carbon-700 hover:bg-carbon-50">
                     <History size={16} className="text-maiz-600" /> ABIERTOS
                     {openTickets.length > 0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-maiz-400 px-1 text-[10px] font-black text-carbon-950">{openTickets.length}</span>}
                 </button>
                 <div className="relative">
-                    <button type="button" onClick={() => setQuickMenu(v => !v)} aria-label="Más opciones" className="grid h-10 w-10 place-items-center rounded-xl border border-carbon-950/10 text-carbon-700 hover:bg-carbon-50"><MoreVertical size={18} /></button>
+                    <button type="button" onClick={() => setQuickMenu(v => !v)} aria-label="Más opciones" className="grid h-8 w-8 place-items-center rounded-lg border border-carbon-950/10 text-carbon-700 hover:bg-carbon-50"><MoreVertical size={18} /></button>
                     {quickMenu && (
                         <>
                         <div className="fixed inset-0 z-40" onClick={() => setQuickMenu(false)} />
@@ -1118,20 +1118,20 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                 })}
             </div>
 
-            <div className="shrink min-h-0 border-t border-carbon-950/10 px-4 pt-3 pb-2.5 space-y-2.5 overflow-y-auto">
+            <div className="shrink min-h-0 border-t border-carbon-950/10 px-3 pt-2 pb-2 space-y-2 overflow-y-auto">
                 {orderTypeBlock}
                 <button type="button" onClick={() => setQuickMore(v => !v)} aria-expanded={extrasOpen}
-                    className="flex w-full items-center gap-2 rounded-xl border border-carbon-950/10 bg-slate-950/50 px-3 py-2 text-left">
+                    className="flex w-full items-center gap-2 rounded-lg border border-carbon-950/10 bg-slate-950/50 px-2.5 py-1.5 text-left">
                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 whitespace-nowrap">Cliente, descuento{!waiterMode && orderDestination === 'Tienda' ? ', propina' : ''}</span>
                     <span className="min-w-0 flex-1 truncate text-right text-[11px] font-bold text-carbon-800">{extrasSummary.join(' · ')}</span>
                     <ChevronDown size={16} className={cn("shrink-0 text-slate-500 transition-transform", extrasOpen && "rotate-180")} />
                 </button>
                 {extrasOpen && <div className="space-y-2.5">{extrasBlock}</div>}
                 {!waiterMode && (
-                    <div className="flex flex-wrap gap-1.5" aria-label="Forma de pago">{availablePaymentMethods.map(renderPayButton)}</div>
+                    <div className="flex flex-wrap gap-1" aria-label="Forma de pago">{availablePaymentMethods.map(m => renderPayButton(m, true))}</div>
                 )}
             </div>
-            <div className="shrink-0 border-t border-carbon-950/10 px-4 pt-2.5 pb-3 space-y-2 [@media(max-height:680px)]:pt-2 [@media(max-height:680px)]:pb-2">
+            <div className="shrink-0 border-t border-carbon-950/10 px-3 pt-2 pb-2.5 space-y-1.5">
                 {totalsBlock}
                 {waiterMode ? (
                     <button disabled={cart.length === 0 || checkingTable} onClick={handleSaveTicket}
@@ -1139,20 +1139,20 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                         <Save size={20} /> ENVIAR ORDEN
                     </button>
                 ) : (
-                    <div className="grid grid-cols-2 gap-2.5">
+                    <div className="grid grid-cols-2 gap-2">
                         <button disabled={cart.length === 0 || checkingTable} onClick={handleSaveTicket}
-                            className="bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 disabled:text-slate-500 text-slate-300 font-black py-4 [@media(max-height:680px)]:py-3 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2 text-sm">
-                            <Save size={18} /> GUARDAR
+                            className="bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 disabled:text-slate-500 text-slate-300 font-black py-2.5 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-1.5 text-xs">
+                            <Save size={15} /> GUARDAR
                         </button>
                         <button disabled={cart.length === 0} onClick={handleCheckout}
-                            className="bg-indigo-500 hover:bg-indigo-400 disabled:bg-slate-800 disabled:text-slate-600 text-white font-black py-4 [@media(max-height:680px)]:py-3 rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2 text-base">
-                            <CreditCard size={20} /> COBRAR
+                            className="bg-indigo-500 hover:bg-indigo-400 disabled:bg-slate-800 disabled:text-slate-600 text-white font-black py-2.5 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-1.5 text-sm">
+                            <CreditCard size={16} /> COBRAR
                         </button>
                     </div>
                 )}
                 {!waiterMode && orderDestination === 'Tienda' && (
                     <button type="button" disabled={cart.length === 0} onClick={openSplit} data-tour="split"
-                        className="w-full py-2 rounded-xl border border-carbon-950/15 bg-white text-carbon-800 text-[11px] font-black tracking-wide hover:border-agave-400 disabled:opacity-40 transition-all">DIVIDIR CUENTA / PAGO MIXTO</button>
+                        className="w-full py-1.5 rounded-lg border border-carbon-950/15 bg-white text-carbon-800 text-[10px] font-black tracking-wide hover:border-agave-400 disabled:opacity-40 transition-all">DIVIDIR CUENTA / PAGO MIXTO</button>
                 )}
             </div>
         </aside>
@@ -1312,7 +1312,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                 <div className="flex items-center justify-between mb-6 p-4 bg-slate-950/50 rounded-2xl border border-carbon-950/10">
                     <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Método de Pago</div>
                     <div className="flex flex-wrap justify-end gap-2">
-                        {availablePaymentMethods.map(renderPayButton)}
+                        {availablePaymentMethods.map(m => renderPayButton(m))}
                     </div>
                 </div>
 
