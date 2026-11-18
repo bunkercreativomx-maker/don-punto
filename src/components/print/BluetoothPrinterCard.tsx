@@ -62,6 +62,18 @@ export function BluetoothPrinterCard({ paper80 }: { paper80: boolean }) {
         {busy && <Loader2 size={16} className="animate-spin text-slate-500" />}
       </div>
       <AndroidAppBanner compact />
+      {st.native && (
+        // Dentro de la app: la pantalla se actualiza sola, pero el puente Bluetooth solo se actualiza reinstalando el APK
+        <a href={ANDROID_APP_URL} data-tour="android-update"
+          className="flex items-center gap-3 rounded-2xl bg-agave-600 text-white px-3 py-2">
+          <Download size={16} className="shrink-0" />
+          <div className="min-w-0 flex-1">
+            <div className="font-black text-xs">Actualizar app Android</div>
+            <div className="text-[10px] opacity-90 leading-snug">Descarga la versión más nueva e instálala encima. No se borra nada.</div>
+          </div>
+          <span className="shrink-0 rounded-xl bg-white/15 font-black px-2 py-1 text-[10px]">Actualizar</span>
+        </a>
+      )}
       <div className="flex flex-wrap gap-2">
         <button disabled={busy} onClick={search}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black bg-indigo-500 text-white disabled:opacity-50">
