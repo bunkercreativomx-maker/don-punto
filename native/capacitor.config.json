@@ -2,6 +2,24 @@
   "appId": "com.donpunto.pos",
   "appName": "Don Punto",
   "webDir": "www",
-  "server": { "url": "https://donpunto.com", "cleartext": false, "allowNavigation": ["donpunto.com", "*.donpunto.com", "*.stripe.com", "checkout.stripe.com"] },
-  "android": { "allowMixedContent": false }
+  "server": {
+    "url": "https://donpunto.com",
+    "cleartext": false,
+    "allowNavigation": [
+      "donpunto.com",
+      "*.donpunto.com",
+      "*.stripe.com",
+      "checkout.stripe.com"
+    ]
+  },
+  "android": {
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "native",
+      "initialViewportFitValueHint": "contain"
+    }
+  },
+  "backgroundColor": "#ffffff"
 }
