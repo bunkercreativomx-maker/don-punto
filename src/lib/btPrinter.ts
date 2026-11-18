@@ -435,7 +435,7 @@ function encode(text: string): number[] {
 }
 
 // sc = escala de letra en modo imagen (1 normal, 2 doble, ITEM producto, SMALL modificadores)
-type Op = { t: 'text'; s: string; align: 0 | 1 | 2; bold: boolean; big: boolean; sc: number } | { t: 'blank'; h?: number } | { t: 'cut' };
+type Op = { t: 'text'; s: string; align: 0 | 1 | 2; bold: boolean; big: boolean; sc: number } | { t: 'blank'; h?: number } | { t: 'cut' } | { t: 'rule'; dotted?: boolean };
 const ITEM = 1.2, SMALL = 0.82;
 
 class Builder {
@@ -473,7 +473,8 @@ class Builder {
     this.st.sc = 1;
     if (bold) this.bold(false);
   }
-  gap() { this.b.push(0x0a); this.ops.push({ t: 'blank', h: 0.6 }); }
+  /** Fin de un producto: línea punteada fina entre productos (imagen) / renglón en blanco (texto). */
+  gap() { this.b.push(0x0a); this.ops.push({ t: 'rule', dotted: true }); }
   line(t: string, opts: { center?: boolean; bold?: boolean; big?: boolean } = {}) {
     // Letra doble solo si cabe en una línea; si no, normal en negritas
     if (opts.big && clean(t).length > Math.floor(this.width / 2)) opts = { ...opts, big: false, bold: true };
@@ -488,8 +489,15 @@ class Builder {
     if (opts.bold) this.bold(false);
     this.align(0);
   }
-  row(left: string, right: string, bold?: boolean) {
+  row(left: string, right: string, bold?: boolean, large?: boolean) {
     const l = clean(left), r = clean(right);
+    // renglón grande (TOTAL) solo en modo imagen: menos columnas y letra más grande
+    if (large && btImageMode()) {
+      const keep = this.width;
+      this.width = Math.floor(keep / ITEM); this.st.sc = ITEM;
+      try { this.row(l, r, true); } finally { this.width = keep; this.st.sc = 1; }
+      return;
+    }
     if (bold) this.bold(true);
     if (l.length + r.length + 1 <= this.width) this.raw(l + ' '.repeat(this.width - l.length - r.length) + r);
     else if (r.length + 6 <= this.width) {
@@ -504,7 +512,7 @@ class Builder {
     }
     if (bold) this.bold(false);
   }
-  sep(ch = '-') { this.raw(ch.repeat(this.width)); }
+  sep(ch = '-') { this.b.push(...encode(ch.repeat(this.width)), 0x0a); this.ops.push({ t: 'rule' }); }
   blank() { this.b.push(0x0a); this.ops.push({ t: 'blank' }); }
   cut() { this.b.push(ESC, 0x64, 4, GS, 0x56, 0x42, 0x00); this.ops.push({ t: 'cut' }); }
   bytes() { return btImageMode() ? rasterize(this.ops, this.width, this.paper >= 48 ? 576 : 384) : new Uint8Array(this.b); }
@@ -518,8 +526,8 @@ function rasterize(ops: Op[], width: number, dots: number): Uint8Array {
   // dots = 384 (58 mm) o 576 (80 mm) a 203 dpi; width = columnas (según tamaño de letra)
   const cw = dots / width;               // ancho de un carácter
   const fs = Math.floor(cw / 0.6);       // monoespaciada ≈ 0.6 em por carácter
-  const lh = Math.round(fs * 1.2);
-  const heights = ops.map((o) => (o.t === 'text' ? Math.round(lh * o.sc) : o.t === 'blank' ? Math.round(lh * (o.h ?? 1)) : lh * 2));
+  const lh = Math.round(fs * 1.35); // interlineado más abierto: el ticket se leía «todo pegadito»
+  const heights = ops.map((o) => (o.t === 'text' ? Math.round(lh * o.sc) : o.t === 'blank' ? Math.round(lh * (o.h ?? 1)) : o.t === 'rule' ? Math.round(lh * (o.dotted ? 0.8 : 1)) : lh * 2));
   const H = Math.max(8, heights.reduce((a, b) => a + b, 0));
   const c = document.createElement('canvas');
   c.width = dots; c.height = H;
@@ -528,6 +536,11 @@ function rasterize(ops: Op[], width: number, dots: number): Uint8Array {
   g.fillStyle = '#000'; g.textBaseline = 'top';
   let y = 0;
   ops.forEach((o, i) => {
+    if (o.t === 'rule') {
+      const ry = y + Math.round(heights[i] / 2);
+      if (o.dotted) for (let x = 6; x < dots - 6; x += 8) g.fillRect(x, ry, 4, 2);
+      else g.fillRect(6, ry - 1, dots - 12, 3);
+    }
     if (o.t === 'text') {
       const size = Math.round(fs * o.sc);
       // siempre en negritas: el trazo delgado sale casi invisible en papel térmico
@@ -607,7 +620,7 @@ function domToEscPos(root: HTMLElement, width: number): Uint8Array {
     }
     if (has(el, 'flex-row-print')) {
       const kids = Array.from(el.children);
-      p.row(kids[0]?.textContent || '', kids.length > 1 ? kids[kids.length - 1].textContent || '' : '', isBold(el));
+      p.row(kids[0]?.textContent || '', kids.length > 1 ? kids[kids.length - 1].textContent || '' : '', isBold(el), has(el, 'text-sm'));
       return;
     }
     if (has(el, 'grid')) {

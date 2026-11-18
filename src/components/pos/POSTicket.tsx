@@ -101,9 +101,10 @@ export function POSTicket({ items, total, paymentMethod, destination, customerNa
                         </div>
                         {item.selectedModifiers.length > 0 && (
                             <div className="pl-4 italic text-[9px] sm:text-[10px]">
-                                {item.selectedModifiers.map(g => (
-                                    <div key={g.groupId}>+ {g.modifiers.map(m => m.name).join(', ')}</div>
-                                ))}
+                                {/* un modificador por renglón (Pako: en lista separada por comas se confunden) */}
+                                {item.selectedModifiers.flatMap(g => g.modifiers.map((m, mi) => (
+                                    <div key={`${g.groupId}-${mi}`}>+ {m.name}</div>
+                                )))}
                             </div>
                         )}
                         {item.customerNote && (
