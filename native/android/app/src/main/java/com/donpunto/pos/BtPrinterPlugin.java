@@ -105,20 +105,30 @@ public class BtPrinterPlugin extends Plugin {
                     sock = dev.createRfcommSocketToServiceRecord(SPP);
                     sock.connect();
                 } catch (Exception first) {
-                    // Respaldo clásico para módulos BT baratos que no publican el servicio SPP
                     try { if (sock != null) sock.close(); } catch (Exception ignored) {}
-                    sock = (BluetoothSocket) dev.getClass().getMethod("createRfcommSocket", int.class).invoke(dev, 1);
-                    sock.connect();
+                    try {
+                        // Algunas térmicas genéricas solo aceptan conexión "insegura" (sin cifrado)
+                        sock = dev.createInsecureRfcommSocketToServiceRecord(SPP);
+                        sock.connect();
+                    } catch (Exception second) {
+                        // Respaldo clásico para módulos BT baratos que no publican el servicio SPP
+                        try { if (sock != null) sock.close(); } catch (Exception ignored) {}
+                        sock = (BluetoothSocket) dev.getClass().getMethod("createRfcommSocket", int.class).invoke(dev, 1);
+                        sock.connect();
+                    }
                 }
+                // Muchas térmicas pitan al conectar y tiran lo que llega en los primeros ms: esperar a que estén listas
+                Thread.sleep(600);
                 OutputStream out = sock.getOutputStream();
-                int chunk = 512;
+                int chunk = 128;
                 for (int i = 0; i < data.length; i += chunk) {
                     out.write(data, i, Math.min(chunk, data.length - i));
                     out.flush();
-                    Thread.sleep(20);
+                    Thread.sleep(40);
                 }
                 out.flush();
-                Thread.sleep(300); // dejar que el búfer de la impresora se vacíe antes de cerrar
+                // No cerrar antes de que la impresora procese todo (cerrar pronto = pitido sin papel)
+                Thread.sleep(Math.max(2000, data.length * 3L));
                 JSObject ret = new JSObject();
                 ret.put("bytes", data.length);
                 call.resolve(ret);
