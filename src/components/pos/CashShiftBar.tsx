@@ -10,6 +10,7 @@ import { CorteCaja } from './CorteCaja';
 import { CorteZTicket } from './CorteZTicket';
 import { PrintArea } from '../print/PrintArea';
 import { runPrint } from '../../lib/print';
+import { btEnabled } from '../../lib/btPrinter';
 
 interface Props { transactions: POSTransaction[]; settings: POSSettings; rows: ProductRowData[]; categories: Category[]; compact?: boolean }
 
@@ -29,7 +30,8 @@ const btnGhost = 'flex-grow py-4 rounded-2xl font-bold text-slate-500 hover:text
 
 function Modal({ title, kicker, onClose, children }: { title: string; kicker: string; onClose: () => void; children: ReactNode }) {
   return (
-    <div className="fixed inset-0 z-[66] flex items-center justify-center p-4 bg-carbon-950/35 backdrop-blur-md no-print">
+    <div className="fixed inset-0 z-[66] overflow-y-auto overscroll-contain bg-carbon-950/35 backdrop-blur-md no-print">
+      <div className="min-h-full flex items-center justify-center p-4 pb-24">
       <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl w-full max-w-md shadow-[0_12px_32px_-18px_rgba(13,16,14,0.3)] overflow-hidden">
         <div className="p-6 bg-slate-800/30 border-b border-carbon-950/10 flex items-start justify-between">
           <div>
@@ -39,6 +41,7 @@ function Modal({ title, kicker, onClose, children }: { title: string; kicker: st
           <button onClick={onClose} className="text-slate-500 hover:text-carbon-950"><X size={18} /></button>
         </div>
         {children}
+      </div>
       </div>
     </div>
   );
@@ -215,6 +218,9 @@ export function CashShiftBar(props: Props) {
           </div>
           <div className="p-6 pt-0 space-y-3">
             <button onClick={() => printThermal(closed)} className={btnPrimary + ' w-full'}>IMPRIMIR CORTE Z</button>
+            {!btEnabled() && (
+              <p className="text-[11px] text-carbon-500 text-center">¿Impresora Bluetooth? Conéctala una vez en Ajustes → Configuración de Impresión → «Buscar impresoras».</p>
+            )}
             <div className="flex gap-3">
               <button onClick={() => printCorte(closed)} className="flex-1 py-3 rounded-2xl border border-carbon-950/10 bg-white text-carbon-800 text-xs font-black hover:bg-carbon-50">HOJA CARTA / PDF</button>
               <button onClick={() => { setModal(null); setClosed(null); }} className="flex-1 py-3 rounded-2xl font-bold text-slate-500 hover:text-carbon-950 text-xs">LISTO</button>

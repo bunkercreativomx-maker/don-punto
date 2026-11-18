@@ -9,21 +9,30 @@ import { btEnabled, btPrintArea } from './btPrinter';
 
 export type PrintKind = 'ticket' | 'corte' | 'reporte';
 
-let busy = false;
+let pending: (() => void) | null = null;
+
+/** Si una impresión se queda colgada (BT sin respuesta), no debe bloquear para siempre */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return new Promise((res, rej) => {
+    const t = setTimeout(() => rej(new Error('La impresora no respondió. Revisa que esté prendida y cerca.')), ms);
+    p.then((v) => { clearTimeout(t); res(v); }, (e) => { clearTimeout(t); rej(e); });
+  });
+}
 
 export function runPrint(kind: PrintKind, done?: () => void) {
-  if (busy) return;
-  busy = true;
+  // Un clic nuevo nunca se ignora: cerramos la impresión anterior que se quedó a medias
+  pending?.();
   const cls = `printing-${kind}`;
   let finished = false;
   const finish = () => {
     if (finished) return;
     finished = true;
-    busy = false;
+    if (pending === finish) pending = null;
     document.body.classList.remove(cls);
     window.removeEventListener('afterprint', finish);
     done?.();
   };
+  pending = finish;
   document.body.classList.add(cls);
   window.addEventListener('afterprint', finish);
   // Esperar dos cuadros para que React termine de pintar el ticket
@@ -31,7 +40,7 @@ export function runPrint(kind: PrintKind, done?: () => void) {
     requestAnimationFrame(() => {
       // Impresora Bluetooth directa (tickets y cortes; la hoja carta sigue con el diálogo)
       if (kind !== 'reporte' && btEnabled()) {
-        btPrintArea(kind).then(finish).catch((e) => {
+        withTimeout(btPrintArea(kind), 20_000).then(finish).catch((e) => {
           window.alert(`No se pudo imprimir por Bluetooth: ${e?.message || e}\n\nSe abrirá la ventana de impresión normal.`);
           try { window.print(); } catch { /* nada */ }
           setTimeout(finish, 60_000);
