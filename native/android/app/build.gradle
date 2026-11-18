@@ -7,8 +7,10 @@ android {
         applicationId "com.donpunto.pos"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode (System.getenv("APP_VERSION_CODE") ?: "1").toInteger()
-        versionName (System.getenv("APP_VERSION_NAME") ?: "1.0.0")
+        def vCode = System.getenv("APP_VERSION_CODE")
+        def vName = System.getenv("APP_VERSION_NAME")
+        versionCode = (vCode != null ? vCode : "1").toInteger()
+        versionName = (vName != null ? vName : "1.0.0")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
