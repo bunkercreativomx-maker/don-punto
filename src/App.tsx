@@ -14,13 +14,14 @@ import { POSTicketsHistory } from './components/pos/POSTicketsHistory';
 import { MenuScannerModal } from './components/pos/MenuScannerModal';
 import { MenuImportModal, type ImportPlatforms } from './components/pos/MenuImportModal';
 import { usePOS } from './hooks/usePOS';
-import { Building2, Phone, MapPin, PrinterIcon } from 'lucide-react';
+import { Building2, Phone, MapPin, PrinterIcon, Download } from 'lucide-react';
 import { Logo, Mark } from './components/brand/Logo';
 import { BluetoothPrinterCard } from './components/print/BluetoothPrinterCard';
 import { btAutoReconnect } from './lib/btPrinter';
 import { useQuickPos, useQuickPosPref, setQuickPos } from './lib/quickPos';
 import { NotificationsCard } from './components/pwa/NotificationsCard';
 import { InstallAppButton } from './components/pwa/InstallApp';
+import { ANDROID_APP_URL, isAndroidBrowser } from './lib/nativeBridge';
 import { InventoryModule } from './components/inventory/InventoryModule';
 import { MenuEngineeringModule } from './components/menu-engineering/MenuEngineeringModule';
 import { RecipesModule } from './components/recipes/RecipesModule';
@@ -831,6 +832,13 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
             {!canAccess('settings') && <Lock size={12} className="block text-carbon-400" />}
           </button>
           <InstallAppButton compact tourId="install" label="Instalar app" className="p-3 px-3 rounded-xl transition-all text-maiz-400 hover:bg-maiz-500/10 gap-3 border border-transparent" />
+          {isAndroidBrowser() && (
+            <a href={ANDROID_APP_URL} target="_blank" rel="noopener" data-tour="android-app" title="App para Android: imprime directo en tu impresora Bluetooth"
+              className="p-3 px-3 rounded-xl transition-all text-agave-600 hover:bg-agave-50 flex items-center gap-3 border border-transparent">
+              <Download size={20} className="shrink-0" />
+              <span className="block text-xs font-bold whitespace-nowrap">App Android</span>
+            </a>
+          )}
           <button
             data-tour="help"
             onClick={() => { setNavOpen(false); openSupport(); }}

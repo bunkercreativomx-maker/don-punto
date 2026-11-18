@@ -3,9 +3,11 @@ import { LockKeyhole, Store, UserCog, PackageCheck, HeartHandshake, BarChart3, F
   Check, ChevronDown, Receipt, Calculator, Wallet, Boxes, ChefHat, ScanLine, WifiOff, BellRing,
   Smartphone, MessageCircle, Mail, ArrowRight, ShieldCheck, Globe, Bike, Banknote,
   EyeOff, Ban, TrendingDown, Coffee, Croissant, IceCream, Truck, ShoppingBag, Volume2, VolumeX,
+  Download,
 } from 'lucide-react';
 import { Logo, Mark, Wordmark } from '../brand/Logo';
 import { InstallAppButton } from '../pwa/InstallApp';
+import { ANDROID_APP_URL } from '../../lib/nativeBridge';
 import { whatsappLink, supportLink, SUPPORT_EMAIL, PLANS, FOUNDER } from '../../config';
 import { useFounders, priceFor } from '../../lib/founders';
 
@@ -289,6 +291,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
             <a href="#precios" className="hover:text-carbon-950">Precios</a>
             <a href="#preguntas" className="hover:text-carbon-950">Preguntas</a>
             <a href="/blog" className="hover:text-carbon-950">Blog</a>
+            <a href={ANDROID_APP_URL} className="hover:text-carbon-950">App para Android</a>
           </nav>
           <div className="flex items-center gap-1 sm:gap-3">
             <button onClick={onLogin} className="whitespace-nowrap rounded-full px-2.5 sm:px-4 py-2 text-[13px] sm:text-sm font-medium text-carbon-700 hover:bg-carbon-100">
@@ -331,6 +334,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                   Ver precios
                 </a>
               </div>
+              <a href={ANDROID_APP_URL} className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-agave-700 hover:underline"><Download size={15} /> Descargar app para Android (APK)</a>
               <ul className="mt-8 flex flex-col sm:flex-row sm:flex-wrap gap-x-6 gap-y-2 text-sm text-carbon-600">
                 {['15 días gratis, sin tarjeta', founderOpen ? `Precio de fundador desde $${FOUNDER.prices.basico} al mes` : `Luego desde $${PLANS.basico.price} al mes`, 'Sin contratos'].map((t) => (
                   <li key={t} className="flex items-center gap-2"><Check size={16} className="text-agave-500" /> {t}</li>
@@ -528,7 +532,9 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
               <div className="mt-8 flex flex-wrap gap-3">
                 <button onClick={onSubscribe} className="rounded-full bg-maiz-400 hover:bg-maiz-300 px-6 py-3 font-semibold text-carbon-950 transition-colors">Empezar ahora</button>
                 <InstallAppButton className="rounded-full px-6 py-3 font-semibold text-white ring-1 ring-white/20 hover:bg-white/5" />
+                <a href={ANDROID_APP_URL} className="inline-flex items-center gap-2 rounded-full px-6 py-3 font-semibold text-white ring-1 ring-white/20 hover:bg-white/5"><Download size={18} /> App para Android (APK)</a>
               </div>
+              <p className="mt-4 text-sm text-carbon-400">¿Impresora Bluetooth en tablet o celular Android? Instala la app para Android: imprime directo, sin ventana ni apps extra.</p>
             </div>
             <div className="relative flex items-center justify-center p-10 sm:p-14 bg-[radial-gradient(120%_80%_at_70%_20%,rgba(22,137,95,0.35),transparent_60%)]">
               <div className="w-full max-w-sm space-y-3">
@@ -683,6 +689,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
           <nav className="flex flex-wrap gap-x-6 gap-y-3 text-sm text-carbon-600">
             <a href="#precios" className="hover:text-carbon-950">Precios</a>
             <a href="/blog" className="hover:text-carbon-950">Blog</a>
+            <a href={ANDROID_APP_URL} className="hover:text-carbon-950">App para Android</a>
             <a href="/privacidad" className="hover:text-carbon-950">Aviso de Privacidad</a>
             <a href="/terminos" className="hover:text-carbon-950">Términos</a>
             {SUPPORT_EMAIL && (
