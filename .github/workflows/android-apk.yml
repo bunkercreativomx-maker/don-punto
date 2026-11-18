@@ -24,6 +24,8 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+          cache: gradle
+          cache-dependency-path: native/android/**/*.gradle*
       - name: Android SDK (ya viene en el runner; solo aceptar licencias)
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
       - name: Dependencias Capacitor
@@ -45,7 +47,9 @@ jobs:
           APP_VERSION_NAME: 1.0.${{ github.run_number }}
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon assembleRelease
+          # Maven Central a veces devuelve 429 en los runners: reintentar hasta 4 veces
+          for i in 1 2 3 4; do ./gradlew --no-daemon assembleRelease && break || { echo "intento $i falló"; sleep $((i*45)); }; done
+          test -f app/build/outputs/apk/release/app-release.apk
           cp app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/DonPunto.apk"
           echo "{\"versionCode\":${{ github.run_number }},\"versionName\":\"1.0.${{ github.run_number }}\",\"date\":\"$(date -u +%FT%TZ)\"}" > "$RUNNER_TEMP/version.json"
       - name: Publicar release android-latest
