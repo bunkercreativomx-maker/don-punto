@@ -98,12 +98,24 @@ export interface Operator { kind: 'owner' | 'employee'; id: string; name: string
 const SESSION_KEY = 'dp:operator';
 const IDLE_MS = 15 * 60 * 1000;
 
+// La sesión vive en ESTE equipo (localStorage): cerrar y abrir la app no vuelve a pedir el PIN.
+// Solo se pide otra vez con «Bloquear» / «Cambiar» o al cerrar sesión de la cuenta.
+const store = (() => { try { return window.localStorage; } catch { return sessionStorage; } })();
+/** Dueño sin actividad 15 min: deja de tener todo abierto, pero la caja sigue cobrando sin PIN */
+const OWNER_CAJA: Operator = { kind: 'employee', id: 'owner-caja', name: 'Dueño', role: 'cajero' };
 function readSession(): Operator | null {
   try {
-    const raw = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
-    if (!raw) return null;
-    // El dueño se bloquea solo tras 15 min sin actividad; el cajero sigue identificado
-    if (raw.op.kind === 'owner' && Date.now() - raw.at > IDLE_MS) { sessionStorage.removeItem(SESSION_KEY); return null; }
+    let raw = JSON.parse(store.getItem(SESSION_KEY) || 'null');
+    if (!raw) {
+      // Sesiones de antes (sessionStorage) se pasan a la nueva
+      raw = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
+      if (raw) { store.setItem(SESSION_KEY, JSON.stringify(raw)); sessionStorage.removeItem(SESSION_KEY); }
+    }
+    if (!raw?.op) return null;
+    if (raw.op.kind === 'owner' && Date.now() - raw.at > IDLE_MS) {
+      store.setItem(SESSION_KEY, JSON.stringify({ op: OWNER_CAJA, at: Date.now() }));
+      return OWNER_CAJA;
+    }
     return raw.op as Operator;
   } catch { return null; }
 }
@@ -116,13 +128,14 @@ function subscribe(l: () => void) { listeners.add(l); return () => listeners.del
 export function getOperator(): Operator | null { return operator; }
 function setOperator(op: Operator | null) {
   operator = op;
-  if (op) sessionStorage.setItem(SESSION_KEY, JSON.stringify({ op, at: Date.now() }));
-  else sessionStorage.removeItem(SESSION_KEY);
+  if (op) store.setItem(SESSION_KEY, JSON.stringify({ op, at: Date.now() }));
+  else store.removeItem(SESSION_KEY);
   emitChange();
 }
 export function touchSession() {
-  if (operator) sessionStorage.setItem(SESSION_KEY, JSON.stringify({ op: operator, at: Date.now() }));
+  if (operator) store.setItem(SESSION_KEY, JSON.stringify({ op: operator, at: Date.now() }));
 }
+export function clearSession() { try { store.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_KEY); } catch { /* nada */ } }
 
 /** ¿De quién es este PIN? (no cambia la sesión) */
 export function findOperatorByPin(pin: string, ownerPin: string): Operator | null {
@@ -175,6 +188,7 @@ export function useSession() {
       const before = operator;
       const now = readSession();
       if (before && !now) { operator = null; emitChange(); force((x) => x + 1); }
+      else if (before && now && before.id !== now.id) { operator = now; emitChange(); force((x) => x + 1); }
     }, 30_000);
     window.addEventListener('pointerdown', onAct);
     window.addEventListener('keydown', onAct);

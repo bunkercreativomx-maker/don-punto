@@ -549,6 +549,13 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
   const { operator, canAccess } = useSession();
   const [pinFor, setPinFor] = useState<Tab | 'switch' | null>(null);
   // Checador (entrada/salida del personal): se abre sin PIN de sesión; cada quien checa con el suyo
+  // Ticket sin impresora conectada en este equipo (tablet): ventana para conectarla ahí mismo
+  const [noPrinter, setNoPrinter] = useState(false);
+  useEffect(() => {
+    const on = () => { if (localStorage.getItem('dp:noprinterOk') !== '1') setNoPrinter(true); };
+    window.addEventListener('dp:noprinter', on);
+    return () => window.removeEventListener('dp:noprinter', on);
+  }, []);
   const [clockOpen, setClockOpen] = useState(false);
   const [branchMenu, setBranchMenu] = useState(false);
   // Celular/tablet: la barra lateral es un panel que se abre con el botón ☰ (en lg es fija)
@@ -660,6 +667,26 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
           />
       )}
 
+      {noPrinter && (
+          <div className="fixed inset-0 z-[210] overflow-y-auto bg-carbon-950/50 no-print" onClick={() => setNoPrinter(false)}>
+              <div className="min-h-full flex items-center justify-center p-4 pb-24">
+                  <div className="w-full max-w-md rounded-3xl bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-start justify-between gap-3">
+                          <div>
+                              <h3 className="font-display text-xl font-bold text-carbon-950">No hay impresora conectada</h3>
+                              <p className="mt-1 text-sm text-carbon-600">La venta ya quedó guardada. Para que salga el ticket, conecta aquí tu impresora Bluetooth (una sola vez en este equipo). Luego reimprime este ticket desde Tickets.</p>
+                          </div>
+                          <button type="button" onClick={() => setNoPrinter(false)} aria-label="Cerrar" className="shrink-0 grid h-9 w-9 place-items-center rounded-xl text-carbon-500 hover:bg-carbon-100"><X size={18} /></button>
+                      </div>
+                      <div className="mt-4"><BluetoothPrinterCard paper80={posSettings.paperSize === '80mm'} /></div>
+                      <div className="mt-4 flex gap-2">
+                          <button type="button" onClick={() => { localStorage.setItem('dp:noprinterOk', '1'); setNoPrinter(false); }} className="flex-1 rounded-xl border border-carbon-950/15 py-2.5 text-xs font-bold text-carbon-700 hover:bg-carbon-50">Ya imprimo de otra forma</button>
+                          <button type="button" onClick={() => setNoPrinter(false)} className="flex-1 rounded-xl bg-agave-600 py-2.5 text-sm font-black text-white hover:bg-agave-700">LISTO</button>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      )}
       {/* --- PIN: desbloquear pantallas / cambiar de cajero --- */}
       {clockOpen && <ClockModal ownerPin={posSettings.adminPin} onClose={() => setClockOpen(false)} />}
       {(pinFor || needCashier) && !clockOpen && (
@@ -830,7 +857,7 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
             settings.platform === 'Rappi' && "bg-pink-600"
         )} />
 
-        <div className="flex-grow min-w-0 px-3 py-4 sm:px-6 sm:py-6 overflow-auto relative z-40 no-scrollbar">
+        <div className={cn("flex-grow min-w-0 overflow-auto relative z-40 no-scrollbar", quickPos && shownTab === 'pos' ? "p-0" : "px-3 py-4 sm:px-6 sm:py-6")}>
           <div className="w-full">
             {/* Celular/tablet: botón ☰ + en qué sección estás */}
             <div className={cn("lg:hidden sticky -top-4 sm:-top-6 z-50 -mx-3 sm:-mx-6 -mt-4 sm:-mt-6 mb-4 flex items-center gap-3 border-b border-carbon-950/10 bg-white/95 backdrop-blur px-3 sm:px-6 py-2.5 no-print", quickPos && shownTab === 'pos' && "hidden")}>

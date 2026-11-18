@@ -47,6 +47,11 @@ export function runPrint(kind: PrintKind, done?: () => void) {
         });
         return;
       }
+      // Tablet/celular Android sin impresora conectada en Don Punto: el diálogo del sistema casi nunca
+      // imprime en térmicas (y en la app instalada a veces ni abre). Avisar en vez de quedarse callado.
+      const ua = navigator.userAgent;
+      const tablet = /Android/i.test(ua) || (/Linux/i.test(ua) && !/CrOS/i.test(ua) && navigator.maxTouchPoints > 0);
+      if (kind !== 'reporte' && tablet) window.dispatchEvent(new CustomEvent('dp:noprinter', { detail: { kind } }));
       try {
         window.print();
       } catch {

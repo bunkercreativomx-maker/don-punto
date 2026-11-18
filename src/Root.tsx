@@ -230,6 +230,7 @@ function RootApp() {
     } catch { /* se queda pendiente en este equipo */ }
     clearUser();
     sessionStorage.removeItem('dp:operator');
+    try { localStorage.removeItem('dp:operator'); } catch { /* nada */ }
     pb.authStore.clear();
     setUid(null);
     setEmail(null);
