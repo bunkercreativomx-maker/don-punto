@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Bluetooth, BluetoothOff, Loader2, Search } from 'lucide-react';
-import { btConnect, btConnectBle, btForget, btLog, btState, btSubscribe, btTestPrint } from '../../lib/btPrinter';
+import { btChannel, btConnect, btConnectBle, btForget, btLog, btNextChannel, btState, btSubscribe, btTestPrint } from '../../lib/btPrinter';
 
 /** Ajustes → Impresora Bluetooth (se guarda por equipo, no por cuenta). */
 export function BluetoothPrinterCard({ paper80 }: { paper80: boolean }) {
@@ -47,6 +47,10 @@ export function BluetoothPrinterCard({ paper80 }: { paper80: boolean }) {
           <>
             <button disabled={busy} onClick={() => run(() => btTestPrint(paper80), 'Prueba enviada.')}
               className="px-4 py-2 rounded-xl text-xs font-black border border-carbon-950/10 text-carbon-950 disabled:opacity-50">Imprimir prueba</button>
+            {st.via === 'ble' && btChannel() && (
+              <button disabled={busy} onClick={() => run(async () => { const c = await btNextChannel(); await btTestPrint(paper80); setMsg(`Prueba enviada por el canal ${c}. Si no salió, toca otra vez.`); }, '')}
+                className="px-4 py-2 rounded-xl text-xs font-black border border-amber-400/60 text-amber-600 disabled:opacity-50">Probar siguiente canal ({btChannel()})</button>
+            )}
             <button disabled={busy} onClick={() => { btForget(); setMsg('Listo: se usará la ventana de impresión normal.'); }}
               className="px-4 py-2 rounded-xl text-xs font-black border border-carbon-950/10 text-rose-500 disabled:opacity-50">Quitar</button>
           </>

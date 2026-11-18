@@ -20,15 +20,15 @@ const RFCOMM_IDS = [SPP, 'e7810a71-73ae-499d-8c15-faa9aef0c3f2', '49535343-fe7d-
 
 // Servicios BLE más comunes en impresoras térmicas genéricas (58/80 mm)
 const SERVICES = [
-  '000018f0-0000-1000-8000-00805f9b34fb',
+  '0000ae00-0000-1000-8000-00805f9b34fb', // el real en la mayoría de las genéricas chinas (ae01)
+  '49535343-fe7d-4ae5-8fa9-9fafd205e455', // Microchip UART transparente
   'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
-  '49535343-fe7d-4ae5-8fa9-9fafd205e455',
+  '000018f0-0000-1000-8000-00805f9b34fb', // muchas lo exponen pero no imprime
   '0000ff00-0000-1000-8000-00805f9b34fb',
   '0000ffe0-0000-1000-8000-00805f9b34fb',
   '0000fee7-0000-1000-8000-00805f9b34fb',
   '0000ae30-0000-1000-8000-00805f9b34fb',
   '0000ae3a-0000-1000-8000-00805f9b34fb',
-  '0000ae00-0000-1000-8000-00805f9b34fb',
   '0000ff12-0000-1000-8000-00805f9b34fb',
   '0000ffb0-0000-1000-8000-00805f9b34fb',
   '0000fff0-0000-1000-8000-00805f9b34fb',
@@ -40,11 +40,13 @@ const LS_ON = 'dp:btPrinter:on';
 const LS_ID = 'dp:btPrinter:id';
 const LS_NAME = 'dp:btPrinter:name';
 const LS_VIA = 'dp:btPrinter:via';
+const LS_CH = 'dp:btPrinter:ch'; // índice del canal BLE elegido (para «Probar siguiente canal»)
 
 export type BTStatus = 'off' | 'disconnected' | 'connecting' | 'connected' | 'printing';
 
 let device: BTDevice | null = null;
 let charac: BTChar | null = null;
+let chanCount = 0; // cuántos canales de escritura tiene la impresora BLE
 let port: SPort | null = null;        // puerto ABIERTO (solo mientras se escribe)
 let knownPort: SPort | null = null;   // puerto autorizado por el usuario (se reabre en cada ticket)
 let lastSent: { bytes: number; at: number; info: any } | null = null;
@@ -150,18 +152,33 @@ async function findWritable(dev: BTDevice): Promise<BTChar> {
   const server = dev.gatt.connected ? dev.gatt : await dev.gatt.connect();
   const services = await server.getPrimaryServices();
   dlog(`BLE servicios: ${services.map((s: any) => s.uuid.slice(4, 8)).join(',')}`);
-  // Primero los servicios de impresora conocidos (en el orden de SERVICES), luego el resto, nunca los genéricos
+  // Candidatos en orden: servicios de impresora conocidos primero, nunca los genéricos
   const rank = (u: string) => { const i = SERVICES.indexOf(u); return i < 0 ? 99 : i; };
   const ordered = services.filter((s: any) => !GENERIC.has(s.uuid)).sort((a: any, b: any) => rank(a.uuid) - rank(b.uuid));
+  const cands: BTChar[] = [];
   for (const s of ordered) {
     let chars: BTChar[] = [];
     try { chars = await s.getCharacteristics(); } catch { continue; }
-    // Preferir escritura sin respuesta (es la que usan las térmicas); si no, con respuesta
-    const c = chars.find((ch) => ch.properties.writeWithoutResponse) || chars.find((ch) => ch.properties.write);
-    if (c) return c;
+    for (const ch of chars) if (ch.properties.writeWithoutResponse || ch.properties.write) cands.push(ch);
   }
-  throw new Error('Esta impresora no es Bluetooth LE. Emparéjala en los ajustes de Bluetooth del equipo y usa «Buscar impresoras».');
+  if (!cands.length) throw new Error('Esta impresora no es Bluetooth LE. Emparéjala en los ajustes de Bluetooth del equipo y usa «Buscar impresoras».');
+  chanCount = cands.length;
+  const idx = Math.min(parseInt(localStorage.getItem(LS_CH) || '0', 10) || 0, cands.length - 1);
+  dlog(`BLE canales: ${cands.map((c) => c.uuid.slice(4, 8)).join(',')} → usando #${idx + 1}`);
+  return cands[idx];
 }
+
+/** Rota al siguiente canal de escritura (si el actual no imprime). Devuelve "n/total". */
+export async function btNextChannel(): Promise<string> {
+  const cur = parseInt(localStorage.getItem(LS_CH) || '0', 10) || 0;
+  const next = chanCount ? (cur + 1) % chanCount : 0;
+  localStorage.setItem(LS_CH, String(next));
+  charac = null;
+  if (!device) throw new Error('Primero conecta la impresora.');
+  await attachBle(device);
+  return `${next + 1}/${chanCount}`;
+}
+export function btChannel(): string { return chanCount ? `${(parseInt(localStorage.getItem(LS_CH) || '0', 10) || 0) + 1}/${chanCount}` : ''; }
 
 async function attachBle(dev: BTDevice) {
   device = dev;
@@ -206,6 +223,7 @@ export async function btConnectBle(): Promise<void> {
   try {
     const dev = await (navigator as any).bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: SERVICES });
     dlog(`BLE elegido ${dev.name || dev.id}`);
+    localStorage.removeItem(LS_CH);
     await disconnectAll();
     await attachBle(dev);
     dlog(`BLE característica ${charac?.uuid} write:${charac?.properties?.write} noResp:${charac?.properties?.writeWithoutResponse}`);
@@ -274,7 +292,7 @@ export function btForget() {
   const p = port, d = device;
   void disconnectAll().then(() => { try { p?.forget?.(); } catch { /* nada */ } });
   try { d?.forget?.(); } catch { /* nada */ }
-  [LS_ON, LS_ID, LS_NAME, LS_VIA].forEach((k) => localStorage.removeItem(k));
+  [LS_ON, LS_ID, LS_NAME, LS_VIA, LS_CH].forEach((k) => localStorage.removeItem(k));
   lastError = '';
   emit('off');
 }
@@ -485,6 +503,7 @@ export async function btTestPrint(paper80: boolean): Promise<void> {
   p.line('Prueba de impresora', { center: true });
   p.sep();
   p.row('Impresora:', localStorage.getItem(LS_NAME) || '-');
+  if (via() === 'ble') p.row('Canal:', btChannel() || '-');
   p.row('Fecha:', new Date().toLocaleString('es-MX'));
   p.row('Acentos:', 'áéíóú ñ Ñ ¿¡');
   p.sep();
