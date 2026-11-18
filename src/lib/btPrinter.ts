@@ -50,6 +50,19 @@ let knownPort: SPort | null = null;   // puerto autorizado por el usuario (se re
 let lastSent: { bytes: number; at: number; info: any } | null = null;
 let status: BTStatus = localStorage.getItem(LS_ON) === '1' ? 'disconnected' : 'off';
 let lastError = '';
+const LOG_MAX = 40;
+const log: string[] = [];
+function dlog(m: string) {
+  const t = new Date().toLocaleTimeString('es-MX', { hour12: false });
+  log.push(`${t} ${m}`);
+  if (log.length > LOG_MAX) log.shift();
+}
+/** Bitácora para diagnosticar (se muestra en Ajustes → «Ver detalle técnico»). */
+export function btLog(): string {
+  const ua = navigator.userAgent;
+  const chrome = /Chrome\/(\d+)/.exec(ua)?.[1] || '?';
+  return [`Chrome ${chrome} · ${/Android ([\d.]+)/.exec(ua)?.[1] ? 'Android ' + /Android ([\d.]+)/.exec(ua)?.[1] : ua.slice(0, 40)} · serial:${serialSupported() ? 'sí' : 'no'} ble:${bleSupported() ? 'sí' : 'no'} vía:${btEnabled() ? via() : '-'}`, ...log].join('\n');
+}
 const listeners = new Set<() => void>();
 
 function emit(s?: BTStatus) {
@@ -103,9 +116,10 @@ function portName(p: SPort): string {
 
 async function openPort(p: SPort) {
   if (!p.writable) {
-    try { await p.open({ baudRate: 9600 }); }
-    catch (e: any) { if (!/already open/i.test(e?.message || '')) throw e; }
-  }
+    dlog(`open ${JSON.stringify(p.getInfo?.() || {})}`);
+    try { await p.open({ baudRate: 9600 }); dlog('open ok'); }
+    catch (e: any) { dlog(`open ERROR ${e?.name}: ${e?.message}`); if (!/already open/i.test(e?.message || '')) throw e; }
+  } else dlog('puerto ya abierto');
   port = p;
   knownPort = p;
   p.removeEventListener?.('disconnect', onPortGone);
@@ -113,6 +127,7 @@ async function openPort(p: SPort) {
 }
 
 function onPortGone() {
+  dlog('evento disconnect del puerto');
   port = null;
   knownPort = null;
   if (status !== 'off') emit('disconnected');
@@ -163,6 +178,7 @@ export async function btConnect(): Promise<void> {
   emit('connecting');
   try {
     const p = await (navigator as any).serial.requestPort({ allowedBluetoothServiceClassIds: RFCOMM_IDS });
+    dlog(`elegido ${JSON.stringify(p.getInfo?.() || {})}`);
     await disconnectAll();
     await openPort(p);
     save('serial', '', portName(p));
@@ -180,8 +196,10 @@ export async function btConnectBle(): Promise<void> {
   emit('connecting');
   try {
     const dev = await (navigator as any).bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: SERVICES });
+    dlog(`BLE elegido ${dev.name || dev.id}`);
     await disconnectAll();
     await attachBle(dev);
+    dlog(`BLE característica ${charac?.uuid} write:${charac?.properties?.write} noResp:${charac?.properties?.writeWithoutResponse}`);
     save('ble', dev.id || '', dev.name || 'Impresora Bluetooth');
   } catch (e: any) {
     lastError = e?.name === 'NotFoundError' ? '' : (e?.message || String(e));
@@ -205,6 +223,7 @@ async function reconnect(): Promise<boolean> {
       const ser = (navigator as any).serial;
       if (!ser?.getPorts) return false;
       const list: SPort[] = await ser.getPorts();
+      dlog(`getPorts: ${list.length} autorizado(s)`);
       const p = knownPort || list.find((x) => x.getInfo?.().bluetoothServiceClassId) || list[0];
       if (!p) return false;
       emit('connecting');
@@ -213,6 +232,7 @@ async function reconnect(): Promise<boolean> {
       emit('connected');
       return true;
     } catch (e: any) {
+      dlog(`reconnect ERROR ${e?.name}: ${e?.message}`);
       lastError = humanSerialError(e);
       port = null;
       emit('disconnected');
@@ -266,20 +286,24 @@ async function send(bytes: Uint8Array) {
     const w = p.writable.getWriter();
     let sent = 0;
     try {
+      dlog(`escribiendo ${bytes.length} bytes`);
       for (let i = 0; i < bytes.length; i += 256) {
         await w.write(bytes.slice(i, i + 256));
         sent = Math.min(bytes.length, i + 256);
         await sleep(30); // las térmicas baratas tienen búfer chico
       }
+      dlog('write ok, cerrando escritor');
       // Cerrar el escritor y el puerto = la única forma de FORZAR el vaciado del búfer en Web Serial.
       // En Android (RFCOMM) lo escrito puede quedarse en el búfer del navegador y nunca llegar al papel
       // si el puerto se deja abierto; cada ticket abre → escribe → cierra (como hacen las apps nativas).
       await w.close();
-    } catch (e) {
+      dlog('escritor cerrado');
+    } catch (e: any) {
+      dlog(`write ERROR ${e?.name}: ${e?.message}`);
       try { w.releaseLock(); } catch { /* nada */ }
       throw e;
     }
-    try { await p.close(); } catch { /* nada */ }
+    try { await p.close(); dlog('puerto cerrado'); } catch (e: any) { dlog(`close ERROR ${e?.message}`); }
     if (port === p) port = null;
     lastSent = { bytes: sent, at: Date.now(), info: p.getInfo?.() || {} };
     return;

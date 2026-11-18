@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Bluetooth, BluetoothOff, Loader2, Search } from 'lucide-react';
-import { btConnect, btConnectBle, btForget, btState, btSubscribe, btTestPrint } from '../../lib/btPrinter';
+import { btConnect, btConnectBle, btForget, btLog, btState, btSubscribe, btTestPrint } from '../../lib/btPrinter';
 
 /** Ajustes → Impresora Bluetooth (se guarda por equipo, no por cuenta). */
 export function BluetoothPrinterCard({ paper80 }: { paper80: boolean }) {
   const [st, setSt] = useState(btState());
   const [msg, setMsg] = useState('');
+  const [showLog, setShowLog] = useState(false);
   useEffect(() => btSubscribe(() => setSt(btState())), []);
 
   if (!st.supported) {
@@ -70,6 +71,13 @@ export function BluetoothPrinterCard({ paper80 }: { paper80: boolean }) {
           className="text-[10px] font-bold text-slate-400 underline disabled:opacity-50">
           ¿No sale en la lista? Buscar impresoras Bluetooth LE
         </button>
+      )}
+      <button type="button" onClick={() => setShowLog((v) => !v)} className="text-[10px] font-bold text-slate-400 underline">{showLog ? 'Ocultar detalle técnico' : 'Ver detalle técnico'}</button>
+      {showLog && (
+        <div>
+          <pre className="text-[9px] leading-tight text-slate-500 bg-carbon-950/5 rounded-lg p-2 whitespace-pre-wrap break-all max-h-48 overflow-y-auto select-all">{btLog()}</pre>
+          <button type="button" onClick={() => { void navigator.clipboard?.writeText(btLog()).then(() => setMsg('Detalle copiado. Pégalo en el chat de Ayuda.')); }} className="mt-1 text-[10px] font-bold text-slate-400 underline">Copiar detalle</button>
+        </div>
       )}
       <p className="text-[10px] text-slate-500 leading-snug">Se guarda solo en este equipo. Ancho según el papel elegido arriba (58 u 80 mm).</p>
     </div>
