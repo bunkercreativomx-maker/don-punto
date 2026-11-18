@@ -848,7 +848,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
           <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">Personas:</span>
           <div className="flex items-center gap-1 ml-auto">
               <button type="button" onClick={() => setGuests(String(Math.max(0, (Number(guests) || 0) - 1) || ''))} className="w-7 h-7 rounded-lg bg-white border border-carbon-950/10 text-carbon-700 flex items-center justify-center"><Minus size={12} /></button>
-              <input type="number" min="0" value={guests} onChange={(e) => setGuests(e.target.value)} placeholder="—" className="w-10 bg-transparent text-center text-carbon-950 text-xs font-bold outline-none placeholder:text-slate-500" />
+              <input type="number" min="0" value={guests} onChange={(e) => setGuests(e.target.value)} placeholder="0" className="w-10 bg-transparent text-center text-carbon-950 text-xs font-bold outline-none placeholder:text-slate-500" />
               <button type="button" onClick={() => setGuests(String((Number(guests) || 0) + 1))} className="w-7 h-7 rounded-lg bg-white border border-carbon-950/10 text-carbon-700 flex items-center justify-center"><Plus size={12} /></button>
           </div>
       </div>
@@ -1042,7 +1042,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
         </section>
 
         {/* Ticket fijo a la derecha */}
-        <aside ref={cartRef} className="w-[290px] lg:w-[320px] xl:w-[350px] shrink-0 flex flex-col [&_[data-tour=order-type]_button]:py-1.5 [&_[data-tour=order-type]_button]:text-[10px] [&_.text-3xl]:text-2xl [&_.mb-2]:mb-0 border-l border-carbon-950/[0.08] bg-white overflow-hidden">
+        <aside ref={cartRef} className="relative w-[290px] lg:w-[320px] xl:w-[350px] shrink-0 flex flex-col [&_[data-tour=order-type]_button]:py-1.5 [&_[data-tour=order-type]_button]:text-[10px] [&_.text-3xl]:text-2xl [&_.mb-2]:mb-0 border-l border-carbon-950/[0.08] bg-white overflow-hidden">
             <div className="flex items-center gap-2 border-b border-carbon-950/[0.06] px-3 py-2">
                 <h3 className="font-display text-lg font-bold text-carbon-950 mr-auto">Ticket</h3>
                 <button type="button" onClick={() => { setIsTicketsModalOpen(true); void refreshOpenTickets(); }} title="Tickets abiertos"
@@ -1086,6 +1086,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                 </select>
             </div>
 
+            <div className="relative flex-1 min-h-0 flex flex-col">
             <div className="flex-1 min-h-[132px] overflow-y-auto px-4 py-2">
                 {cart.length === 0 ? (
                     <div className="h-full grid place-items-center text-center text-slate-500">
@@ -1126,10 +1127,22 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                     <span className="min-w-0 flex-1 truncate text-right text-[11px] font-bold text-carbon-800">{extrasSummary.join(' · ')}</span>
                     <ChevronDown size={16} className={cn("shrink-0 text-slate-500 transition-transform", extrasOpen && "rotate-180")} />
                 </button>
-                {extrasOpen && <div className="space-y-2.5">{extrasBlock}</div>}
                 {!waiterMode && (
                     <div className="flex flex-wrap gap-1" aria-label="Forma de pago">{availablePaymentMethods.map(m => renderPayButton(m, true))}</div>
                 )}
+            </div>
+            {/* Cliente/personas/descuento/propina: panel encima de la lista (en tablet no cabe en línea y se cortaba) */}
+            {extrasOpen && (
+                <div className="absolute inset-0 z-20 flex flex-col bg-white">
+                    <div className="flex items-center gap-2 border-b border-carbon-950/[0.06] px-3 py-2">
+                        <span className="mr-auto text-[10px] font-black uppercase tracking-widest text-slate-500">Cliente, descuento{!waiterMode && orderDestination === 'Tienda' ? ', propina' : ''}</span>
+                        <button type="button" onClick={() => setQuickMore(false)} className="shrink-0 rounded-lg bg-agave-600 px-3 py-1.5 text-[11px] font-black text-white hover:bg-agave-700">LISTO</button>
+                    </div>
+                    <div className="flex-1 min-h-0 overflow-y-auto px-3 py-1.5 space-y-1.5 [&_input[type=number]]:w-12 [&_.bottom-full]:bottom-auto [&_.bottom-full]:top-full [&_.bottom-full]:mb-0 [&_.bottom-full]:mt-1">
+                        {extrasBlock}
+                    </div>
+                </div>
+            )}
             </div>
             <div className="shrink-0 border-t border-carbon-950/[0.06] px-3 pt-2 pb-2.5 space-y-1.5">
                 {totalsBlock}
