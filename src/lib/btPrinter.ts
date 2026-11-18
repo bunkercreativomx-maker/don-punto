@@ -9,10 +9,11 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { isNativeApp, nativeListPrinters, nativePrint, type NativePrinter } from './nativeBridge';
 type BTDevice = any;
 type BTChar = any;
 type SPort = any;
-type Via = 'serial' | 'ble';
+type Via = 'serial' | 'ble' | 'native';
 
 // Perfil de puerto serie (SPP) estándar + servicios RFCOMM que usan algunas marcas
 const SPP = '00001101-0000-1000-8000-00805f9b34fb';
@@ -63,7 +64,7 @@ function dlog(m: string) {
 export function btLog(): string {
   const ua = navigator.userAgent;
   const chrome = /Chrome\/(\d+)/.exec(ua)?.[1] || '?';
-  return [`Chrome ${chrome} · ${/Android ([\d.]+)/.exec(ua)?.[1] ? 'Android ' + /Android ([\d.]+)/.exec(ua)?.[1] : ua.slice(0, 40)} · serial:${serialSupported() ? 'sí' : 'no'} ble:${bleSupported() ? 'sí' : 'no'} vía:${btEnabled() ? via() : '-'}`, ...log].join('\n');
+  return [`${isNativeApp() ? 'APP ANDROID · ' : ''}Chrome ${chrome} · ${/Android ([\d.]+)/.exec(ua)?.[1] ? 'Android ' + /Android ([\d.]+)/.exec(ua)?.[1] : ua.slice(0, 40)} · serial:${serialSupported() ? 'sí' : 'no'} ble:${bleSupported() ? 'sí' : 'no'} vía:${btEnabled() ? via() : '-'}`, ...log].join('\n');
 }
 const listeners = new Set<() => void>();
 
@@ -72,7 +73,7 @@ function emit(s?: BTStatus) {
   listeners.forEach((l) => l());
 }
 
-const via = (): Via => (localStorage.getItem(LS_VIA) === 'ble' ? 'ble' : 'serial');
+const via = (): Via => { const v = localStorage.getItem(LS_VIA); return v === 'ble' || v === 'native' ? v : 'serial'; };
 export function serialSupported(): boolean {
   return typeof navigator !== 'undefined' && !!(navigator as any).serial;
 }
@@ -80,7 +81,7 @@ export function bleSupported(): boolean {
   return typeof navigator !== 'undefined' && !!(navigator as any).bluetooth;
 }
 export function btSupported(): boolean {
-  return serialSupported() || bleSupported();
+  return isNativeApp() || serialSupported() || bleSupported();
 }
 export function btEnabled(): boolean {
   return localStorage.getItem(LS_ON) === '1';
@@ -88,7 +89,7 @@ export function btEnabled(): boolean {
 export function btState() {
   return {
     status, name: localStorage.getItem(LS_NAME) || '', error: lastError, supported: btSupported(),
-    serial: serialSupported(), ble: bleSupported(), via: btEnabled() ? via() : null,
+    serial: serialSupported(), ble: bleSupported(), native: isNativeApp(), via: btEnabled() ? via() : null,
     lastSent,
   };
 }
@@ -216,6 +217,25 @@ export async function btConnect(): Promise<void> {
   }
 }
 
+/* ---------- App Android (puente nativo) ---------- */
+
+/** Lista de impresoras emparejadas en Android (solo dentro de la app). */
+export async function btNativeList(): Promise<NativePrinter[]> {
+  const r = await nativeListPrinters();
+  dlog(`nativo: ${r.devices.length} emparejada(s), bt ${r.enabled ? 'encendido' : 'APAGADO'}`);
+  if (!r.supported) throw new Error('Este equipo no tiene Bluetooth.');
+  if (!r.enabled) throw new Error('Prende el Bluetooth del equipo.');
+  if (!r.devices.length) throw new Error('No hay impresoras emparejadas. Emparéjala primero en Ajustes → Bluetooth del equipo (clave 0000 o 1234).');
+  return r.devices;
+}
+
+/** Elegir una impresora emparejada (app Android). */
+export function btNativeSelect(d: NativePrinter) {
+  void disconnectAll();
+  save('native', d.address, d.name);
+  dlog(`nativo: elegida ${d.name} ${d.address}`);
+}
+
 /** Respaldo: impresoras Bluetooth LE (no necesitan emparejarse). */
 export async function btConnectBle(): Promise<void> {
   if (!bleSupported()) throw new Error('Este navegador no tiene Bluetooth. Usa Chrome en Android o en computadora.');
@@ -244,6 +264,7 @@ async function disconnectAll() {
 
 /** Reconecta sin clic a la impresora ya autorizada (si el navegador lo permite). */
 async function reconnect(): Promise<boolean> {
+  if (via() === 'native') return isNativeApp() && !!localStorage.getItem(LS_ID);
   if (via() === 'serial') {
     if (port?.writable) return true;
     try {
@@ -299,7 +320,9 @@ export function btForget() {
 
 /** Al abrir la app, intenta reconectar en silencio. */
 export function btAutoReconnect() {
-  if (btEnabled() && btSupported()) void reconnect();
+  if (!btEnabled() || !btSupported()) return;
+  if (via() === 'native') { if (connected()) emit('connected'); return; }
+  void reconnect();
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -307,6 +330,19 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 async function send(bytes: Uint8Array) {
   if (!(await reconnect())) {
     throw new Error(lastError || 'La impresora no está conectada. Ve a Ajustes → Impresora Bluetooth → Buscar impresoras.');
+  }
+  if (via() === 'native') {
+    const addr = localStorage.getItem(LS_ID) || '';
+    dlog(`nativo: imprimiendo ${bytes.length} bytes en ${addr}`);
+    try {
+      const n = await nativePrint(addr, bytes);
+      lastSent = { bytes: n, at: Date.now(), info: { address: addr } };
+      dlog('nativo: ok');
+    } catch (e: any) {
+      dlog(`nativo ERROR ${e?.message || e}`);
+      throw new Error(e?.message || String(e));
+    }
+    return;
   }
   if (via() === 'serial') {
     const p = port;
@@ -353,7 +389,7 @@ async function send(bytes: Uint8Array) {
   }
 }
 
-const connected = () => (via() === 'serial' ? !!knownPort : !!charac);
+const connected = () => (via() === 'native' ? !!localStorage.getItem(LS_ID) : via() === 'serial' ? !!knownPort : !!charac);
 
 /* ---------------- ESC/POS ---------------- */
 
