@@ -1027,10 +1027,10 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
 
             {/* Categorías abajo: botones chicos en renglones, todas a la vista */}
             <nav aria-label="Categorías" className="flex flex-wrap gap-1 border-t border-carbon-950/10 bg-white px-2 py-1.5 max-h-[96px] overflow-y-auto">
-                {[{ id: null as string | null, name: 'Todos', n: rows.length }, ...categories.map(c => ({ id: c.id as string | null, name: c.name, n: categoryCounts[c.id] || 0 }))].map(c => {
+                {categories.map(c => ({ id: c.id as string | null, name: c.name, n: categoryCounts[c.id] || 0 })).map(c => {
                     const on = activeCategoryId === c.id;
                     return (
-                        <button key={c.id ?? 'all'} type="button" onClick={() => setActiveCategoryId(c.id)} aria-pressed={on}
+                        <button key={c.id ?? 'all'} type="button" onClick={() => setActiveCategoryId(on ? null : c.id)} aria-pressed={on} title={on ? 'Toca otra vez para ver todos' : undefined}
                             className={cn("shrink-0 inline-flex h-7 items-center gap-1 whitespace-nowrap rounded-md border px-2.5 text-[11px] font-bold transition-colors",
                                 on ? "border-agave-600 bg-agave-600 text-white" : "border-carbon-950/10 bg-white text-carbon-700 hover:bg-carbon-50")}>
                             {c.name}
