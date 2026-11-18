@@ -34,7 +34,7 @@ export async function nativePrint(address: string, bytes: Uint8Array): Promise<n
 }
 
 /** Enlace de descarga del APK (release fija del repo; /app/android redirige ahí) */
-export const ANDROID_APP_URL = 'https://donpunto.com/app/android';
+export const ANDROID_APP_URL = 'https://github.com/bunkercreativomx-maker/don-punto/releases/download/android-latest/DonPunto.apk';
 
 export function isAndroidBrowser(): boolean {
   return typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent) && !isNativeApp();
