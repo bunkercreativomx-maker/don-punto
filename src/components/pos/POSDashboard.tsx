@@ -1537,20 +1537,20 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
 
     {/* --- CHANGE CALCULATOR MODAL --- */}
     {isChangeModalOpen && (
-        <div className="fixed inset-0 z-[65] flex items-center justify-center p-4 bg-carbon-950/35 backdrop-blur-md no-print">
-            <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl w-full max-w-md shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-                <div className="p-6 bg-slate-800/30 border-b border-carbon-950/10">
+        <div className="fixed inset-0 z-[65] flex items-center justify-center p-3 bg-carbon-950/35 backdrop-blur-md no-print">
+            <div className="bg-slate-900 border border-carbon-950/10 rounded-3xl w-full max-w-md max-h-[calc(100dvh-1.5rem)] shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                <div className="shrink-0 px-5 py-3 bg-slate-800/30 border-b border-carbon-950/10">
                     <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-1">Calculadora de Cambio</h4>
                     <h3 className="text-xl font-bold text-carbon-950">Pago en {paymentMethod.toUpperCase()}</h3>
                 </div>
 
-                <div className="p-8 space-y-8">
+                <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 space-y-4">
                     <div className="flex justify-between items-baseline">
                         <span className="text-sm font-bold text-slate-500">Total a Cobrar:</span>
                         <span className="text-3xl font-black text-carbon-950">${money(chargeTotal)}</span>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-2.5">
                         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Monto Recibido</label>
                         <div className="relative">
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-black text-slate-600">$</span>
@@ -1559,8 +1559,9 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                                 autoFocus
                                 value={receivedAmount}
                                 onChange={(e) => setReceivedAmount(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter' && Number(receivedAmount) >= chargeTotal) { setIsChangeModalOpen(false); processCheckout(); } }}
                                 placeholder="0.00"
-                                className="w-full bg-white border-2 border-carbon-950/10 rounded-2xl pl-10 pr-6 py-5 text-3xl font-black text-carbon-950 outline-none focus:border-indigo-500 transition-all placeholder:text-slate-500"
+                                className="w-full bg-white border-2 border-carbon-950/10 rounded-2xl pl-10 pr-6 py-3 text-3xl font-black text-carbon-950 outline-none focus:border-indigo-500 transition-all placeholder:text-slate-500"
                             />
                         </div>
                         
@@ -1584,22 +1585,22 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                     </div>
 
                     {Number(receivedAmount) >= chargeTotal && (
-                        <div className="p-6 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex justify-between items-center animate-in fade-in slide-in-from-top-2">
+                        <div className="px-5 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex justify-between items-center animate-in fade-in slide-in-from-top-2">
                             <span className="text-xs font-bold text-emerald-500/80 uppercase">Cambio a entregar:</span>
                             <span className="text-3xl font-black text-emerald-400">${money((Number(receivedAmount) - chargeTotal))}</span>
                         </div>
                     )}
                 </div>
 
-                <div className="p-6 bg-slate-800/10 border-t border-carbon-950/10 flex gap-4">
-                    <button onClick={() => setIsChangeModalOpen(false)} className="flex-grow py-4 rounded-2xl font-bold text-slate-500 hover:text-carbon-950 transition-all">CANCELAR</button>
+                <div className="shrink-0 px-5 py-3 bg-slate-800/10 border-t border-carbon-950/10 flex gap-3">
+                    <button onClick={() => setIsChangeModalOpen(false)} className="flex-grow py-3 rounded-2xl font-bold text-slate-500 hover:text-carbon-950 transition-all">CANCELAR</button>
                     <button 
                         disabled={!receivedAmount || Number(receivedAmount) < chargeTotal}
                         onClick={() => {
                             setIsChangeModalOpen(false);
                             processCheckout();
                         }}
-                        className="flex-[2] bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none text-white font-black py-4 rounded-2xl shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-emerald-500/20 transition-all active:scale-95"
+                        className="flex-[2] bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none text-white font-black py-3 rounded-2xl shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-emerald-500/20 transition-all active:scale-95"
                     >FINALIZAR Y COBRAR</button>
                 </div>
             </div>
