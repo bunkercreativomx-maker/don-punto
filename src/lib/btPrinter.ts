@@ -42,6 +42,14 @@ const LS_ID = 'dp:btPrinter:id';
 const LS_NAME = 'dp:btPrinter:name';
 const LS_VIA = 'dp:btPrinter:via';
 const LS_CH = 'dp:btPrinter:ch'; // índice del canal BLE elegido (para «Probar siguiente canal»)
+const LS_IMG = 'dp:btPrinter:img'; // '1' = mandar el ticket como imagen (térmicas que no entienden texto ESC/POS, p.ej. KD582)
+
+export const btImageMode = () => localStorage.getItem(LS_IMG) === '1';
+export function btSetImageMode(on: boolean) {
+  if (on) localStorage.setItem(LS_IMG, '1'); else localStorage.removeItem(LS_IMG);
+  dlog(`modo imagen ${on ? 'ON' : 'OFF'}`);
+  emit();
+}
 
 export type BTStatus = 'off' | 'disconnected' | 'connecting' | 'connected' | 'printing';
 
@@ -90,7 +98,7 @@ export function btState() {
   return {
     status, name: localStorage.getItem(LS_NAME) || '', error: lastError, supported: btSupported(),
     serial: serialSupported(), ble: bleSupported(), native: isNativeApp(), via: btEnabled() ? via() : null,
-    lastSent,
+    lastSent, image: btImageMode(),
   };
 }
 export function btSubscribe(fn: () => void) {
@@ -313,7 +321,7 @@ export function btForget() {
   const p = port, d = device;
   void disconnectAll().then(() => { try { p?.forget?.(); } catch { /* nada */ } });
   try { d?.forget?.(); } catch { /* nada */ }
-  [LS_ON, LS_ID, LS_NAME, LS_VIA, LS_CH].forEach((k) => localStorage.removeItem(k));
+  [LS_ON, LS_ID, LS_NAME, LS_VIA, LS_CH, LS_IMG].forEach((k) => localStorage.removeItem(k));
   lastError = '';
   emit('off');
 }
@@ -333,7 +341,7 @@ async function send(bytes: Uint8Array) {
   }
   if (via() === 'native') {
     const addr = localStorage.getItem(LS_ID) || '';
-    dlog(`nativo: imprimiendo ${bytes.length} bytes en ${addr}`);
+    dlog(`nativo: imprimiendo ${bytes.length} bytes en ${addr}${btImageMode() ? ' (imagen)' : ''}`);
     try {
       const n = await nativePrint(addr, bytes);
       lastSent = { bytes: n, at: Date.now(), info: { address: addr } };
@@ -416,14 +424,18 @@ function encode(text: string): number[] {
   return out;
 }
 
+type Op = { t: 'text'; s: string; align: 0 | 1 | 2; bold: boolean; big: boolean } | { t: 'blank' } | { t: 'cut' };
+
 class Builder {
   b: number[] = [ESC, 0x40, FS, 0x2e, ESC, 0x74, 0x00];
+  ops: Op[] = []; // mismo contenido como renglones, para el modo imagen
   width: number;
+  private st = { align: 0 as 0 | 1 | 2, bold: false, big: false };
   constructor(width: number) { this.width = width; }
-  align(n: 0 | 1 | 2) { this.b.push(ESC, 0x61, n); }
-  bold(on: boolean) { this.b.push(ESC, 0x45, on ? 1 : 0); }
-  size(big: boolean) { this.b.push(GS, 0x21, big ? 0x11 : 0x00); }
-  raw(t: string) { this.b.push(...encode(t), 0x0a); }
+  align(n: 0 | 1 | 2) { this.b.push(ESC, 0x61, n); this.st.align = n; }
+  bold(on: boolean) { this.b.push(ESC, 0x45, on ? 1 : 0); this.st.bold = on; }
+  size(big: boolean) { this.b.push(GS, 0x21, big ? 0x11 : 0x00); this.st.big = big; }
+  raw(t: string) { this.b.push(...encode(t), 0x0a); this.ops.push({ t: 'text', s: t, ...this.st }); }
   line(t: string, opts: { center?: boolean; bold?: boolean; big?: boolean } = {}) {
     // Letra doble solo si cabe en una línea; si no, normal en negritas
     if (opts.big && clean(t).length > Math.floor(this.width / 2)) opts = { ...opts, big: false, bold: true };
@@ -449,9 +461,63 @@ class Builder {
     if (bold) this.bold(false);
   }
   sep(ch = '-') { this.raw(ch.repeat(this.width)); }
-  blank() { this.b.push(0x0a); }
-  cut() { this.b.push(ESC, 0x64, 4, GS, 0x56, 0x42, 0x00); }
-  bytes() { return new Uint8Array(this.b); }
+  blank() { this.b.push(0x0a); this.ops.push({ t: 'blank' }); }
+  cut() { this.b.push(ESC, 0x64, 4, GS, 0x56, 0x42, 0x00); this.ops.push({ t: 'cut' }); }
+  bytes() { return btImageMode() ? rasterize(this.ops, this.width) : new Uint8Array(this.b); }
+}
+
+/**
+ * Modo imagen: dibuja los renglones en un canvas y los manda como mapa de bits (GS v 0),
+ * igual que las apps que imprimen PDF/fotos. Para térmicas baratas que pitan y no imprimen texto.
+ */
+function rasterize(ops: Op[], width: number): Uint8Array {
+  const dots = width >= 48 ? 576 : 384; // 80 mm / 58 mm a 203 dpi
+  const cw = dots / width;               // ancho de un carácter
+  const fs = Math.floor(cw / 0.6);       // monoespaciada ≈ 0.6 em por carácter
+  const lh = Math.round(fs * 1.2);
+  const heights = ops.map((o) => (o.t === 'text' ? (o.big ? lh * 2 : lh) : o.t === 'blank' ? lh : lh * 2));
+  const H = Math.max(8, heights.reduce((a, b) => a + b, 0));
+  const c = document.createElement('canvas');
+  c.width = dots; c.height = H;
+  const g = c.getContext('2d')!;
+  g.fillStyle = '#fff'; g.fillRect(0, 0, dots, H);
+  g.fillStyle = '#000'; g.textBaseline = 'top';
+  let y = 0;
+  ops.forEach((o, i) => {
+    if (o.t === 'text') {
+      const size = o.big ? fs * 2 : fs;
+      g.font = `${o.bold || o.big ? 'bold ' : ''}${size}px "Courier New", Courier, monospace`;
+      // estirar a la rejilla de columnas para que las filas izq/der queden alineadas como en texto
+      const cols = o.big ? width / 2 : width;
+      const s = o.s.slice(0, cols);
+      const natural = g.measureText(s).width || 1;
+      const usable = dots - 12; // margen para que el último carácter no quede en la orilla
+      const target = (s.length * usable) / cols;
+      const x = 6 + (o.align === 1 ? (usable - target) / 2 : o.align === 2 ? usable - target : 0);
+      g.save(); g.translate(Math.max(6, x), y + 2); g.scale(Math.min(1.3, target / natural), 1); g.fillText(s, 0, 0); g.restore();
+    }
+    y += heights[i];
+  });
+  const px = g.getImageData(0, 0, dots, H).data;
+  const bw = dots / 8;
+  const out: number[] = [ESC, 0x40];
+  const BAND = 128; // renglones por comando (búfer chico)
+  for (let y0 = 0; y0 < H; y0 += BAND) {
+    const h = Math.min(BAND, H - y0);
+    out.push(GS, 0x76, 0x30, 0x00, bw & 0xff, bw >> 8, h & 0xff, h >> 8);
+    for (let yy = y0; yy < y0 + h; yy++) {
+      for (let xb = 0; xb < bw; xb++) {
+        let v = 0;
+        for (let bit = 0; bit < 8; bit++) {
+          const k = (yy * dots + xb * 8 + bit) * 4;
+          if (px[k] + px[k + 1] + px[k + 2] < 384) v |= 0x80 >> bit;
+        }
+        out.push(v);
+      }
+    }
+  }
+  out.push(ESC, 0x64, 4); // avanzar papel (sin corte: estas portátiles no tienen cuchilla)
+  return new Uint8Array(out);
 }
 
 const clean = (s: string | null | undefined) => (s || '').replace(/\s+/g, ' ').trim();
@@ -539,6 +605,7 @@ export async function btTestPrint(paper80: boolean): Promise<void> {
   p.line('Prueba de impresora', { center: true });
   p.sep();
   p.row('Impresora:', localStorage.getItem(LS_NAME) || '-');
+  p.row('Modo:', btImageMode() ? 'imagen' : 'texto');
   if (via() === 'ble') p.row('Canal:', btChannel() || '-');
   p.row('Fecha:', new Date().toLocaleString('es-MX'));
   p.row('Acentos:', 'áéíóú ñ Ñ ¿¡');

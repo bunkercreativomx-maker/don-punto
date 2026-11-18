@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Bluetooth, BluetoothOff, Download, Loader2, Search } from 'lucide-react';
-import { btChannel, btConnect, btConnectBle, btForget, btLog, btNativeList, btNativeSelect, btNextChannel, btState, btSubscribe, btTestPrint } from '../../lib/btPrinter';
+import { btChannel, btSetImageMode, btConnect, btConnectBle, btForget, btLog, btNativeList, btNativeSelect, btNextChannel, btState, btSubscribe, btTestPrint } from '../../lib/btPrinter';
 import { ANDROID_APP_URL, isAndroidBrowser, type NativePrinter } from '../../lib/nativeBridge';
 
 /** Aviso para Android en navegador: Chrome no entrega bien los datos a las térmicas → app Don Punto. */
@@ -83,6 +83,13 @@ export function BluetoothPrinterCard({ paper80 }: { paper80: boolean }) {
           <>
             <button disabled={busy} onClick={() => run(() => btTestPrint(paper80), 'Prueba enviada.')}
               className="px-4 py-2 rounded-xl text-xs font-black border border-carbon-950/10 text-carbon-950 disabled:opacity-50">Imprimir prueba</button>
+            {!st.image ? (
+              <button disabled={busy} onClick={() => run(async () => { btSetImageMode(true); await btTestPrint(paper80); }, 'Prueba enviada como imagen. Si ahora sí salió, ya quedó así para todos los tickets.')}
+                className="px-4 py-2 rounded-xl text-xs font-black border border-amber-400/60 text-amber-600 disabled:opacity-50">¿Pita y no imprime? Probar modo imagen</button>
+            ) : (
+              <button disabled={busy} onClick={() => { btSetImageMode(false); setMsg('Modo imagen apagado: los tickets van como texto.'); }}
+                className="px-4 py-2 rounded-xl text-xs font-black border border-emerald-500/50 text-emerald-600 disabled:opacity-50">Modo imagen ✓ (quitar)</button>
+            )}
             {st.via === 'ble' && btChannel() && (
               <button disabled={busy} onClick={() => run(async () => { const c = await btNextChannel(); await btTestPrint(paper80); setMsg(`Prueba enviada por el canal ${c}. Si no salió, toca otra vez.`); }, '')}
                 className="px-4 py-2 rounded-xl text-xs font-black border border-amber-400/60 text-amber-600 disabled:opacity-50">Probar siguiente canal ({btChannel()})</button>

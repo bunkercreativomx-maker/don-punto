@@ -120,15 +120,15 @@ public class BtPrinterPlugin extends Plugin {
                 // Muchas térmicas pitan al conectar y tiran lo que llega en los primeros ms: esperar a que estén listas
                 Thread.sleep(600);
                 OutputStream out = sock.getOutputStream();
-                int chunk = 128;
+                int chunk = 256;
                 for (int i = 0; i < data.length; i += chunk) {
                     out.write(data, i, Math.min(chunk, data.length - i));
                     out.flush();
-                    Thread.sleep(40);
+                    Thread.sleep(30); // ~8 KB/s: más lento que lo que imprime una térmica, no se desborda su búfer
                 }
                 out.flush();
-                // No cerrar antes de que la impresora procese todo (cerrar pronto = pitido sin papel)
-                Thread.sleep(Math.max(2000, data.length * 3L));
+                // No cerrar antes de que la impresora procese lo último (cerrar pronto = pitido sin papel)
+                Thread.sleep(2500);
                 JSObject ret = new JSObject();
                 ret.put("bytes", data.length);
                 call.resolve(ret);
