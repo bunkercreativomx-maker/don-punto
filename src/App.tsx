@@ -556,6 +556,14 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
     window.addEventListener('dp:noprinter', on);
     return () => window.removeEventListener('dp:noprinter', on);
   }, []);
+  // Confirmación visible de que el ticket sí salió hacia la impresora Bluetooth
+  const [printedToast, setPrintedToast] = useState(false);
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout> | undefined;
+    const on = () => { setPrintedToast(true); clearTimeout(t); t = setTimeout(() => setPrintedToast(false), 3500); };
+    window.addEventListener('dp:printed', on);
+    return () => { clearTimeout(t); window.removeEventListener('dp:printed', on); };
+  }, []);
   const [clockOpen, setClockOpen] = useState(false);
   const [branchMenu, setBranchMenu] = useState(false);
   // Celular/tablet: la barra lateral es un panel que se abre con el botón ☰ (en lg es fija)
@@ -667,6 +675,9 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
           />
       )}
 
+      {printedToast && (
+          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[210] no-print pointer-events-none rounded-full bg-agave-600 px-4 py-2 text-xs font-black text-white shadow-lg">Ticket enviado a la impresora ✓</div>
+      )}
       {noPrinter && (
           <div className="fixed inset-0 z-[210] overflow-y-auto bg-carbon-950/50 no-print" onClick={() => setNoPrinter(false)}>
               <div className="min-h-full flex items-center justify-center p-4 pb-24">

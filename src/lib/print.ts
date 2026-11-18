@@ -40,7 +40,7 @@ export function runPrint(kind: PrintKind, done?: () => void) {
     requestAnimationFrame(() => {
       // Impresora Bluetooth directa (tickets y cortes; la hoja carta sigue con el diálogo)
       if (kind !== 'reporte' && btEnabled()) {
-        withTimeout(btPrintArea(kind), 20_000).then(finish).catch((e) => {
+        withTimeout(btPrintArea(kind), 20_000).then(() => { window.dispatchEvent(new CustomEvent('dp:printed', { detail: { kind } })); finish(); }).catch((e) => {
           window.alert(`No se pudo imprimir por Bluetooth: ${e?.message || e}\n\nSe abrirá la ventana de impresión normal.`);
           try { window.print(); } catch { /* nada */ }
           setTimeout(finish, 60_000);
