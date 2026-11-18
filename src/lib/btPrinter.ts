@@ -434,19 +434,46 @@ function encode(text: string): number[] {
   return out;
 }
 
-type Op = { t: 'text'; s: string; align: 0 | 1 | 2; bold: boolean; big: boolean } | { t: 'blank' } | { t: 'cut' };
+// sc = escala de letra en modo imagen (1 normal, 2 doble, ITEM producto, SMALL modificadores)
+type Op = { t: 'text'; s: string; align: 0 | 1 | 2; bold: boolean; big: boolean; sc: number } | { t: 'blank'; h?: number } | { t: 'cut' };
+const ITEM = 1.2, SMALL = 0.82;
 
 class Builder {
   b: number[] = [ESC, 0x40, FS, 0x2e, ESC, 0x74, 0x00];
   ops: Op[] = []; // mismo contenido como renglones, para el modo imagen
   width: number;
-  private st = { align: 0 as 0 | 1 | 2, bold: false, big: false };
+  private st = { align: 0 as 0 | 1 | 2, bold: false, big: false, sc: 1 };
   constructor(width: number) { this.width = btImageMode() ? imageCols(width) : width; this.paper = width; }
   paper: number;
   align(n: 0 | 1 | 2) { this.b.push(ESC, 0x61, n); this.st.align = n; }
   bold(on: boolean) { this.b.push(ESC, 0x45, on ? 1 : 0); this.st.bold = on; }
-  size(big: boolean) { this.b.push(GS, 0x21, big ? 0x11 : 0x00); this.st.big = big; }
+  size(big: boolean) { this.b.push(GS, 0x21, big ? 0x11 : 0x00); this.st.big = big; this.st.sc = big ? 2 : 1; }
   raw(t: string) { this.b.push(...encode(t), 0x0a); this.ops.push({ t: 'text', s: t, ...this.st }); }
+  /** Producto de la orden: más grande (imagen) / doble alto (texto), negritas. */
+  item(t: string) {
+    const img = btImageMode();
+    const lines = wrap(t, (img ? Math.floor(this.width / ITEM) : this.width) - 3); // -3 = sangría de los renglones siguientes
+    if (!lines.length) return;
+    this.bold(true);
+    if (img) this.st.sc = ITEM; else this.b.push(GS, 0x21, 0x01);
+    lines.forEach((l, i) => this.raw(i ? '   ' + l : l));
+    if (img) this.st.sc = 1; else this.b.push(GS, 0x21, 0x00);
+    this.bold(false);
+  }
+  /** Modificadores / notas: más chicos y con sangría, para no confundirlos con el producto. */
+  sub(t: string, bold = false) {
+    const img = btImageMode();
+    const cols = img ? Math.floor(this.width / SMALL) : this.width;
+    const s = clean(t);
+    if (!s) return;
+    const lines = wrap(s, cols - 5); // 5 = sangría de los renglones siguientes
+    if (bold) this.bold(true);
+    if (img) this.st.sc = SMALL;
+    lines.forEach((l, i) => this.raw((i ? '     ' : '   ') + l));
+    this.st.sc = 1;
+    if (bold) this.bold(false);
+  }
+  gap() { this.b.push(0x0a); this.ops.push({ t: 'blank', h: 0.6 }); }
   line(t: string, opts: { center?: boolean; bold?: boolean; big?: boolean } = {}) {
     // Letra doble solo si cabe en una línea; si no, normal en negritas
     if (opts.big && clean(t).length > Math.floor(this.width / 2)) opts = { ...opts, big: false, bold: true };
@@ -492,7 +519,7 @@ function rasterize(ops: Op[], width: number, dots: number): Uint8Array {
   const cw = dots / width;               // ancho de un carácter
   const fs = Math.floor(cw / 0.6);       // monoespaciada ≈ 0.6 em por carácter
   const lh = Math.round(fs * 1.2);
-  const heights = ops.map((o) => (o.t === 'text' ? (o.big ? lh * 2 : lh) : o.t === 'blank' ? lh : lh * 2));
+  const heights = ops.map((o) => (o.t === 'text' ? Math.round(lh * o.sc) : o.t === 'blank' ? Math.round(lh * (o.h ?? 1)) : lh * 2));
   const H = Math.max(8, heights.reduce((a, b) => a + b, 0));
   const c = document.createElement('canvas');
   c.width = dots; c.height = H;
@@ -502,11 +529,11 @@ function rasterize(ops: Op[], width: number, dots: number): Uint8Array {
   let y = 0;
   ops.forEach((o, i) => {
     if (o.t === 'text') {
-      const size = o.big ? fs * 2 : fs;
+      const size = Math.round(fs * o.sc);
       // siempre en negritas: el trazo delgado sale casi invisible en papel térmico
       g.font = `bold ${size}px "DejaVu Sans Mono", "Roboto Mono", "Droid Sans Mono", "Courier New", monospace`;
       // estirar a la rejilla de columnas para que las filas izq/der queden alineadas como en texto
-      const cols = o.big ? width / 2 : width;
+      const cols = Math.floor(width / o.sc);
       const s = o.s.slice(0, cols);
       const natural = g.measureText(s).width || 1;
       const usable = dots - 12; // margen para que el último carácter no quede en la orilla
@@ -567,6 +594,17 @@ function domToEscPos(root: HTMLElement, width: number): Uint8Array {
   const isBold = (el: Element) => has(el, 'font-bold') || /^H[1-6]$/.test(el.tagName);
 
   const walk = (el: HTMLElement, center: boolean) => {
+    // Renglón de producto (POSTicket): nombre grande, modificadores/notas chicos con sangría y espacio entre productos
+    if (has(el, 'border-black/10') && el.firstElementChild && has(el.firstElementChild, 'grid')) {
+      Array.from(el.children).forEach((k) => {
+        const kid = k as HTMLElement;
+        if (has(kid, 'grid')) p.item(Array.from(kid.children).map((x) => clean(x.textContent)).filter(Boolean).join(' '));
+        else if (kid.children.length) Array.from(kid.children).forEach((m) => p.sub(m.textContent || '', isBold(m) || isBold(kid)));
+        else p.sub(kid.textContent || '', isBold(kid));
+      });
+      p.gap();
+      return;
+    }
     if (has(el, 'flex-row-print')) {
       const kids = Array.from(el.children);
       p.row(kids[0]?.textContent || '', kids.length > 1 ? kids[kids.length - 1].textContent || '' : '', isBold(el));
