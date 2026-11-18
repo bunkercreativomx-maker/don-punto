@@ -28,7 +28,10 @@ jobs:
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
       - name: Dependencias Capacitor
         working-directory: native
-        run: npm ci --no-audit --no-fund && npx cap sync android
+        run: |
+          npm ci --no-audit --no-fund
+          mkdir -p www && echo '<!doctype html><title>Don Punto</title>' > www/index.html
+          npx cap sync android
       - name: Keystore
         run: echo "${{ secrets.ANDROID_KEYSTORE_B64 }}" | base64 -d > "$RUNNER_TEMP/donpunto.p12"
       - name: Compilar APK firmado
