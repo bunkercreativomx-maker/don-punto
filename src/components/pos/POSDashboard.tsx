@@ -444,6 +444,22 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
     }
   };
 
+  /** Producto en $0 cuyo precio real está en un grupo (2+ opciones, todas con precio, p.ej. «elige tu burger»):
+   *  ese grupo es obligatorio y de UNA opción, y la tarjeta muestra el rango en vez de $0 (igual que la tienda en línea). */
+  const pickGroupFor = (p: ProductRowData) => {
+    if ((p.salePrice || 0) > 0) return undefined;
+    return productGroups(p, modifierGroups).find(g => g.options.length >= 2 && g.options.every(o => (Number(o.extraPrice) || 0) > 0));
+  };
+  const priceLabel = (p: ProductRowData) => {
+    const g = pickGroupFor(p);
+    if (!g) return `$${money(getItemPrice(p.id, []))}`;
+    const prices = g.options.map(o => getItemPrice(p.id, [{ groupId: g.id, modifiers: [o] }]));
+    const lo = Math.min(...prices), hi = Math.max(...prices);
+    if (lo === hi) return `$${money(lo)}`;
+    const m = (n: number) => Number.isInteger(n) ? n.toLocaleString('es-MX') : money(n);
+    return `$${m(lo)}\u2009–\u2009$${m(hi)}`;
+  };
+
   /** Sin turno abierto no se vende: el cajero lo abre ahí mismo; el mesero pide que lo abran */
   const needsShift = () => {
     if (getOpenShift()) return false;
@@ -767,7 +783,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
             : "bg-white border border-carbon-950/10 p-4 rounded-2xl text-left shadow-[0_1px_2px_rgba(13,16,14,0.05)] hover:border-agave-400 hover:shadow-[0_10px_24px_-14px_rgba(14,111,77,0.45)] active:scale-[0.98] transition-all duration-200 group relative overflow-hidden w-full h-32 flex flex-col justify-between"}
     >
         <div className={quick ? "font-bold text-carbon-900 group-hover:text-agave-700 text-[14px] leading-[1.15] line-clamp-3 px-3 break-words" : cn("font-semibold text-carbon-900 group-hover:text-agave-700 text-[15px] leading-tight line-clamp-2", canEditMenu ? "pr-8" : "pr-6", hasDayLimit(p.days) && "mt-2")}>{p.name}</div>
-        <div className={quick ? "text-[11px] font-semibold text-slate-500 tabular-nums" : "font-display font-bold text-carbon-950 text-xl tracking-tight tabular-nums"}>${money(getItemPrice(p.id, []))}</div>
+        <div className={cn(quick ? "text-[11px] font-semibold text-slate-500 tabular-nums" : "font-display font-bold text-carbon-950 text-xl tracking-tight tabular-nums", "whitespace-nowrap", !quick && pickGroupFor(p) && "text-[13px] tracking-normal")}>{priceLabel(p)}</div>
         {hasDayLimit(p.days) && (
             <div className={cn("whitespace-nowrap rounded-md px-1.5 text-[9px] font-black uppercase tracking-wide", quick ? "absolute left-1/2 -translate-x-1/2 top-1" : "absolute left-4 top-1.5", soldToday(p.days, new Date().getDay()) ? "bg-agave-600 text-white" : "bg-carbon-200 text-carbon-600")}>
                 {DAY_ORDER.filter(x => p.days!.includes(x)).map(x => DAY_NAMES[x].slice(0, 3)).join(' · ')}
@@ -1563,7 +1579,8 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                 
                 <div className="p-6 space-y-6 overflow-y-auto max-h-[60vh] no-scrollbar">
                     {(() => {
-                        const activeGroups = productGroups(selectedProduct, modifierGroups);
+                        const pick = pickGroupFor(selectedProduct);
+                        const activeGroups = productGroups(selectedProduct, modifierGroups).map(g => g.id === pick?.id ? { ...g, selectionType: 'single' as const } : g);
                         return activeGroups.map(group => {
                             const gid = group.id;
                             const selection = pendingModifiers.find(pm => pm.groupId === gid)?.modifiers || [];
@@ -1573,7 +1590,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                                     <div className="flex justify-between items-center">
                                         <h5 className="font-bold text-slate-200 text-sm">{group.name}</h5>
                                         <span className="text-[10px] bg-slate-950 text-slate-500 px-2 py-0.5 rounded-full border border-carbon-950/10 uppercase font-black">
-                                            {group.selectionType === 'single' ? 'Unica' : 'Múltiple'}
+                                            {group.id === pick?.id ? 'Obligatorio · elige 1' : group.selectionType === 'single' ? 'Unica' : 'Múltiple'}
                                         </span>
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">
@@ -1624,10 +1641,17 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
 
                 <div className="p-6 bg-slate-800/10 border-t border-carbon-950/10 flex gap-4">
                     <button onClick={() => setIsModModalOpen(false)} className="flex-grow py-4 rounded-2xl font-bold text-slate-500 hover:text-carbon-950 transition-all">CANCELAR</button>
-                    <button 
-                        onClick={() => addToCart(selectedProduct.id, pendingModifiers, customerNote)}
-                        className="flex-[2] bg-indigo-500 hover:bg-indigo-400 text-white font-black py-4 rounded-2xl shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20 transition-all active:scale-95"
-                    >AGREGAR A LA ORDEN</button>
+                    {(() => {
+                        const pick = pickGroupFor(selectedProduct);
+                        const missing = !!pick && !pendingModifiers.some(pm => pm.groupId === pick.id && pm.modifiers.length > 0);
+                        return (
+                            <button
+                                disabled={missing}
+                                onClick={() => addToCart(selectedProduct.id, pendingModifiers, customerNote)}
+                                className="flex-[2] bg-indigo-500 hover:bg-indigo-400 text-white font-black py-4 rounded-2xl shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20 transition-all active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
+                            >{missing ? `ELIGE ${pick!.name.toUpperCase()}` : 'AGREGAR A LA ORDEN'}</button>
+                        );
+                    })()}
                 </div>
             </div>
         </div>
