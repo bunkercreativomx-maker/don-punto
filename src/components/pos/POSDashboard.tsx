@@ -294,9 +294,24 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
     return counts;
   }, [rows]);
 
-  // Filtering products by category + search
+  // Al abrir el POS arranca en la primera categoría que tenga productos (no en «Todos», que revuelve todo el menú)
+  const catInit = useRef(false);
+  useEffect(() => {
+    if (catInit.current || categories.length === 0 || rows.length === 0) return;
+    catInit.current = true;
+    const first = categories.find(c => categoryCounts[c.id]);
+    if (first) setActiveCategoryId(first.id);
+  }, [categories, rows.length, categoryCounts]);
+  // Si borran la categoría elegida, regresa a la primera
+  useEffect(() => {
+    if (activeCategoryId && categories.length && !categories.some(c => c.id === activeCategoryId)) {
+      setActiveCategoryId(categories.find(c => categoryCounts[c.id])?.id ?? null);
+    }
+  }, [categories, activeCategoryId, categoryCounts]);
+
+  // Filtering products by category + search (la búsqueda siempre busca en todo el menú)
   const filteredProducts = useMemo(() => {
-    let result = !activeCategoryId ? rows : rows.filter(r => r.categoryId === activeCategoryId);
+    let result = !activeCategoryId || searchQuery.trim() ? rows : rows.filter(r => r.categoryId === activeCategoryId);
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(r => r.name.toLowerCase().includes(q));
