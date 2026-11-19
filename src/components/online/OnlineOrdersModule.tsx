@@ -249,7 +249,7 @@ function Setup({ uid, branchName, suggestedName, phone, address, rows, categorie
       </div>
       <ul className="space-y-3 self-center">
         {[
-          ['Tu menú del Catálogo', 'Mismos precios que en caja. Si cambias un precio, tu página se actualiza sola.'],
+          ['Tu menú de Don Punto', 'Mismos precios que en caja. Si cambias un precio, tu página se actualiza sola.'],
           ['Recoger o a domicilio', 'Tú decides si haces entregas, cuánto cobras de envío y el pedido mínimo.'],
           ['Cobro con CoDi', 'Tu cliente paga desde la app de su banco y el dinero llega directo a tu cuenta.'],
           ['Aviso al instante', 'Suena aquí y te llega notificación al celular aunque la app esté cerrada.'],
@@ -712,9 +712,9 @@ function MenuEditor({ store, onChange, categories }: { store: Rec; onChange: (s:
       <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-white px-5 py-3 ring-1 ring-carbon-950/5 text-[13px] text-carbon-600">
         <span><b className="text-carbon-900">{visible}</b> platillos visibles</span><span className="text-carbon-300">·</span>
         <span><b className="text-carbon-900">{withPhoto}</b> con foto</span><span className="text-carbon-300">·</span>
-        <span>Los precios y nombres vienen de <b>Catálogo</b> (se actualizan solos).</span>
+        <span>Los precios y nombres vienen de tu <b>Menú</b> (se actualizan solos).</span>
       </div>
-      {menu.products.length === 0 && <p className="rounded-3xl bg-white p-8 text-center text-carbon-500 ring-1 ring-carbon-950/5">Primero agrega platillos en Catálogo.</p>}
+      {menu.products.length === 0 && <p className="rounded-3xl bg-white p-8 text-center text-carbon-500 ring-1 ring-carbon-950/5">Primero agrega platillos en Menú.</p>}
       {groups.map((g) => (
         <Card key={g.id || 'none'} title={g.name}>
           <div className="divide-y divide-carbon-100 -my-2">

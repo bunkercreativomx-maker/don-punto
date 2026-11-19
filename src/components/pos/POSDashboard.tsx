@@ -214,7 +214,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
   const isOwner = operator?.role === 'dueno';
   const deleteProduct = (p: ProductRowData) => {
     if (!menu || !canEditMenu) return;
-    if (!window.confirm(`¿Eliminar "${p.name}" del menú?\n\nSe quita del punto de venta, Tienda Física y tu tienda en línea. Las ventas que ya hiciste no se borran.`)) return;
+    if (!window.confirm(`¿Eliminar "${p.name}" del menú?\n\nSe quita del punto de venta, de tu Menú y de tu tienda en línea. Las ventas que ya hiciste no se borran.`)) return;
     menu.removeRow(p.id);
     showToast(`Se eliminó "${p.name}"`);
   };
@@ -1932,7 +1932,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                             <div className="text-xs font-bold text-slate-500">Color del botón
                                 <ColorSwatches value={newProd.color} onChange={(c) => setNewProd({ ...newProd, color: c })} />
                             </div>
-                            <p className="text-[11px] text-slate-500">Los precios de apps y la foto los ajustas en Plataformas / Tienda Física.</p>
+                            <p className="text-[11px] text-slate-500">Los precios de apps y la foto los ajustas en Menú / Plataformas.</p>
                             <div className="flex gap-2 pt-1">
                                 <button type="button" onClick={() => setNewProd(null)} className="flex-1 py-2.5 rounded-xl border border-carbon-950/15 font-bold text-sm">Cancelar</button>
                                 <button type="button" onClick={saveNewProduct} className="flex-1 py-2.5 rounded-xl bg-agave-600 text-white font-black text-sm">GUARDAR</button>

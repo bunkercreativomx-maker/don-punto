@@ -146,7 +146,7 @@ export function BranchesModule({ onUpgrade }: { onUpgrade: () => void }) {
 
       <div className="rounded-3xl border border-carbon-950/10 bg-white p-6 max-w-2xl">
         <h3 className="font-display text-lg font-bold text-carbon-950">Agregar sucursal</h3>
-        <p className="text-sm text-carbon-500 mt-1">Menú y recetas compartidos (en Catálogo → Menú por sucursal eliges qué se vende y su precio en cada una). Ventas, tickets, corte, inventario y gastos van por separado.</p>
+        <p className="text-sm text-carbon-500 mt-1">Menú y recetas compartidos (en Categorías → Menú por sucursal eliges qué se vende y su precio en cada una). Ventas, tickets, corte, inventario y gastos van por separado.</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <input className={input} placeholder="Nombre (ej. Sucursal Centro)" value={name} onChange={(e) => setName(e.target.value)} />
           <div className="relative"><MapPin size={15} className="absolute left-3 top-3 text-carbon-400" /><input className={input + ' pl-9'} placeholder="Dirección (opcional)" value={address} onChange={(e) => setAddress(e.target.value)} /></div>

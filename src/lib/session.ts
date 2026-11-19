@@ -25,8 +25,8 @@ export type Tab =
   | 'engineering' | 'recipes' | 'financial' | 'clients' | 'branches' | 'team' | 'online';
 
 export const TAB_LABEL: Record<Tab, string> = {
-  pos: 'Punto de Venta', tickets: 'Tickets', reports: 'Reportes', profits: 'Tienda Física', pricing: 'Plataformas',
-  menu: 'Catálogo', inventory: 'Inventario', engineering: 'Radar de Menú', recipes: 'Recetario', financial: 'Financiero',
+  pos: 'Punto de Venta', tickets: 'Tickets', reports: 'Reportes', profits: 'Menú', pricing: 'Plataformas',
+  menu: 'Categorías', inventory: 'Inventario', engineering: 'Radar de Menú', recipes: 'Recetario', financial: 'Financiero',
   clients: 'Clientes', branches: 'Sucursales', team: 'Equipo', settings: 'Ajustes', online: 'Pedidos en línea',
 };
 

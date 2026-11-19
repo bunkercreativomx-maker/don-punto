@@ -84,7 +84,7 @@ function TrialEndedPOS({ onPlans }: { onPlans?: () => void }) {
     <div className="mx-auto max-w-xl rounded-3xl border border-carbon-950/10 bg-white p-8 sm:p-10 text-center shadow-[0_12px_32px_-18px_rgba(13,16,14,0.18)]">
       <div className="mx-auto mb-5 grid h-14 w-14 place-items-center rounded-full bg-maiz-100 text-maiz-800"><Lock size={26} /></div>
       <h2 className="font-display text-2xl sm:text-3xl font-bold text-carbon-950">Tu prueba gratis terminó</h2>
-      <p className="mt-3 text-carbon-600">Esta sección es parte de tu plan. Tus ventas, reportes y ajustes siguen guardados; suscríbete y todo queda como lo dejaste. Mientras tanto puedes ver tu menú en Catálogo.</p>
+      <p className="mt-3 text-carbon-600">Esta sección es parte de tu plan. Tus ventas, reportes y ajustes siguen guardados; suscríbete y todo queda como lo dejaste. Mientras tanto puedes ver tu menú en Categorías.</p>
       <button type="button" onClick={onPlans} className="mt-7 inline-flex items-center justify-center rounded-full bg-agave-600 hover:bg-agave-700 px-7 py-3.5 font-semibold text-white">Suscribirme para seguir vendiendo</button>
     </div>
   );
@@ -98,7 +98,7 @@ function CajaAccessEditor() {
   return (
     <div className="border-t border-carbon-950/10 pt-6">
       <div className="text-sm font-bold text-carbon-900">Qué puede ver la caja sin PIN</div>
-      <p className="text-[11px] text-slate-500 mt-1">Punto de Venta siempre está abierto. Reportes, Financiero, Tienda Física, Plataformas, Radar y Ajustes siempre piden PIN.</p>
+      <p className="text-[11px] text-slate-500 mt-1">Punto de Venta siempre está abierto. Reportes, Financiero, Menú, Plataformas, Radar y Ajustes siempre piden PIN.</p>
       <div className="mt-3 flex flex-wrap gap-2">
         {CAJA_CONFIGURABLE.filter((t) => t !== 'clients' || isPro()).map((t) => (
           <button key={t} type="button" onClick={() => toggle(t)} className={cn('rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors', current.includes(t) ? 'bg-agave-600 border-agave-600 text-white' : 'bg-white border-carbon-950/15 text-carbon-700 hover:border-agave-400')}>
@@ -604,9 +604,9 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
     { tab: 'tickets', label: 'Tickets', Icon: Receipt },
     { tab: 'reports', label: 'Reportes', Icon: LineChart },
     { tab: 'clients', label: 'Clientes', Icon: Users, pro: true },
-    { tab: 'profits', label: 'Tienda Física', Icon: BarChart3, sep: true },
+    { tab: 'profits', label: 'Menú', Icon: BarChart3, sep: true },
     { tab: 'pricing', label: 'Plataformas', Icon: Calculator },
-    { tab: 'menu', label: 'Catálogo', Icon: Layers },
+    { tab: 'menu', label: 'Categorías', Icon: Layers },
     { tab: 'inventory', label: 'Inventario', Icon: Package, sep: true },
     { tab: 'engineering', label: 'Radar de Menú', Icon: Target },
     { tab: 'recipes', label: 'Recetario', Icon: BookOpen },
@@ -893,12 +893,12 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
             <header className={cn("mb-6 flex flex-col sm:flex-row items-baseline sm:items-center justify-between gap-4 no-print", quickPos && shownTab === 'pos' && "hidden")}>
               <div>
                 <h1 className="font-display text-2xl sm:text-3xl font-bold text-carbon-950 tracking-[-0.02em]">
-                  {shownTab === 'profits' && 'Análisis de Ganancias de Tienda Física'}
+                  {shownTab === 'profits' && 'Menú: costos y ganancias'}
                   {shownTab === 'pricing' && 'Estrategia de Precios'}
                   {shownTab === 'pos' && 'Punto de venta'}
                   {shownTab === 'reports' && 'Reportes Financieros'}
                   {shownTab === 'tickets' && 'Historial de Tickets'}
-                  {shownTab === 'menu' && 'Catálogo de Productos'}
+                  {shownTab === 'menu' && 'Categorías y modificadores'}
                   {shownTab === 'settings' && 'Ajustes del Sistema'}
                   {shownTab === 'inventory' && 'Inventario de Insumos'}
                   {shownTab === 'engineering' && 'Radar de Menú'}
