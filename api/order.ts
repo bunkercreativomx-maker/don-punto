@@ -56,6 +56,17 @@ interface OGroup { id: string; name: string; type: 'single' | 'multiple'; min?: 
 interface OProduct { id: string; name: string; description?: string; price: number; categoryId?: string; groups?: string[]; photo?: string; hidden?: boolean; soldOut?: boolean; days?: number[] }
 interface OMenu { categories?: { id: string; name: string }[]; groups?: OGroup[]; products?: OProduct[]; tz?: string }
 
+// Producto en $0 cuyo precio real está en un grupo (2+ opciones, todas con precio, p.ej. «elige tu burger»):
+// ese grupo se vuelve obligatorio y de UNA opción, y la tienda muestra el rango en vez de $0.
+function pickGroup(p: OProduct, groups: Map<string, OGroup>): OGroup | undefined {
+  if ((Number(p.price) || 0) > 0) return undefined;
+  for (const gid of p.groups || []) {
+    const g = groups.get(gid);
+    if (g && g.options.length >= 2 && g.options.every((o) => (Number(o.price) || 0) > 0)) return g;
+  }
+  return undefined;
+}
+
 // Productos que solo se venden ciertos días (promos): el día se calcula en la zona horaria del negocio
 const WD: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
 const DAY_NAMES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
@@ -79,11 +90,16 @@ async function ownerActive(token: string, owner: string) {
 function publicStore(s: any, active: boolean) {
   const menu: OMenu = s.menu || {};
   const today = weekdayIn(menu.tz);
-  const products = (menu.products || []).filter((p) => !p.hidden).map((p) => ({
+  const gmap = new Map((menu.groups || []).map((g) => [g.id, g]));
+  const products = (menu.products || []).filter((p) => !p.hidden).map((p) => {
+    const pg = pickGroup(p, gmap);
+    const prices = pg ? pg.options.map((o) => Number(o.price) || 0) : [];
+    return {
     id: p.id, name: p.name, description: p.description || '', price: p.price, categoryId: p.categoryId || '',
     groups: p.groups || [], soldOut: !!p.soldOut, photo: fileUrl('stores', s.id, p.photo),
     days: dayLimited(p) ? p.days! : [], notToday: dayLimited(p) && !p.days!.includes(today),
-  }));
+    pick: pg?.id || '', range: pg ? [Math.min(...prices), Math.max(...prices)] : null,
+  }; });
   const usedCats = new Set(products.map((p) => p.categoryId));
   const usedGroups = new Set(products.flatMap((p) => p.groups));
   return {
@@ -172,9 +188,11 @@ async function createOrder(token: string, body: any, ip: string) {
     const quantity = Math.max(1, Math.min(50, Math.floor(Number(it.qty) || 1)));
     const selectedModifiers: { groupId: string; modifiers: { id: string; name: string; extraPrice: number }[] }[] = [];
     let unit = Number(p.price) || 0;
+    const pick = pickGroup(p, groups)?.id;
     for (const gid of p.groups || []) {
-      const g = groups.get(gid);
-      if (!g) continue;
+      const base = groups.get(gid);
+      if (!base) continue;
+      const g: OGroup = gid === pick ? { ...base, type: 'single', min: 1 } : base;
       const picked: string[] = Array.isArray(it.mods?.[gid]) ? it.mods[gid].map(String) : [];
       const opts = g.options.filter((o) => picked.includes(o.id));
       const max = g.type === 'single' ? 1 : g.max || g.options.length;
@@ -190,6 +208,7 @@ async function createOrder(token: string, body: any, ip: string) {
     return { rowId: p.id, name: p.name, quantity, unit: round2(unit), line, customerNote: str(it.note, 120) || undefined, selectedModifiers };
   });
   subtotal = round2(subtotal);
+  if (subtotal <= 0) throw new HttpError(400, 'Tu pedido está en $0: elige las opciones de tus platillos.');
   const minOrder = Number(s.min_order) || 0;
   if (type === 'delivery' && minOrder && subtotal < minOrder) throw new HttpError(400, `El pedido mínimo a domicilio es de $${minOrder}.`);
   const deliveryFee = type === 'delivery' ? Number(s.delivery_fee) || 0 : 0;

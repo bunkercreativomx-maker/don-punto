@@ -6,13 +6,18 @@ import { daysLabel } from '../../lib/productMods';
 
 interface PMod { id: string; name: string; price: number }
 interface PGroup { id: string; name: string; type: 'single' | 'multiple'; min?: number; max?: number; options: PMod[] }
-interface PProduct { id: string; name: string; description: string; price: number; categoryId: string; groups: string[]; soldOut: boolean; photo: string | null; days?: number[]; notToday?: boolean }
+interface PProduct { id: string; name: string; description: string; price: number; categoryId: string; groups: string[]; soldOut: boolean; photo: string | null; days?: number[]; notToday?: boolean; pick?: string; range?: [number, number] | null }
 interface PStore {
   slug: string; name: string; tagline: string; phone: string; address: string; hours: string; color: string;
   logo: string | null; cover: string | null; open: boolean; pickup: boolean; delivery: boolean; deliveryFee: number;
   minOrder: number; deliveryArea: string; prepMinutes: number; payCash: boolean; payCodi: boolean; cashDelivery: boolean;
   lat: number | null; lng: number | null; radiusKm: number;
   categories: { id: string; name: string }[]; groups: PGroup[]; products: PProduct[];
+}
+/** Precio a mostrar: rango si el precio real está en un grupo («$60 – $105»), si no el precio normal. */
+function priceText(p: PProduct) {
+  if (p.range) return p.range[0] === p.range[1] ? money(p.range[0]) : `${money(p.range[0])} – ${money(p.range[1])}`;
+  return money(p.price);
 }
 interface CartLine { key: string; id: string; qty: number; mods: Record<string, string[]>; note: string }
 
@@ -315,7 +320,7 @@ function ProductCard({ p, brand, qty, canAdd, onClick }: { p: PProduct; brand: s
           <h3 className="font-semibold leading-snug text-carbon-900">{p.name}</h3>
         </div>
         {p.description && <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-carbon-500">{p.description}</p>}
-        <p className="mt-1.5 text-[15px] font-bold">{p.soldOut ? <span className="text-carbon-500">Agotado hoy</span> : money(p.price)}</p>
+        <p className="mt-1.5 text-[15px] font-bold">{p.soldOut ? <span className="text-carbon-500">Agotado hoy</span> : priceText(p)}</p>
         {!!p.days?.length && <p className={`mt-1 inline-block rounded-md px-1.5 py-0.5 text-[11px] font-bold ${p.notToday ? 'bg-carbon-100 text-carbon-600' : 'bg-[color-mix(in_srgb,var(--brand)_12%,white)] text-[var(--brand)]'}`}>{p.notToday ? daysLabel(p.days) : `¡Hoy! ${daysLabel(p.days).replace('Solo ', 'solo ')}`}</p>}
       </div>
       {p.photo ? (
@@ -413,7 +418,8 @@ function ModeSwitch({ store, mode, setMode }: { store: PStore; mode: 'pickup' | 
 
 // ---------------------------------------------------------------- platillo
 function ProductSheet({ p, groups, brand, canAdd, onClose, onAdd }: { p: PProduct; groups: Map<string, PGroup>; brand: string; canAdd: boolean; onClose: () => void; onAdd: (l: Omit<CartLine, 'key'>) => void }) {
-  const gs = p.groups.map((g) => groups.get(g)).filter(Boolean) as PGroup[];
+  // El grupo con el precio real de un producto en $0 es obligatorio y de una sola opción (igual que en el servidor)
+  const gs = (p.groups.map((g) => groups.get(g)).filter(Boolean) as PGroup[]).map((g) => g.id === p.pick ? { ...g, type: 'single' as const, min: 1 } : g);
   const [mods, setMods] = useState<Record<string, string[]>>({});
   const [qty, setQty] = useState(1);
   const [note, setNote] = useState('');
@@ -432,7 +438,7 @@ function ProductSheet({ p, groups, brand, canAdd, onClose, onAdd }: { p: PProduc
       <div className="p-5">
         <h3 className="font-display text-2xl font-extrabold tracking-tight">{p.name}</h3>
         {p.description && <p className="mt-1.5 text-[14px] text-carbon-600">{p.description}</p>}
-        <p className="mt-2 text-lg font-bold">{money(p.price)}</p>
+        <p className="mt-2 text-lg font-bold">{priceText(p)}</p>
         {gs.map((g) => (
           <div key={g.id} className="mt-5">
             <div className="flex items-baseline justify-between">
