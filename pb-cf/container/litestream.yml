@@ -13,4 +13,4 @@ dbs:
       access-key-id: ${LS_KEY}
       secret-access-key: ${LS_SECRET}
       force-path-style: true
-      sync-interval: 1s
+      sync-interval: 60s
