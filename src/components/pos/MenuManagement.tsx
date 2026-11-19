@@ -57,25 +57,26 @@ export function MenuManagement({
     const dragIdx = useRef(-1);
     // Los listeners van en window: al reordenar, React mueve el nodo en el DOM y se perdía el
     // pointer capture, así que la fila "se regresaba" o caía en otro lugar.
-    const moveRef = useRef(moveCategory);
-    moveRef.current = moveCategory;
-    const onGripDown = (e: React.PointerEvent, cat: Category, i: number) => {
+    const moveRef = useRef<(from: number, to: number) => void>(moveCategory);
+    // Sirve para categorías (data-cat-row) y grupos de modificadores (data-grp-row)
+    const startDrag = (e: React.PointerEvent, id: string, i: number, attr: 'catRow' | 'grpRow', move: (from: number, to: number) => void) => {
         e.preventDefault();
+        moveRef.current = move;
         dragIdx.current = i;
-        setDragId(cat.id);
+        setDragId(id);
+        const sel = attr === 'catRow' ? '[data-cat-row]' : '[data-grp-row]';
         const onMove = (ev: PointerEvent) => {
-            if (!listRef.current) return;
-            const rows = Array.from(listRef.current.querySelectorAll<HTMLElement>('[data-cat-row]'));
+            const rows = Array.from(document.querySelectorAll<HTMLElement>(sel));
             // Posición destino = cuántas OTRAS filas tienen su mitad arriba del dedo/cursor
             let to = 0;
             rows.forEach((r) => {
-                if (r.dataset.catRow === cat.id) return;
-                const b = r.getBoundingClientRect();
-                if (ev.clientY > b.top + b.height / 2) to++;
+                if (r.dataset[attr] === id) return;
+                const bx = r.getBoundingClientRect();
+                if (ev.clientY > bx.top + bx.height / 2) to++;
             });
             if (to !== dragIdx.current) { moveRef.current(dragIdx.current, to); dragIdx.current = to; }
-            if (ev.clientY > window.innerHeight - 60) window.scrollBy(0, 12);
-            else if (ev.clientY < 80) window.scrollBy(0, -12);
+            if (ev.clientY > window.innerHeight - 60) window.scrollBy(0, 14);
+            else if (ev.clientY < 80) window.scrollBy(0, -14);
         };
         const onUp = () => {
             setDragId(null); dragIdx.current = -1;
@@ -87,6 +88,7 @@ export function MenuManagement({
         window.addEventListener('pointerup', onUp);
         window.addEventListener('pointercancel', onUp);
     };
+    const onGripDown = (e: React.PointerEvent, cat: Category, i: number) => startDrag(e, cat.id, i, 'catRow', moveCategory);
 
     // Categoría Management
     const handleAddCategory = () => {
@@ -259,7 +261,7 @@ export function MenuManagement({
                         </div>
                         <div>
                             <h2 className="text-xl font-bold text-carbon-950 tracking-tight">Modificadores</h2>
-                            <p className="text-xs text-slate-400">Extras, salsas e ingredientes adicionales. Con las flechas ↑↓ eliges en qué orden salen al cobrar.</p>
+                            <p className="text-xs text-slate-400">Extras, salsas e ingredientes adicionales. Arrastra <GripVertical size={12} className="inline -mt-0.5" /> (o usa ↑↓) para elegir en qué orden salen al cobrar.</p>
                         </div>
                     </div>
                     <button
@@ -275,11 +277,22 @@ export function MenuManagement({
                         <p className="text-center py-8 text-slate-500 text-sm border-2 border-dashed border-carbon-950/10 rounded-xl">Crea grupos de opciones como "Salsas" o "Extras".</p>
                     ) : (
                         modifierGroups.map((group, gi) => (
-                            <div key={group.id} className="bg-slate-800/30 border border-carbon-950/10 rounded-2xl p-4 group">
+                            <div key={group.id} data-grp-row={group.id} className={cn("bg-slate-800/30 border border-carbon-950/10 rounded-2xl p-4 group select-none", dragId === group.id && "ring-2 ring-agave-500 shadow-lg bg-white relative z-10")}>
                                 <div className="flex justify-between items-start mb-3">
-                                    <div>
+                                    <div className="flex items-start gap-1 min-w-0">
+                                        {moveModifierGroup && modifierGroups.length > 1 && (
+                                            <button
+                                                type="button"
+                                                aria-label={`Mover ${group.name}`}
+                                                title="Arrastra para mover"
+                                                onPointerDown={(e) => startDrag(e, group.id, gi, 'grpRow', moveModifierGroup)}
+                                                className="-ml-2 -mt-1 p-1.5 text-slate-400 hover:text-slate-200 rounded-md cursor-grab active:cursor-grabbing touch-none shrink-0"
+                                            ><GripVertical size={18} /></button>
+                                        )}
+                                        <div className="min-w-0">
                                         <h3 className="font-bold text-carbon-950 text-sm">{group.name}</h3>
                                         <span className="text-[10px] text-slate-500 uppercase font-black">{group.selectionType === 'single' ? 'Unica Selección' : 'Selección Múltiple'}</span>
+                                        </div>
                                     </div>
                                     <div className="flex gap-1">
                                         {moveModifierGroup && modifierGroups.length > 1 && (<>
