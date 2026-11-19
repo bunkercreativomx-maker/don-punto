@@ -6,7 +6,8 @@ import { CreditCard, BarChart3, ShoppingBasket, Calculator, Layers, User, LineCh
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { ProfitGrid } from './components/ProfitGrid';
-import { PricingGrid } from './components/PricingGrid';
+import { PricingGrid, NumField } from './components/PricingGrid';
+import { MAX_COMMISSION_PCT } from './lib/platformPrice';
 import { POSDashboard } from './components/pos/POSDashboard';
 import { MenuManagement } from './components/pos/MenuManagement';
 import { POSReports } from './components/pos/POSReports';
@@ -1034,6 +1035,8 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
                         removeRow={removeRow}
                         addRow={addRowVisible}
                         syncWithStorePrices={syncWithStorePrices}
+                        commissionPct={settings.baseCommissionPct ?? 30}
+                        onCommissionChange={(n) => updateSetting('baseCommissionPct', n)}
                     />
                     {totalPricingPages > 1 && (
                         <div className="flex items-center justify-center gap-3 mt-4">
@@ -1209,6 +1212,22 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
                                 <button key={method} onClick={() => updateSetting('paymentMethod', method)} className={cn("py-4 rounded-2xl text-xs font-black transition-all border", settings.paymentMethod === method ? "bg-indigo-500 border-indigo-400 text-white shadow-[0_8px_20px_-12px_rgba(13,16,14,0.25)] shadow-indigo-500/20" : "bg-slate-950 border-carbon-950/10 text-slate-500 hover:text-slate-300")}>{method.toUpperCase()}</button>
                                 ))}
                             </div>
+                          </div>
+                          <div className="flex items-center justify-between gap-4 p-6 bg-slate-950 rounded-2xl border border-carbon-950/10">
+                            <div>
+                                <div className="text-carbon-950 font-bold">Comisión de la app</div>
+                                <div className="text-[11px] text-slate-500">El porcentaje que te cobra la app por pedido, sin IVA. Con este se calculan Menú y Plataformas.</div>
+                            </div>
+                            <span className="relative shrink-0">
+                                <NumField
+                                    label="Comisión de la app en porcentaje"
+                                    value={settings.baseCommissionPct ?? 30}
+                                    max={MAX_COMMISSION_PCT}
+                                    onChange={(n) => updateSetting('baseCommissionPct', n)}
+                                    className="w-24 bg-white border border-carbon-950/10 rounded-xl px-3 pr-8 py-3 text-right text-base font-black text-carbon-950 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                                />
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">%</span>
+                            </span>
                           </div>
                           <div className="flex items-center justify-between p-6 bg-slate-950 rounded-2xl border border-carbon-950/10">
                             <div>

@@ -20,6 +20,7 @@ import type { PaymentPart } from '../../types/pos';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import type { ProductRowData } from '../../types/calculator';
+import { platformUnitPrice } from '../../lib/platformPrice';
 import { rowsForBranch } from '../../lib/branchMenu';
 import { money } from '../../lib/format';
 import { useQuickPos, setQuickPos } from '../../lib/quickPos';
@@ -391,39 +392,9 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
   };
 
   // Pricing Logic (Extended to include Modifiers)
-  const computePlatformPrice = (row: ProductRowData, extraBaseCost: number) => {
-    const targetProfit = (row.targetProfit && row.targetProfit > 0) ? row.targetProfit : (row.salePrice || 0);
-    const finalTarget = targetProfit + extraBaseCost;
-    if (finalTarget <= 0) return 0;
-    
-    const commissionPct = calcGlobalSettings.baseCommissionPct / 100;
-    let low = 0;
-    let high = finalTarget * 10;
-    let P = 0;
-
-    for (let i = 0; i < 50; i++) {
-        P = (low + high) / 2;
-        const T = P;
-        const clientBase = T * (1 - ((row.discountPct || 0) / 100));
-        // Find P WITHOUT subsidy (subsidy only benefits monto, not price)
-        const baseForCalc = clientBase;
-        
-        const commission = baseForCalc * commissionPct;
-        const ivaRate = calcGlobalSettings.ivaRate ?? 0.16;
-        const ivaComm = commission * ivaRate;
-        const baseGravable = baseForCalc / (1 + ivaRate);
-        const ivaRet = baseGravable * (calcGlobalSettings.hasValidRFC ? 0.08 : 0.16);
-        const isrRet = baseGravable * (calcGlobalSettings.hasValidRFC ? 0.025 : 0.20);
-        
-        const montoARecibir = baseForCalc - (row.shippingCost || 0) - commission - ivaComm - ivaRet - isrRet;
-        const diff = montoARecibir - finalTarget;
-
-        if (diff > 0.0001) high = P;
-        else if (diff < -0.0001) low = P;
-        else break;
-    }
-    return P;
-  };
+  // Mismo cálculo que la tabla de Plataformas (cantidad, descuento y envío incluidos)
+  const computePlatformPrice = (row: ProductRowData, extraBaseCost: number) =>
+    platformUnitPrice(row, calcGlobalSettings, extraBaseCost);
 
   const getItemPrice = (rowId: string, mods: CartItem['selectedModifiers']) => {
     const row = rows.find(r => r.id === rowId);

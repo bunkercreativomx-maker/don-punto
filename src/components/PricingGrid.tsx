@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Plus, Trash2, TrendingUp } from 'lucide-react';
 import type { ProductRowData, PricingCalculationResult } from '../types/calculator';
 import { money } from '../lib/format';
+import { MAX_COMMISSION_PCT, MAX_DISCOUNT_PCT } from '../lib/platformPrice';
 
 interface PricingGridProps {
     rows: ProductRowData[];
@@ -9,32 +11,55 @@ interface PricingGridProps {
     removeRow: (id: string) => void;
     addRow: () => void;
     syncWithStorePrices: () => void;
+    commissionPct: number;
+    onCommissionChange: (pct: number) => void;
 }
 
-// Column widths matching the Excel PFAE structure
-const COLS = [
-    '100px', // Utilidad (%)
-    '110px', // Utilidad ($)
-    '130px', // Costo de Producción
-    '140px', // VAS A RECIBIR
-    '200px', // PRODUCTO
-    '160px', // DESCRIPCION
-    '80px',  // CANTIDAD PRODUCTO
-    '130px', // PRECIO UNITARIO PLATAFORMA
-    '120px', // TOTAL PRODUCTO
-    '100px', // % DESCUENTO
-    '120px', // PRECIO PARA EL CLIENTE
-    '110px', // DESCUENTO
-    '100px', // % APOYO PLATAFORMA
-    '110px', // APOYO PLATAFORMA ($)
-    '110px', // COSTO ENVÍO REPARTO PROPIO
-    '110px', // COMISIÓN PLATAFORMA
-    '60px',  // BORRAR
-].join('_');
+const gridCols = `grid-cols-[100px_110px_130px_140px_200px_160px_80px_130px_120px_100px_120px_110px_100px_110px_110px_110px_110px_100px_100px_60px]`;
 
-const gridCols = `grid-cols-[100px_110px_130px_140px_200px_160px_80px_130px_120px_100px_120px_110px_100px_110px_110px_110px_60px]`;
+/**
+ * Campo numérico que SÍ se deja escribir: mientras lo editas guarda lo que tecleas tal cual
+ * (antes el valor se reformateaba en cada tecla y no dejaba borrar ni escribir).
+ */
+export function NumField({ value, onChange, min = 0, max, decimals, allowEmpty = true, className, placeholder, label }: {
+    value: number;
+    onChange: (n: number) => void;
+    min?: number;
+    max?: number;
+    /** Decimales fijos al mostrar (dinero = 2). Sin esto se muestra el número tal cual. */
+    decimals?: number;
+    /** false = si lo dejan vacío se conserva el valor anterior (ej. cantidad). */
+    allowEmpty?: boolean;
+    className?: string;
+    placeholder?: string;
+    label: string;
+}) {
+    const [draft, setDraft] = useState<string | null>(null);
+    const shown = decimals !== undefined ? (Number(value) || 0).toFixed(decimals) : String(Math.round((Number(value) || 0) * 100) / 100);
+    const fit = (n: number) => Math.min(max ?? Infinity, Math.max(min, n));
+    return (
+        <input
+            type="text"
+            inputMode="decimal"
+            aria-label={label}
+            placeholder={placeholder}
+            value={draft ?? shown}
+            onFocus={(e) => { setDraft(shown); const el = e.currentTarget; requestAnimationFrame(() => el.select()); }}
+            onChange={(e) => {
+                const t = e.target.value.replace(',', '.').replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+                setDraft(t);
+                if (t === '' || t === '.') { if (allowEmpty) onChange(fit(0)); return; }
+                const n = parseFloat(t);
+                if (Number.isFinite(n)) onChange(fit(n));
+            }}
+            onBlur={() => setDraft(null)}
+            onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+            className={className}
+        />
+    );
+}
 
-export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow, syncWithStorePrices }: PricingGridProps) {
+export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow, syncWithStorePrices, commissionPct, onCommissionChange }: PricingGridProps) {
     return (
         <div className="w-full space-y-4">
             {/* Header Area */}
@@ -49,6 +74,19 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
                             En <span className="text-yellow-500 font-semibold italic">"VAS A RECIBIR"</span> coloca el precio de tu restaurante. Toca el botón verde para hacerlo automáticamente.
                         </div>
                     </div>
+                    <label className="flex items-center gap-2 shrink-0 text-xs font-bold text-slate-300" data-commission>
+                        <span className="leading-tight">Comisión de la app<span className="block text-[10px] font-medium text-slate-500">sin IVA; cámbiala por la tuya</span></span>
+                        <span className="relative">
+                            <NumField
+                                label="Comisión de la app en porcentaje"
+                                value={commissionPct}
+                                max={MAX_COMMISSION_PCT}
+                                onChange={onCommissionChange}
+                                className="w-20 bg-slate-950 border border-carbon-950/10 rounded-xl px-3 pr-7 py-2.5 text-right text-sm font-black text-carbon-950 focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+                            />
+                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs">%</span>
+                        </span>
+                    </label>
                     <button
                         onClick={syncWithStorePrices}
                         className="w-full md:w-auto bg-indigo-500 hover:bg-indigo-400 text-white px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 hover:scale-[1.02] active:scale-[0.98]"
@@ -61,7 +99,7 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
 
             {/* Scrollable Table */}
             <div className="w-full overflow-x-auto pb-4 custom-scrollbar bg-slate-950/40 rounded-2xl border border-carbon-950/10 shadow-[0_1px_2px_rgba(13,16,14,0.04),0_12px_32px_-18px_rgba(13,16,14,0.18)]">
-                <div className="min-w-[2200px]">
+                <div className="min-w-[2600px]">
                     {rows.length > 0 ? (
                         <>
                             {/* Table Header */}
@@ -84,6 +122,9 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
                                 <div className="text-right">APOYO PLATAFORMA ($)</div>
                                 <div className="text-right text-rose-400/70">COSTO ENVÍO</div>
                                 <div className="text-right text-rose-400/70">COMISIÓN PLATAFORMA</div>
+                                <div className="text-right text-rose-400/70">IVA DE LA COMISIÓN</div>
+                                <div className="text-right text-rose-400/70">RETENCIÓN IVA</div>
+                                <div className="text-right text-rose-400/70">RETENCIÓN ISR</div>
                                 <div className="text-center">BORRAR</div>
                             </div>
 
@@ -93,6 +134,11 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
                                     const res = pricingResults.find((r) => r.rowId === row.id);
                                     if (!res) return null;
 
+                                    const noPrice = res.platformUnitPrice <= 0 && res.targetProfit > 0;
+                                    // Precios fijos importados: el punto de venta cobra estos en vez del calculado
+                                    const fixed = ([['Uber', row.uberPrice], ['Didi', row.didiPrice], ['Rappi', row.rappiPrice]] as [string, number | undefined][])
+                                        .filter(([, v]) => v && v > 0)
+                                        .map(([n, v]) => `${n} $${money(v)}`);
                                     const utilidadPctColor = res.utilidadPct > 0 ? 'text-emerald-400' : 'text-rose-400';
                                     const utilidadColor = res.utilidad > 0 ? 'text-emerald-400' : 'text-rose-400';
 
@@ -113,27 +159,31 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
                                             <div>
                                                 <div className="relative">
                                                     <span className="absolute left-2.5 top-2.5 text-slate-500 text-[10px]">$</span>
-                                                    <input
-                                                        type="number"
-                                                        value={row.costPrice || ''}
-                                                        onChange={(e) => updateRow(row.id, { costPrice: parseFloat(e.target.value) || 0 })}
+                                                    <NumField
+                                                        label="Costo de producción"
+                                                        value={row.costPrice || 0}
+                                                        decimals={2}
+                                                        onChange={(n) => updateRow(row.id, { costPrice: n })}
                                                         className="w-full bg-slate-900 border border-carbon-950/10 rounded-xl px-3 pl-6 py-2 text-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500/40 transition-all text-right"
-                                                        placeholder="0"
                                                     />
                                                 </div>
                                             </div>
 
-                                            {/* 4. VAS A RECIBIR — input (muestra el monto calculado con apoyo incluido) */}
+                                            {/* 4. VAS A RECIBIR — input (lo que quieres recibir; si está vacío usa el precio de tienda) */}
                                             <div>
                                                 <div className="relative group/input">
                                                     <span className="absolute left-2.5 top-2.5 text-yellow-500/40 text-[10px]">$</span>
-                                                    <input
-                                                        type="number"
-                                                        value={res.montoARecibir.toFixed(2)}
-                                                        onChange={(e) => updateRow(row.id, { targetProfit: parseFloat(e.target.value) || 0 })}
+                                                    <NumField
+                                                        label="Vas a recibir"
+                                                        value={res.targetProfit}
+                                                        decimals={2}
+                                                        onChange={(n) => updateRow(row.id, { targetProfit: n })}
                                                         className="w-full bg-yellow-500/5 border border-yellow-500/20 rounded-xl px-3 pl-6 py-2 text-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-500/40 transition-all text-right font-bold tracking-tight"
                                                     />
                                                 </div>
+                                                {res.subsidyAmount > 0.004 && (
+                                                    <div className="mt-1 text-right font-sans text-[10px] text-slate-500">Con apoyo recibes <b className="text-slate-300">${money(res.montoARecibir)}</b></div>
+                                                )}
                                             </div>
 
                                             {/* 5. PRODUCTO */}
@@ -154,17 +204,24 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
 
                                             {/* 7. CANTIDAD */}
                                             <div>
-                                                <input
-                                                    type="number"
+                                                <NumField
+                                                    label="Cantidad"
                                                     value={row.quantity || 1}
-                                                    onChange={(e) => updateRow(row.id, { quantity: parseFloat(e.target.value) || 1 })}
+                                                    min={1}
+                                                    allowEmpty={false}
+                                                    onChange={(n) => updateRow(row.id, { quantity: n })}
                                                     className="w-full bg-slate-900 border border-carbon-950/10 rounded-lg px-2 py-1.5 text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 text-center"
                                                 />
                                             </div>
 
                                             {/* 8. PRECIO UNITARIO PLATAFORMA — computed */}
-                                            <div className="text-right text-carbon-950 font-black bg-carbon-950/5 py-1.5 px-3 rounded-xl border border-carbon-950/10 shadow-inner">
-                                                ${money(res.platformUnitPrice)}
+                                            <div>
+                                                <div className="text-right text-carbon-950 font-black bg-carbon-950/5 py-1.5 px-3 rounded-xl border border-carbon-950/10 shadow-inner" title={noPrice ? 'Con esa comisión y retenciones no queda nada del precio' : undefined}>
+                                                    {noPrice ? '—' : `$${money(res.platformUnitPrice)}`}
+                                                </div>
+                                                {fixed.length > 0 && (
+                                                    <div className="mt-1 text-right font-sans text-[10px] leading-tight text-slate-500" title="Precio fijo que cobra el punto de venta en esa app. Se quita al cambiar VAS A RECIBIR, cantidad, descuento, apoyo o envío.">Fijo en caja: {fixed.join(' · ')}</div>
+                                                )}
                                             </div>
 
                                             {/* 9. TOTAL PRODUCTO */}
@@ -175,10 +232,11 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
                                             {/* 10. % DESCUENTO */}
                                             <div>
                                                 <div className="relative">
-                                                    <input
-                                                        type="number"
-                                                        value={row.discountPct || 0}
-                                                        onChange={(e) => updateRow(row.id, { discountPct: parseFloat(e.target.value) || 0 })}
+                                                    <NumField
+                                                        label="Porcentaje de descuento"
+                                                        value={res.discountPct}
+                                                        max={MAX_DISCOUNT_PCT}
+                                                        onChange={(n) => updateRow(row.id, { discountPct: n })}
                                                         className="w-full bg-slate-900 border border-carbon-950/10 rounded-lg px-2 py-1.5 text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 text-right pr-6"
                                                     />
                                                     <span className="absolute right-2 top-2 text-slate-600 text-[10px]">%</span>
@@ -197,10 +255,11 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
 
                                             {/* 13. % APOYO PLATAFORMA */}
                                             <div>
-                                                <input
-                                                    type="number"
-                                                    value={row.subsidyPct || 0}
-                                                    onChange={(e) => updateRow(row.id, { subsidyPct: parseFloat(e.target.value) || 0 })}
+                                                <NumField
+                                                    label="Porcentaje de apoyo de la plataforma"
+                                                    value={res.subsidyPct}
+                                                    max={100}
+                                                    onChange={(n) => updateRow(row.id, { subsidyPct: n })}
                                                     className="w-full bg-slate-900 border border-carbon-950/10 rounded-lg px-2 py-1.5 text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 text-right"
                                                 />
                                             </div>
@@ -214,10 +273,10 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
                                             <div>
                                                 <div className="relative">
                                                     <span className="absolute left-1.5 top-1.5 text-slate-600 text-[10px]">$</span>
-                                                    <input
-                                                        type="number"
+                                                    <NumField
+                                                        label="Costo de envío con reparto propio"
                                                         value={row.shippingCost || 0}
-                                                        onChange={(e) => updateRow(row.id, { shippingCost: parseFloat(e.target.value) || 0 })}
+                                                        onChange={(n) => updateRow(row.id, { shippingCost: n })}
                                                         className="w-full bg-slate-900 border border-carbon-950/10 rounded-lg px-2 pl-4 py-1.5 text-rose-400/80 focus:outline-none focus:ring-2 focus:ring-rose-500/40 text-right"
                                                     />
                                                 </div>
@@ -225,6 +284,9 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
 
                                             {/* 17. COMISIÓN PLATAFORMA */}
                                             <div className="text-right text-rose-400/60 px-2 tracking-tighter">-${money(res.platformCommission)}</div>
+                                            <div className="text-right text-rose-400/60 px-2 tracking-tighter">-${money(res.iva)}</div>
+                                            <div className="text-right text-rose-400/60 px-2 tracking-tighter">-${money(res.ivaRetention)}</div>
+                                            <div className="text-right text-rose-400/60 px-2 tracking-tighter">-${money(res.isrRetention)}</div>
 
                                             {/* 18. BORRAR */}
                                             <div className="flex justify-center">
