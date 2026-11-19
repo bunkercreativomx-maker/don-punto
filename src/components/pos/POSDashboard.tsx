@@ -1,10 +1,10 @@
-import { groupByCategory, productGroups, productHasGroup, productColor, PRODUCT_COLORS } from '../../lib/productMods';
+import { groupByCategory, productGroups, productHasGroup, productColor, toggleProductGroup, PRODUCT_COLORS } from '../../lib/productMods';
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { usePOS } from '../../hooks/usePOS';
 import { useCalculator } from '../../hooks/useCalculator'; 
 import type { CartItem, POSPaymentMethod, OrderDestination, OpenTicket, ServiceType, OrderTypeInfo, ReopenInfo } from '../../types/pos';
 import { orderTypeLines, orderTypeLabel, pickOrderType } from '../../lib/orderType';
-import { Plus, Trash2, ShoppingCart, Minus, CreditCard, Save, History, Bike, Lock, Search, X, CheckCircle, Gift, UserPlus, AlertTriangle, Check, MoreVertical, ChevronDown, Palette, ChevronRight, Printer, ChefHat, Minimize2, Maximize2, Menu as MenuIcon } from 'lucide-react';
+import { Plus, Trash2, ShoppingCart, Minus, CreditCard, Save, History, Bike, Lock, Search, X, CheckCircle, Gift, UserPlus, AlertTriangle, Check, MoreVertical, ChevronDown, Palette, SlidersHorizontal, ChevronRight, Printer, ChefHat, Minimize2, Maximize2, Menu as MenuIcon } from 'lucide-react';
 import { isPro, authorizeWithPin, useSession, lockSession, tipWaiters, requiresCashierLogin } from '../../lib/session';
 import { getClients, addClient, recordVisit, rewardReady, rewardDiscount, getLoyalty, type Client } from '../../lib/clients';
 import { applySaleToInventory, type StockAlert } from '../../lib/inventoryAuto';
@@ -211,6 +211,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
   const canEditMenu = !!menu && (operator?.role === 'dueno' || operator?.role === 'gerente');
   const [newProd, setNewProd] = useState<{ name: string; price: string; categoryId: string; mods: string[]; off: string[]; color: string } | null>(null);
   const [colorFor, setColorFor] = useState<ProductRowData | null>(null);
+  const isOwner = operator?.role === 'dueno';
   const deleteProduct = (p: ProductRowData) => {
     if (!menu || !canEditMenu) return;
     if (!window.confirm(`¿Eliminar "${p.name}" del menú?\n\nSe quita del punto de venta, Tienda Física y tu tienda en línea. Las ventas que ya hiciste no se borran.`)) return;
@@ -780,11 +781,11 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
             type="button"
             onClick={(e) => { e.stopPropagation(); setColorFor(p); }}
             data-no-drag
-            title="Color del botón"
-            aria-label={`Color de ${p.name}`}
+            title={isOwner ? "Color y modificadores" : "Color del botón"}
+            aria-label={`Editar ${p.name}`}
             className={cn("absolute rounded-lg text-carbon-500 bg-white/80 hover:bg-white hover:text-carbon-900 transition-all", quick ? "bottom-1.5 left-1.5 p-1" : "bottom-12 right-3 p-1.5")}
         >
-            <Palette size={14} />
+            {isOwner ? <SlidersHorizontal size={14} /> : <Palette size={14} />}
         </button>
     )}
     {canEditMenu && (
@@ -1934,17 +1935,40 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                         </div>
                     </div>
                 )}
-                {colorFor && (
+                {colorFor && (() => {
+                    const ep = allRows.find(r => r.id === colorFor.id) || colorFor;
+                    return (
                     <div className="fixed inset-0 z-[120] overflow-y-auto bg-carbon-950/40 backdrop-blur-sm no-print" onClick={() => setColorFor(null)}>
                         <div className="min-h-full flex items-center justify-center p-4 pb-24">
-                        <div className="w-full max-w-xs bg-white rounded-2xl p-5 space-y-3 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-                            <h3 className="text-base font-bold text-carbon-950">Color de «{colorFor.name}»</h3>
-                            <ColorSwatches value={colorFor.color || ''} onChange={(c) => { menu?.updateRow?.(colorFor.id, { color: c || undefined }); setColorFor(null); }} />
-                            <button type="button" onClick={() => setColorFor(null)} className="w-full py-2 rounded-xl bg-carbon-100 font-bold text-sm text-carbon-700">Cerrar</button>
+                        <div className="w-full max-w-sm bg-white rounded-2xl p-5 space-y-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                            <h3 className="text-base font-bold text-carbon-950 break-words">{ep.name}</h3>
+                            <div className="text-xs font-bold text-slate-500">Color del botón
+                                <ColorSwatches value={ep.color || ''} onChange={(c) => menu?.updateRow?.(ep.id, { color: c || undefined })} />
+                            </div>
+                            {isOwner && modifierGroups.length > 0 && (
+                                <div className="text-xs font-bold text-slate-500">Modificadores que lleva
+                                    <div className="mt-1 max-h-[45vh] overflow-y-auto rounded-xl bg-carbon-50 divide-y divide-carbon-950/[0.06]">
+                                        {modifierGroups.map(g => {
+                                            const byCat = groupByCategory(ep, g);
+                                            const checked = productHasGroup(ep, g);
+                                            return (
+                                                <label key={g.id} className="flex items-center gap-2 px-3 py-2.5 text-sm font-semibold text-carbon-950 cursor-pointer hover:bg-agave-50">
+                                                    <input type="checkbox" checked={checked} onChange={(e) => menu?.updateRow?.(ep.id, toggleProductGroup(ep, g, e.target.checked))} className="w-5 h-5 accent-emerald-600 shrink-0" />
+                                                    <span className={cn("flex-1 min-w-0 break-words", !checked && "text-slate-500")}>{g.name}</span>
+                                                    {byCat && <span className={cn("shrink-0 text-[10px]", checked ? "font-normal text-slate-500" : "font-bold text-rose-500")}>{checked ? 'por su categoría' : 'quitado'}</span>}
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                    <p className="mt-1 text-[10px] font-normal text-slate-500">Solo cambia este producto. Los demás de la categoría quedan igual.</p>
+                                </div>
+                            )}
+                            <button type="button" onClick={() => setColorFor(null)} className="w-full py-2.5 rounded-xl bg-agave-600 font-black text-sm text-white">LISTO</button>
                         </div>
                         </div>
                     </div>
-                )}
+                    );
+                })()}
     {/* --- HIDDEN TICKETS FOR PRINTING --- */}
     {lastOrder && (
         <PrintArea kind="ticket" paper={settings.paperSize}>
