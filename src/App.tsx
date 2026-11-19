@@ -1069,6 +1069,7 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
                     removeModifierGroup={removeModifierGroup}
                     moveModifierGroup={moveModifierGroup}
                     updateProduct={updateRow}
+                    removeProduct={removeRow}
                 />
               )}
               {viewTab === 'settings' && (

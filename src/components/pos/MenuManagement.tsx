@@ -24,6 +24,7 @@ interface MenuManagementProps {
     removeModifierGroup: (id: string) => void;
     moveModifierGroup?: (from: number, to: number) => void;
     updateProduct: (id: string, updates: Partial<ProductRowData>) => void;
+    removeProduct?: (id: string) => void;
 }
 
 export function MenuManagement({
@@ -38,7 +39,8 @@ export function MenuManagement({
     updateModifierGroup,
     removeModifierGroup,
     moveModifierGroup,
-    updateProduct
+    updateProduct,
+    removeProduct
 }: MenuManagementProps) {
     const [newCategoryName, setNewCategoryName] = useState('');
     const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
@@ -339,7 +341,7 @@ export function MenuManagement({
             </div>
 
             {/* Categoría de productos: solo pendientes + buscador (antes era una lista larga con todo) */}
-            <ProductCategoryBox products={products} categories={categories} modifierGroups={modifierGroups} updateProduct={updateProduct} />
+            <ProductCategoryBox products={products} categories={categories} modifierGroups={modifierGroups} updateProduct={updateProduct} removeProduct={removeProduct} />
             <BranchMenuBox products={products} categories={categories} updateProduct={updateProduct} />
 
             {/* Modal for Modifier Group Add/Edit */}
@@ -462,19 +464,27 @@ export function MenuManagement({
 }
 
 
-function ProductCategoryBox({ products, categories, modifierGroups, updateProduct }: {
+function ProductCategoryBox({ products, categories, modifierGroups, updateProduct, removeProduct }: {
     products: ProductRowData[];
     categories: Category[];
     modifierGroups: ModifierGroup[];
     updateProduct: (id: string, updates: Partial<ProductRowData>) => void;
+    removeProduct?: (id: string) => void;
 }) {
+    const { operator } = useSession();
+    const onDelete = removeProduct && operator?.role === 'dueno'
+        ? (p: ProductRowData) => {
+            if (!window.confirm(`¿Eliminar "${p.name}" del menú?\n\nSe quita del punto de venta, de tu Menú y de tu tienda en línea. Las ventas que ya hiciste no se borran.`)) return;
+            removeProduct(p.id);
+        }
+        : undefined;
     const [q, setQ] = useState('');
     const validCat = (p: ProductRowData) => !!p.categoryId && categories.some(c => c.id === p.categoryId);
     const pending = products.filter(p => !validCat(p));
     const norm = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     const found = q.trim().length >= 2 ? products.filter(p => validCat(p) && norm(p.name).includes(norm(q.trim()))).slice(0, 8) : [];
     if (products.length === 0) return null;
-    const rowProps = { categories, modifierGroups, updateProduct, validCat };
+    const rowProps = { categories, modifierGroups, updateProduct, validCat, onDelete };
     return (
         <div className="lg:col-span-2 bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-2xl p-6 space-y-4">
             {pending.length > 0 && (
@@ -504,12 +514,13 @@ function ProductCategoryBox({ products, categories, modifierGroups, updateProduc
 }
 
 // Renglón de producto: categoría + modificadores propios del producto (además de los de su categoría)
-function ProductRow({ p, categories, modifierGroups, updateProduct, validCat }: {
+function ProductRow({ p, categories, modifierGroups, updateProduct, validCat, onDelete }: {
     p: ProductRowData;
     categories: Category[];
     modifierGroups: ModifierGroup[];
     updateProduct: (id: string, updates: Partial<ProductRowData>) => void;
     validCat: (p: ProductRowData) => boolean;
+    onDelete?: (p: ProductRowData) => void;
 }) {
     const [open, setOpen] = useState(false);
     const count = productGroups(p, modifierGroups).length;
@@ -536,6 +547,17 @@ function ProductRow({ p, categories, modifierGroups, updateProduct, validCat }: 
                     >
                         <Layers size={12} /> <span className="hidden sm:inline">Modificadores</span> {count > 0 && <span className="tabular-nums">({count})</span>}
                         {open ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                    </button>
+                )}
+                {onDelete && (
+                    <button
+                        type="button"
+                        onClick={() => onDelete(p)}
+                        title={`Eliminar ${p.name} del menú`}
+                        aria-label={`Eliminar ${p.name} del menú`}
+                        className="shrink-0 rounded-lg p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-500/10"
+                    >
+                        <Trash2 size={14} />
                     </button>
                 )}
             </div>
