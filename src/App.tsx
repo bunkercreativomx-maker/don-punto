@@ -894,7 +894,7 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
               <div>
                 <h1 className="font-display text-2xl sm:text-3xl font-bold text-carbon-950 tracking-[-0.02em]">
                   {shownTab === 'profits' && 'Menú: costos y ganancias'}
-                  {shownTab === 'pricing' && 'Estrategia de Precios'}
+                  {shownTab === 'pricing' && 'Estrategia de precios para plataformas'}
                   {shownTab === 'pos' && 'Punto de venta'}
                   {shownTab === 'reports' && 'Reportes Financieros'}
                   {shownTab === 'tickets' && 'Historial de Tickets'}

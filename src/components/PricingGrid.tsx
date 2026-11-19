@@ -54,7 +54,7 @@ export function PricingGrid({ rows, pricingResults, updateRow, removeRow, addRow
                         className="w-full md:w-auto bg-indigo-500 hover:bg-indigo-400 text-white px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 hover:scale-[1.02] active:scale-[0.98]"
                     >
                         <Plus size={18} />
-                        JALAR PRECIOS DE TIENDA FÍSICA
+                        JALAR PRECIOS DEL MENÚ
                     </button>
                 </div>
             )}

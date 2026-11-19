@@ -122,7 +122,7 @@ El efectivo esperado = fondo + ventas en efectivo + propinas en efectivo + depó
 Don Punto no recibe pedidos de las apps automáticamente: los capturas tú. En **Punto de Venta** elige el botón de la app (arriba del menú), agrega productos y **FINALIZAR**. Usa el precio de esa app en **Plataformas** (si no hay, lo calcula). Si la app tiene opción de pago en efectivo y así te pagaron, elígela: ese dinero sí entra al corte. **Reportes** separa ventas por canal.
 
 ### Plataformas: calculadora de precios por comisión
-En **Plataformas** pones en **VAS A RECIBIR** lo que quieres que te quede por platillo (o toca **JALAR PRECIOS DE TIENDA FÍSICA**) y te da el **PRECIO UNIT. PLATAFORMA** para la app. Considera comisión de la app y su IVA, retenciones de IVA e ISR (según **RFC Válido**), **% DESCUENTO**, **% APOYO PLATAFORMA** y **COSTO ENVÍO**, y muestra tu **UTILIDAD %** y **UTILIDAD $**. Solo calcula; no se conecta a ninguna app.
+En **Plataformas** pones en **VAS A RECIBIR** lo que quieres que te quede por platillo (o toca **JALAR PRECIOS DEL MENÚ**) y te da el **PRECIO UNIT. PLATAFORMA** para la app. Considera comisión de la app y su IVA, retenciones de IVA e ISR (según **RFC Válido**), **% DESCUENTO**, **% APOYO PLATAFORMA** y **COSTO ENVÍO**, y muestra tu **UTILIDAD %** y **UTILIDAD $**. Solo calcula; no se conecta a ninguna app.
 
 ### Reportes
 - **Todos los planes:** **Ventas Hoy**, **Esta Semana**, **Este Mes**, **Este Año** (con IVA y ventas por canal), cortes y, por día, **VENTA DEL DÍA**, **IVA Recaudado** y la lista de transacciones.
