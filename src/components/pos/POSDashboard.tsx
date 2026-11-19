@@ -1,4 +1,4 @@
-import { groupByCategory, productGroups, productHasGroup, productColor, toggleProductGroup, PRODUCT_COLORS } from '../../lib/productMods';
+import { groupByCategory, productGroups, productHasGroup, productColor, toggleProductGroup, PRODUCT_COLORS, DAY_NAMES, DAY_ORDER, daysLabel, hasDayLimit, soldToday } from '../../lib/productMods';
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { usePOS } from '../../hooks/usePOS';
 import { useCalculator } from '../../hooks/useCalculator'; 
@@ -454,6 +454,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
 
   const handleProductClick = (product: ProductRowData) => {
     if (needsShift()) return;
+    if (!soldToday(product.days, new Date().getDay()) && !window.confirm(`"${product.name}" es ${daysLabel(product.days).toLowerCase()}. ¿Venderlo de todos modos?`)) return;
     setSelectedProduct(product);
     setPendingModifiers([]);
     setCustomerNote('');
@@ -765,8 +766,13 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
             ? "bg-white px-2.5 py-2 rounded-xl text-center shadow-[0_1px_2px_rgba(13,16,14,0.06)] hover:ring-2 hover:ring-agave-400/60 active:scale-[0.97] active:bg-agave-50 transition-all duration-150 group relative overflow-hidden w-full h-[96px] xl:h-[104px] flex flex-col items-center justify-center gap-1"
             : "bg-white border border-carbon-950/10 p-4 rounded-2xl text-left shadow-[0_1px_2px_rgba(13,16,14,0.05)] hover:border-agave-400 hover:shadow-[0_10px_24px_-14px_rgba(14,111,77,0.45)] active:scale-[0.98] transition-all duration-200 group relative overflow-hidden w-full h-32 flex flex-col justify-between"}
     >
-        <div className={quick ? "font-bold text-carbon-900 group-hover:text-agave-700 text-[14px] leading-[1.15] line-clamp-3 px-3 break-words" : cn("font-semibold text-carbon-900 group-hover:text-agave-700 text-[15px] leading-tight line-clamp-2", canEditMenu ? "pr-8" : "pr-6")}>{p.name}</div>
+        <div className={quick ? "font-bold text-carbon-900 group-hover:text-agave-700 text-[14px] leading-[1.15] line-clamp-3 px-3 break-words" : cn("font-semibold text-carbon-900 group-hover:text-agave-700 text-[15px] leading-tight line-clamp-2", canEditMenu ? "pr-8" : "pr-6", hasDayLimit(p.days) && "mt-2")}>{p.name}</div>
         <div className={quick ? "text-[11px] font-semibold text-slate-500 tabular-nums" : "font-display font-bold text-carbon-950 text-xl tracking-tight tabular-nums"}>${money(getItemPrice(p.id, []))}</div>
+        {hasDayLimit(p.days) && (
+            <div className={cn("whitespace-nowrap rounded-md px-1.5 text-[9px] font-black uppercase tracking-wide", quick ? "absolute left-1/2 -translate-x-1/2 top-1" : "absolute left-4 top-1.5", soldToday(p.days, new Date().getDay()) ? "bg-agave-600 text-white" : "bg-carbon-200 text-carbon-600")}>
+                {DAY_ORDER.filter(x => p.days!.includes(x)).map(x => DAY_NAMES[x].slice(0, 3)).join(' · ')}
+            </div>
+        )}
         {(() => {
             const hasMods = modifierGroups.some(g => productHasGroup(p, g));
             return hasMods && (
@@ -1944,6 +1950,28 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                             <h3 className="text-base font-bold text-carbon-950 break-words">{ep.name}</h3>
                             <div className="text-xs font-bold text-slate-500">Color del botón
                                 <ColorSwatches value={ep.color || ''} onChange={(c) => menu?.updateRow?.(ep.id, { color: c || undefined })} />
+                            </div>
+                            <div className="text-xs font-bold text-slate-500">Días que se vende
+                                <div className="mt-1 grid grid-cols-7 gap-1">
+                                    {DAY_ORDER.map(x => {
+                                        const all = !hasDayLimit(ep.days);
+                                        const on = all || ep.days!.includes(x);
+                                        return (
+                                            <button key={x} type="button" title={DAY_NAMES[x]} aria-pressed={on}
+                                                onClick={() => {
+                                                    const cur = all ? [] : ep.days!;
+                                                    // Con «todos» activo, tocar un día = solo ese día
+                                                    const next = all ? [x] : on ? cur.filter(y => y !== x) : [...cur, x];
+                                                    menu?.updateRow?.(ep.id, { days: next.length === 0 || next.length === 7 ? undefined : next.sort() });
+                                                }}
+                                                className={cn("h-9 rounded-lg text-xs font-black transition-colors", on ? (all ? "bg-carbon-100 text-carbon-700" : "bg-agave-600 text-white") : "bg-white text-carbon-400 shadow-[inset_0_0_0_1px_rgba(13,16,14,0.12)]")}>
+                                                {DAY_NAMES[x].slice(0, 2).replace(/^./, c => c.toUpperCase())}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                <p className="mt-1 text-[10px] font-normal text-slate-500">{hasDayLimit(ep.days) ? `${daysLabel(ep.days)}. En tu tienda en línea los otros días sale apagado y el día que toca sale hasta arriba en «Promos de hoy».` : 'Todos los días. Para una promo de un día (ej. martes), toca ese día.'}</p>
+                                {hasDayLimit(ep.days) && <button type="button" onClick={() => menu?.updateRow?.(ep.id, { days: undefined })} className="mt-1 text-[11px] font-bold text-agave-700 underline">Vender todos los días</button>}
                             </div>
                             {isOwner && modifierGroups.length > 0 && (
                                 <div className="text-xs font-bold text-slate-500">Modificadores que lleva

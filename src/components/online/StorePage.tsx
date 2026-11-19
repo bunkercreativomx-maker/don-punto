@@ -2,10 +2,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ShoppingBag, Bike, Store as StoreIcon, Clock, MapPin, Phone, Minus, Plus, X, ChevronLeft, Check, Copy, Loader2, AlertCircle, QrCode, Banknote, LocateFixed, Search } from 'lucide-react';
 import { money, STATUS_LABEL } from '../../lib/onlineStore';
+import { daysLabel } from '../../lib/productMods';
 
 interface PMod { id: string; name: string; price: number }
 interface PGroup { id: string; name: string; type: 'single' | 'multiple'; min?: number; max?: number; options: PMod[] }
-interface PProduct { id: string; name: string; description: string; price: number; categoryId: string; groups: string[]; soldOut: boolean; photo: string | null }
+interface PProduct { id: string; name: string; description: string; price: number; categoryId: string; groups: string[]; soldOut: boolean; photo: string | null; days?: number[]; notToday?: boolean }
 interface PStore {
   slug: string; name: string; tagline: string; phone: string; address: string; hours: string; color: string;
   logo: string | null; cover: string | null; open: boolean; pickup: boolean; delivery: boolean; deliveryFee: number;
@@ -95,7 +96,7 @@ function Menu({ slug, onOrdered }: { slug: string; onOrdered: (t: string) => voi
   const prodMap = useMemo(() => new Map((store?.products || []).map((p) => [p.id, p])), [store]);
   const groupMap = useMemo(() => new Map((store?.groups || []).map((g) => [g.id, g])), [store]);
   // Si el restaurante quitó un platillo, sale del carrito
-  const validCart = useMemo(() => cart.filter((l) => prodMap.has(l.id)), [cart, prodMap]);
+  const validCart = useMemo(() => cart.filter((l) => { const p = prodMap.get(l.id); return !!p && !p.notToday; }), [cart, prodMap]);
   const lineUnit = useCallback((l: CartLine) => {
     const p = prodMap.get(l.id);
     if (!p) return 0;
@@ -114,6 +115,9 @@ function Menu({ slug, onOrdered }: { slug: string; onOrdered: (t: string) => voi
     const cats = store.categories.map((c) => ({ ...c, items: store.products.filter((p) => p.categoryId === c.id) }));
     const orphan = store.products.filter((p) => !store.categories.some((c) => c.id === p.categoryId));
     if (orphan.length) cats.push({ id: '_otros', name: cats.length ? 'Otros' : 'Menú', items: orphan });
+    // Promos que solo se venden ciertos días: las de HOY salen hasta arriba
+    const today = store.products.filter((p) => p.days?.length && !p.notToday && !p.soldOut);
+    if (today.length) cats.unshift({ id: '_hoy', name: 'Promos de hoy', items: today });
     return cats.filter((c) => c.items.length);
   }, [store]);
 
@@ -302,7 +306,7 @@ function Info({ Icon, label, href, className = '', children }: { Icon: typeof Cl
 
 function ProductCard({ p, brand, qty, canAdd, onClick }: { p: PProduct; brand: string; qty: number; canAdd: boolean; onClick: () => void }) {
   return (
-    <button disabled={p.soldOut} onClick={onClick}
+    <button disabled={p.soldOut || p.notToday} onClick={onClick}
       className="group flex w-full items-center gap-4 rounded-2xl bg-white p-4 text-left ring-1 ring-carbon-100 transition-all hover:-translate-y-px hover:shadow-[0_10px_30px_-16px_rgba(13,16,14,0.35)] hover:ring-carbon-200 disabled:pointer-events-none disabled:opacity-50"
       style={qty > 0 ? { boxShadow: `inset 0 0 0 2px ${brand}` } : undefined}>
       <div className="min-w-0 flex-1">
@@ -312,13 +316,14 @@ function ProductCard({ p, brand, qty, canAdd, onClick }: { p: PProduct; brand: s
         </div>
         {p.description && <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-carbon-500">{p.description}</p>}
         <p className="mt-1.5 text-[15px] font-bold">{p.soldOut ? <span className="text-carbon-500">Agotado hoy</span> : money(p.price)}</p>
+        {!!p.days?.length && <p className={`mt-1 inline-block rounded-md px-1.5 py-0.5 text-[11px] font-bold ${p.notToday ? 'bg-carbon-100 text-carbon-600' : 'bg-[color-mix(in_srgb,var(--brand)_12%,white)] text-[var(--brand)]'}`}>{p.notToday ? daysLabel(p.days) : `¡Hoy! ${daysLabel(p.days).replace('Solo ', 'solo ')}`}</p>}
       </div>
       {p.photo ? (
         <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-carbon-100">
           <img src={p.photo} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
-          {!p.soldOut && canAdd && <span className="absolute bottom-1.5 right-1.5 grid h-7 w-7 place-items-center rounded-full bg-white shadow-md"><Plus className="h-4 w-4" style={{ color: brand }} /></span>}
+          {!p.soldOut && !p.notToday && canAdd && <span className="absolute bottom-1.5 right-1.5 grid h-7 w-7 place-items-center rounded-full bg-white shadow-md"><Plus className="h-4 w-4" style={{ color: brand }} /></span>}
         </div>
-      ) : (!p.soldOut && canAdd && (
+      ) : (!p.soldOut && !p.notToday && canAdd && (
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[color-mix(in_srgb,var(--brand)_9%,white)] text-[var(--brand)] transition-colors group-hover:bg-[var(--brand)] group-hover:text-white">
           <Plus className="h-[18px] w-[18px]" />
         </span>

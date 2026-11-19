@@ -45,6 +45,8 @@ export interface ProductRowData {
     modifierGroupOff?: string[];
     // Color de la tarjeta en el punto de venta (id de PRODUCT_COLORS)
     color?: string;
+    // Días que se vende (0=domingo … 6=sábado). Vacío = todos los días (ej. «Promo martes» = [2])
+    days?: number[];
     // Platform-specific override prices (pre-inflated)
     didiPrice?: number;
     uberPrice?: number;

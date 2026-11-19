@@ -34,3 +34,24 @@ export const PRODUCT_COLORS: { id: string; name: string; bg: string; bar: string
   { id: 'gray', name: 'Gris', bg: '#E8EAE6', bar: '#6B7280' },
 ];
 export const productColor = (id?: string) => PRODUCT_COLORS.find((c) => c.id === id);
+
+/** Días de la semana (0 = domingo, como Date.getDay()) */
+export const DAY_NAMES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+export const DAY_SHORT = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+/** Lunes primero para los botones */
+export const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+const WD: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+/** Día de la semana de hoy en la zona horaria del negocio (o la del equipo). */
+export function weekdayIn(tz?: string): number {
+  try { if (tz) return WD[new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: tz }).format(new Date())] ?? new Date().getDay(); } catch { /* zona inválida */ }
+  return new Date().getDay();
+}
+/** ¿Tiene días limitados? (vacío o los 7 = todos los días) */
+export const hasDayLimit = (days?: number[]) => !!days && days.length > 0 && days.length < 7;
+export const soldToday = (days: number[] | undefined, today: number) => !hasDayLimit(days) || days!.includes(today);
+/** «Solo martes» / «Solo lunes y jueves» */
+export function daysLabel(days?: number[]): string {
+  if (!hasDayLimit(days)) return '';
+  const names = DAY_ORDER.filter((d) => days!.includes(d)).map((d) => DAY_NAMES[d] + (d === 0 || d === 6 ? 's' : ''));
+  return 'Solo los ' + (names.length === 1 ? names[0] : names.slice(0, -1).join(', ') + ' y ' + names[names.length - 1]);
+}

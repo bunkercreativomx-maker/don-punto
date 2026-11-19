@@ -1,12 +1,12 @@
 // Pedidos en línea: tipos y utilidades compartidas entre el panel del restaurante y la página pública.
 import type { ProductRowData, Category, ModifierGroup } from '../types/calculator';
-import { productGroups } from './productMods';
+import { productGroups, hasDayLimit } from './productMods';
 import { rowsForBranch } from './branchMenu';
 
 export interface OMod { id: string; name: string; price: number }
 export interface OGroup { id: string; name: string; type: 'single' | 'multiple'; min?: number; max?: number; options: OMod[] }
-export interface OProduct { id: string; name: string; description?: string; price: number; categoryId?: string; groups?: string[]; photo?: string; hidden?: boolean; soldOut?: boolean; off?: boolean; userHidden?: boolean }
-export interface OMenu { categories: { id: string; name: string }[]; groups: OGroup[]; products: OProduct[]; syncedAt?: string }
+export interface OProduct { id: string; name: string; description?: string; price: number; categoryId?: string; groups?: string[]; photo?: string; hidden?: boolean; soldOut?: boolean; off?: boolean; userHidden?: boolean; days?: number[] }
+export interface OMenu { categories: { id: string; name: string }[]; groups: OGroup[]; products: OProduct[]; syncedAt?: string; tz?: string }
 
 /** Rutas de donpunto.com que nunca pueden ser de un restaurante (mismo listado que api/order.ts) */
 export const RESERVED_SLUGS = new Set([
@@ -45,6 +45,7 @@ export function buildMenu(rows: ProductRowData[], categories: Category[], groups
         id: r.id, name: r.name.trim(), price: Number((b || r).salePrice) || 0, categoryId: r.categoryId || '', groups: gids,
         description: o?.description ?? r.description ?? '', photo: o?.photo, hidden: b ? userHidden : true, soldOut: !!o?.soldOut,
       };
+      if (hasDayLimit(r.days)) base.days = [...r.days!].sort();
       if (!b) { base.off = true; base.userHidden = userHidden; }
       return base;
     });
@@ -55,6 +56,7 @@ export function buildMenu(rows: ProductRowData[], categories: Category[], groups
       options: g.options.map((o) => ({ id: o.id, name: o.name, price: Number(o.extraPrice) || 0 })),
     })),
     products,
+    tz: (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return undefined; } })(),
     syncedAt: new Date().toISOString(),
   };
 }

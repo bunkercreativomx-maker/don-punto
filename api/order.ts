@@ -53,8 +53,17 @@ const str = (v: unknown, max: number) => String(v ?? '').replace(/[\u0000-\u001f
 
 interface OMod { id: string; name: string; price: number }
 interface OGroup { id: string; name: string; type: 'single' | 'multiple'; min?: number; max?: number; options: OMod[] }
-interface OProduct { id: string; name: string; description?: string; price: number; categoryId?: string; groups?: string[]; photo?: string; hidden?: boolean; soldOut?: boolean }
-interface OMenu { categories?: { id: string; name: string }[]; groups?: OGroup[]; products?: OProduct[] }
+interface OProduct { id: string; name: string; description?: string; price: number; categoryId?: string; groups?: string[]; photo?: string; hidden?: boolean; soldOut?: boolean; days?: number[] }
+interface OMenu { categories?: { id: string; name: string }[]; groups?: OGroup[]; products?: OProduct[]; tz?: string }
+
+// Productos que solo se venden ciertos días (promos): el día se calcula en la zona horaria del negocio
+const WD: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+const DAY_NAMES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+function weekdayIn(tz?: string) {
+  try { return WD[new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: tz || 'America/Mexico_City' }).format(new Date())] ?? new Date().getDay(); } catch { return new Date().getDay(); }
+}
+const dayLimited = (p: OProduct) => Array.isArray(p.days) && p.days.length > 0 && p.days.length < 7;
+const daysText = (d: number[]) => { const n = [1, 2, 3, 4, 5, 6, 0].filter((x) => d.includes(x)).map((x) => DAY_NAMES[x] + (x === 0 || x === 6 ? 's' : '')); return n.length === 1 ? n[0] : n.slice(0, -1).join(', ') + ' y ' + n[n.length - 1]; };
 
 async function storeBySlug(token: string, slug: string) {
   const r = await pbFetch(`/api/collections/stores/records?perPage=1&filter=${q(`slug = "${esc(slug)}"`)}`, { token });
@@ -69,9 +78,11 @@ async function ownerActive(token: string, owner: string) {
 
 function publicStore(s: any, active: boolean) {
   const menu: OMenu = s.menu || {};
+  const today = weekdayIn(menu.tz);
   const products = (menu.products || []).filter((p) => !p.hidden).map((p) => ({
     id: p.id, name: p.name, description: p.description || '', price: p.price, categoryId: p.categoryId || '',
     groups: p.groups || [], soldOut: !!p.soldOut, photo: fileUrl('stores', s.id, p.photo),
+    days: dayLimited(p) ? p.days! : [], notToday: dayLimited(p) && !p.days!.includes(today),
   }));
   const usedCats = new Set(products.map((p) => p.categoryId));
   const usedGroups = new Set(products.flatMap((p) => p.groups));
@@ -157,6 +168,7 @@ async function createOrder(token: string, body: any, ip: string) {
     const p = prods.get(String(it?.id));
     if (!p) throw new HttpError(409, 'Un platillo de tu carrito ya no está disponible. Actualiza la página.', 'stale');
     if (p.soldOut) throw new HttpError(409, `"${p.name}" se agotó por hoy.`, 'sold_out');
+    if (dayLimited(p) && !p.days!.includes(weekdayIn(menu.tz))) throw new HttpError(409, `"${p.name}" solo se vende los ${daysText(p.days!)}. Quítalo de tu carrito.`, 'not_today');
     const quantity = Math.max(1, Math.min(50, Math.floor(Number(it.qty) || 1)));
     const selectedModifiers: { groupId: string; modifiers: { id: string; name: string; extraPrice: number }[] }[] = [];
     let unit = Number(p.price) || 0;
