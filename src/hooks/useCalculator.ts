@@ -212,7 +212,8 @@ export function useCalculator(
         // Remove from product association
         setRows(prev => prev.map(r => ({
             ...r,
-            modifierGroupIds: r.modifierGroupIds?.filter(gid => gid !== id)
+            modifierGroupIds: r.modifierGroupIds?.filter(gid => gid !== id),
+            modifierGroupOff: r.modifierGroupOff?.filter(gid => gid !== id)
         })));
     };
 

@@ -9,6 +9,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 import type { Category, ModifierGroup, Modifier, ProductRowData } from '../../types/calculator';
 import { isPro, getBranches, useSession } from '../../lib/session';
 import { branchInfo, withBranch } from '../../lib/branchMenu';
+import { groupByCategory, productGroups, productHasGroup, toggleProductGroup } from '../../lib/productMods';
 
 interface MenuManagementProps {
     categories: Category[];
@@ -297,8 +298,8 @@ export function MenuManagement({
                                         </span>
                                     ))}
                                 </div>
-                                {(() => { const n = products.filter(pr => pr.modifierGroupIds?.includes(group.id) && !(pr.categoryId && group.appliedToCategories?.includes(pr.categoryId))).length; return n > 0 && (
-                                    <p className="mt-3 pt-2 border-t border-carbon-950/10 text-[10px] font-bold text-slate-500">También en {n} producto{n === 1 ? '' : 's'} fuera de sus categorías</p>
+                                {(() => { const n = products.filter(pr => pr.modifierGroupIds?.includes(group.id) && !groupByCategory(pr, group)).length; const off = products.filter(pr => groupByCategory(pr, group) && pr.modifierGroupOff?.includes(group.id)).length; return (n > 0 || off > 0) && (
+                                    <p className="mt-3 pt-2 border-t border-carbon-950/10 text-[10px] font-bold text-slate-500">{[n > 0 && `También en ${n} producto${n === 1 ? '' : 's'} fuera de sus categorías`, off > 0 && `Quitado a ${off} producto${off === 1 ? '' : 's'}`].filter(Boolean).join(' · ')}</p>
                                 ); })()}
                                 {!(group.appliedToCategories && group.appliedToCategories.some(id => categories.some(c => c.id === id))) && !products.some(pr => pr.modifierGroupIds?.includes(group.id)) && (
                                     <button onClick={() => openModGroupModal(group)} className="mt-3 pt-2 border-t border-carbon-950/10 w-full text-left text-[10px] font-bold text-amber-600 hover:text-amber-700">
@@ -498,13 +499,8 @@ function ProductRow({ p, categories, modifierGroups, updateProduct, validCat }: 
     validCat: (p: ProductRowData) => boolean;
 }) {
     const [open, setOpen] = useState(false);
-    const own = (p.modifierGroupIds || []).filter(id => modifierGroups.some(g => g.id === id));
-    const byCat = (g: ModifierGroup) => !!p.categoryId && !!g.appliedToCategories?.includes(p.categoryId);
-    const count = modifierGroups.filter(g => byCat(g) || own.includes(g.id)).length;
-    const toggle = (gid: string, on: boolean) => {
-        const next = on ? [...own.filter(x => x !== gid), gid] : own.filter(x => x !== gid);
-        updateProduct(p.id, { modifierGroupIds: next });
-    };
+    const count = productGroups(p, modifierGroups).length;
+    const toggle = (g: ModifierGroup, on: boolean) => updateProduct(p.id, toggleProductGroup(p, g, on));
     return (
         <div className="bg-slate-950/40 border border-carbon-950/10 rounded-xl px-3 py-2">
             <div className="flex items-center gap-2 sm:gap-3">
@@ -532,15 +528,15 @@ function ProductRow({ p, categories, modifierGroups, updateProduct, validCat }: 
             </div>
             {open && (
                 <div className="mt-2 pt-2 border-t border-carbon-950/10 space-y-1">
-                    <p className="text-[11px] text-slate-500">Marca los grupos que lleva <b>{p.name}</b> al cobrar.</p>
+                    <p className="text-[11px] text-slate-500">Marca los grupos que lleva <b>{p.name}</b> al cobrar. Si uno de su categoría no le aplica, quítale la palomita.</p>
                     {modifierGroups.map(g => {
-                        const cat = byCat(g);
-                        const checked = cat || own.includes(g.id);
+                        const cat = groupByCategory(p, g);
+                        const checked = productHasGroup(p, g);
                         return (
-                            <label key={g.id} className={cn("flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm", cat ? "opacity-70" : "cursor-pointer hover:bg-slate-800/30")}>
-                                <input type="checkbox" checked={checked} disabled={cat} onChange={(e) => toggle(g.id, e.target.checked)} className="w-4 h-4 accent-emerald-600 shrink-0" />
-                                <span className="flex-1 min-w-0 break-words font-semibold text-slate-200">{g.name}</span>
-                                {cat && <span className="shrink-0 text-[10px] text-slate-500">por su categoría</span>}
+                            <label key={g.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm cursor-pointer hover:bg-slate-800/30">
+                                <input type="checkbox" checked={checked} onChange={(e) => toggle(g, e.target.checked)} className="w-4 h-4 accent-emerald-600 shrink-0" />
+                                <span className={cn("flex-1 min-w-0 break-words font-semibold", checked ? "text-slate-200" : "text-slate-500")}>{g.name}</span>
+                                {cat && <span className={cn("shrink-0 text-[10px]", checked ? "text-slate-500" : "font-bold text-rose-500")}>{checked ? 'por su categoría' : 'quitado a este producto'}</span>}
                             </label>
                         );
                     })}

@@ -41,6 +41,10 @@ export interface ProductRowData {
     // Menu integration
     categoryId?: string;
     modifierGroupIds?: string[];
+    // Grupos que le llegan por su categoría pero este producto NO lleva
+    modifierGroupOff?: string[];
+    // Color de la tarjeta en el punto de venta (id de PRODUCT_COLORS)
+    color?: string;
     // Platform-specific override prices (pre-inflated)
     didiPrice?: number;
     uberPrice?: number;

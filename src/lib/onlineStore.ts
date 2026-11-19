@@ -1,5 +1,6 @@
 // Pedidos en línea: tipos y utilidades compartidas entre el panel del restaurante y la página pública.
 import type { ProductRowData, Category, ModifierGroup } from '../types/calculator';
+import { productGroups } from './productMods';
 import { rowsForBranch } from './branchMenu';
 
 export interface OMod { id: string; name: string; price: number }
@@ -38,7 +39,7 @@ export function buildMenu(rows: ProductRowData[], categories: Category[], groups
     .map((r) => {
       const o = old.get(r.id);
       const b = sold.get(r.id);
-      const gids = groups.filter((g) => r.modifierGroupIds?.includes(g.id) || (r.categoryId && g.appliedToCategories?.includes(r.categoryId))).map((g) => g.id);
+      const gids = productGroups(r, groups).map((g) => g.id);
       const userHidden = o ? (o.off ? !!o.userHidden : !!o.hidden) : false;
       const base: OProduct = {
         id: r.id, name: r.name.trim(), price: Number((b || r).salePrice) || 0, categoryId: r.categoryId || '', groups: gids,

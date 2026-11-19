@@ -1,9 +1,10 @@
+import { groupByCategory, productGroups, productHasGroup, productColor, PRODUCT_COLORS } from '../../lib/productMods';
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { usePOS } from '../../hooks/usePOS';
 import { useCalculator } from '../../hooks/useCalculator'; 
 import type { CartItem, POSPaymentMethod, OrderDestination, OpenTicket, ServiceType, OrderTypeInfo, ReopenInfo } from '../../types/pos';
 import { orderTypeLines, orderTypeLabel, pickOrderType } from '../../lib/orderType';
-import { Plus, Trash2, ShoppingCart, Minus, CreditCard, Save, History, Bike, Lock, Search, X, CheckCircle, Gift, UserPlus, AlertTriangle, Check, MoreVertical, ChevronDown, ChevronRight, Printer, ChefHat, Minimize2, Maximize2, Menu as MenuIcon } from 'lucide-react';
+import { Plus, Trash2, ShoppingCart, Minus, CreditCard, Save, History, Bike, Lock, Search, X, CheckCircle, Gift, UserPlus, AlertTriangle, Check, MoreVertical, ChevronDown, Palette, ChevronRight, Printer, ChefHat, Minimize2, Maximize2, Menu as MenuIcon } from 'lucide-react';
 import { isPro, authorizeWithPin, useSession, lockSession, tipWaiters, requiresCashierLogin } from '../../lib/session';
 import { getClients, addClient, recordVisit, rewardReady, rewardDiscount, getLoyalty, type Client } from '../../lib/clients';
 import { applySaleToInventory, type StockAlert } from '../../lib/inventoryAuto';
@@ -44,6 +45,7 @@ export interface POSMenuOps {
   modifierGroups: ReturnType<typeof useCalculator>['modifierGroups'];
   addProducts: (p: ProductRowData[]) => void;
   removeRow: (id: string) => void;
+  updateRow?: (id: string, updates: Partial<ProductRowData>) => void;
   moveProduct?: (id: string, targetId: string) => void;
 }
 
@@ -207,7 +209,8 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
   const waiterMode = operator?.role === 'mesero';
   // Solo dueño o gerente identificados pueden agregar/borrar productos desde el punto de venta
   const canEditMenu = !!menu && (operator?.role === 'dueno' || operator?.role === 'gerente');
-  const [newProd, setNewProd] = useState<{ name: string; price: string; categoryId: string; mods: string[] } | null>(null);
+  const [newProd, setNewProd] = useState<{ name: string; price: string; categoryId: string; mods: string[]; off: string[]; color: string } | null>(null);
+  const [colorFor, setColorFor] = useState<ProductRowData | null>(null);
   const deleteProduct = (p: ProductRowData) => {
     if (!menu || !canEditMenu) return;
     if (!window.confirm(`¿Eliminar "${p.name}" del menú?\n\nSe quita del punto de venta, Tienda Física y tu tienda en línea. Las ventas que ya hiciste no se borran.`)) return;
@@ -220,7 +223,9 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
     const price = Math.round((parseFloat(newProd.price.replace(',', '.')) || 0) * 100) / 100;
     if (!name) { showToast('Escribe el nombre del producto'); return; }
     if (allRows.some(r => r.name.trim().toLowerCase() === name.toLowerCase())) { showToast('Ya existe un producto con ese nombre'); return; }
-    menu.addProducts([{ id: crypto.randomUUID(), name, costPrice: 0, salePrice: price, categoryId: newProd.categoryId || undefined, modifierGroupIds: newProd.mods.filter(id => !(newProd.categoryId && modifierGroups.find(g => g.id === id)?.appliedToCategories?.includes(newProd.categoryId))) }]);
+    menu.addProducts([{ id: crypto.randomUUID(), name, costPrice: 0, salePrice: price, categoryId: newProd.categoryId || undefined, color: newProd.color || undefined,
+      modifierGroupIds: newProd.mods.filter(id => { const g = modifierGroups.find(x => x.id === id); return g && !groupByCategory({ categoryId: newProd.categoryId }, g); }),
+      modifierGroupOff: newProd.off.filter(id => { const g = modifierGroups.find(x => x.id === id); return g && groupByCategory({ categoryId: newProd.categoryId }, g); }) }]);
     setNewProd(null);
     showToast(`Se agregó "${name}"`);
   };
@@ -754,15 +759,15 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
     >
     <button
         onClick={() => { if (suppressClick.current) return; handleProductClick(p); }}
+        style={productColor(p.color) ? { background: productColor(p.color)!.bg, boxShadow: `inset 0 -4px 0 ${productColor(p.color)!.bar}` } : undefined}
         className={quick
             ? "bg-white px-2.5 py-2 rounded-xl text-center shadow-[0_1px_2px_rgba(13,16,14,0.06)] hover:ring-2 hover:ring-agave-400/60 active:scale-[0.97] active:bg-agave-50 transition-all duration-150 group relative overflow-hidden w-full h-[96px] xl:h-[104px] flex flex-col items-center justify-center gap-1"
             : "bg-white border border-carbon-950/10 p-4 rounded-2xl text-left shadow-[0_1px_2px_rgba(13,16,14,0.05)] hover:border-agave-400 hover:shadow-[0_10px_24px_-14px_rgba(14,111,77,0.45)] active:scale-[0.98] transition-all duration-200 group relative overflow-hidden w-full h-32 flex flex-col justify-between"}
     >
-        <div className={quick ? "font-bold text-carbon-900 group-hover:text-agave-700 text-[14px] leading-[1.15] line-clamp-3 px-3 break-words" : "font-semibold text-carbon-900 group-hover:text-agave-700 text-[15px] leading-tight line-clamp-2 pr-6"}>{p.name}</div>
+        <div className={quick ? "font-bold text-carbon-900 group-hover:text-agave-700 text-[14px] leading-[1.15] line-clamp-3 px-3 break-words" : cn("font-semibold text-carbon-900 group-hover:text-agave-700 text-[15px] leading-tight line-clamp-2", canEditMenu ? "pr-8" : "pr-6")}>{p.name}</div>
         <div className={quick ? "text-[11px] font-semibold text-slate-500 tabular-nums" : "font-display font-bold text-carbon-950 text-xl tracking-tight tabular-nums"}>${money(getItemPrice(p.id, []))}</div>
         {(() => {
-            const hasMods = (p.modifierGroupIds && p.modifierGroupIds.length > 0) || 
-                modifierGroups.some(g => p.categoryId && g.appliedToCategories?.includes(p.categoryId));
+            const hasMods = modifierGroups.some(g => productHasGroup(p, g));
             return hasMods && (
                 <div className={cn("absolute text-indigo-400 bg-indigo-500/10 rounded-md", quick ? "top-1.5 right-1.5 p-0.5" : "top-2 right-2 p-1")}>
                     <Plus size={12}/>
@@ -770,6 +775,18 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
             );
         })()}
     </button>
+    {canEditMenu && menu?.updateRow && (
+        <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setColorFor(p); }}
+            data-no-drag
+            title="Color del botón"
+            aria-label={`Color de ${p.name}`}
+            className={cn("absolute rounded-lg text-carbon-500 bg-white/80 hover:bg-white hover:text-carbon-900 transition-all", quick ? "bottom-1.5 left-1.5 p-1" : "bottom-12 right-3 p-1.5")}
+        >
+            <Palette size={14} />
+        </button>
+    )}
     {canEditMenu && (
         <button
             type="button"
@@ -1067,7 +1084,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                     )}
                     {filteredProducts.map(p => renderCard(p, true))}
                     {canEditMenu && !searchQuery && (
-                        <button type="button" onClick={() => setNewProd({ name: '', price: '', categoryId: activeCategoryId || '', mods: [] })}
+                        <button type="button" onClick={() => setNewProd({ name: '', price: '', categoryId: activeCategoryId || '', mods: [], off: [], color: '' })}
                             className="w-full border-2 border-dashed border-agave-400/60 text-agave-700 rounded-xl h-[96px] xl:h-[104px] flex flex-col items-center justify-center gap-1 font-bold text-xs hover:bg-agave-50 transition-all">
                             <Plus size={18} /> Agregar producto
                         </button>
@@ -1428,7 +1445,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                     {canEditMenu && !searchQuery && (
                         <button
                             type="button"
-                            onClick={() => setNewProd({ name: '', price: '', categoryId: activeCategoryId || '', mods: [] })}
+                            onClick={() => setNewProd({ name: '', price: '', categoryId: activeCategoryId || '', mods: [], off: [], color: '' })}
                             className="w-full border-2 border-dashed border-agave-400/60 text-agave-700 rounded-2xl h-32 flex flex-col items-center justify-center gap-1 font-bold text-sm hover:bg-agave-50 transition-all"
                         >
                             <Plus size={20} /> Agregar producto
@@ -1539,10 +1556,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                 
                 <div className="p-6 space-y-6 overflow-y-auto max-h-[60vh] no-scrollbar">
                     {(() => {
-                        const activeGroups = modifierGroups.filter(g => 
-                            selectedProduct.modifierGroupIds?.includes(g.id) ||
-                            (selectedProduct.categoryId && g.appliedToCategories?.includes(selectedProduct.categoryId))
-                        );
+                        const activeGroups = productGroups(selectedProduct, modifierGroups);
                         return activeGroups.map(group => {
                             const gid = group.id;
                             const selection = pendingModifiers.find(pm => pm.groupId === gid)?.modifiers || [];
@@ -1890,24 +1904,43 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                                 <div className="text-xs font-bold text-slate-500">Modificadores
                                     <div className="mt-1 max-h-48 overflow-y-auto rounded-xl border border-carbon-950/15 divide-y divide-carbon-950/[0.06]">
                                         {modifierGroups.map(g => {
-                                            const byCat = !!newProd.categoryId && !!g.appliedToCategories?.includes(newProd.categoryId);
-                                            const checked = byCat || newProd.mods.includes(g.id);
+                                            const byCat = groupByCategory({ categoryId: newProd.categoryId }, g);
+                                            const checked = byCat ? !newProd.off.includes(g.id) : newProd.mods.includes(g.id);
                                             return (
-                                                <label key={g.id} className={cn("flex items-center gap-2 px-3 py-2 text-sm font-semibold text-carbon-950", byCat ? "opacity-60" : "cursor-pointer hover:bg-agave-50")}>
-                                                    <input type="checkbox" checked={checked} disabled={byCat} onChange={(e) => setNewProd({ ...newProd, mods: e.target.checked ? [...newProd.mods, g.id] : newProd.mods.filter(x => x !== g.id) })} className="w-4 h-4 accent-emerald-600 shrink-0" />
-                                                    <span className="flex-1 min-w-0 break-words">{g.name}</span>
-                                                    {byCat && <span className="shrink-0 text-[10px] font-normal text-slate-500">por su categoría</span>}
+                                                <label key={g.id} className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-carbon-950 cursor-pointer hover:bg-agave-50">
+                                                    <input type="checkbox" checked={checked} onChange={(e) => {
+                                                        const on = e.target.checked;
+                                                        setNewProd(byCat
+                                                            ? { ...newProd, off: on ? newProd.off.filter(x => x !== g.id) : [...newProd.off, g.id] }
+                                                            : { ...newProd, mods: on ? [...newProd.mods, g.id] : newProd.mods.filter(x => x !== g.id) });
+                                                    }} className="w-4 h-4 accent-emerald-600 shrink-0" />
+                                                    <span className={cn("flex-1 min-w-0 break-words", !checked && "text-slate-500")}>{g.name}</span>
+                                                    {byCat && <span className={cn("shrink-0 text-[10px]", checked ? "font-normal text-slate-500" : "font-bold text-rose-500")}>{checked ? 'por su categoría' : 'quitado'}</span>}
                                                 </label>
                                             );
                                         })}
                                     </div>
                                 </div>
                             )}
+                            <div className="text-xs font-bold text-slate-500">Color del botón
+                                <ColorSwatches value={newProd.color} onChange={(c) => setNewProd({ ...newProd, color: c })} />
+                            </div>
                             <p className="text-[11px] text-slate-500">Los precios de apps y la foto los ajustas en Plataformas / Tienda Física.</p>
                             <div className="flex gap-2 pt-1">
                                 <button type="button" onClick={() => setNewProd(null)} className="flex-1 py-2.5 rounded-xl border border-carbon-950/15 font-bold text-sm">Cancelar</button>
                                 <button type="button" onClick={saveNewProduct} className="flex-1 py-2.5 rounded-xl bg-agave-600 text-white font-black text-sm">GUARDAR</button>
                             </div>
+                        </div>
+                        </div>
+                    </div>
+                )}
+                {colorFor && (
+                    <div className="fixed inset-0 z-[120] overflow-y-auto bg-carbon-950/40 backdrop-blur-sm no-print" onClick={() => setColorFor(null)}>
+                        <div className="min-h-full flex items-center justify-center p-4 pb-24">
+                        <div className="w-full max-w-xs bg-white rounded-2xl p-5 space-y-3 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                            <h3 className="text-base font-bold text-carbon-950">Color de «{colorFor.name}»</h3>
+                            <ColorSwatches value={colorFor.color || ''} onChange={(c) => { menu?.updateRow?.(colorFor.id, { color: c || undefined }); setColorFor(null); }} />
+                            <button type="button" onClick={() => setColorFor(null)} className="w-full py-2 rounded-xl bg-carbon-100 font-bold text-sm text-carbon-700">Cerrar</button>
                         </div>
                         </div>
                     </div>
@@ -1978,5 +2011,21 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
         </div>
     )}
     </>
+  );
+}
+
+function ColorSwatches({ value, onChange }: { value: string; onChange: (c: string) => void }) {
+  return (
+    <div className="mt-1 grid grid-cols-5 gap-2">
+      <button type="button" onClick={() => onChange('')} aria-pressed={!value} title="Sin color"
+        className={cn("h-10 rounded-xl bg-white text-[10px] font-bold text-carbon-500 shadow-[inset_0_0_0_1px_rgba(13,16,14,0.12)]", !value && "ring-2 ring-carbon-950 ring-offset-1")}>Sin</button>
+      {PRODUCT_COLORS.map(c => (
+        <button key={c.id} type="button" onClick={() => onChange(c.id)} aria-pressed={value === c.id} title={c.name} aria-label={c.name}
+          style={{ background: c.bg, boxShadow: `inset 0 -4px 0 ${c.bar}` }}
+          className={cn("h-10 rounded-xl grid place-items-center", value === c.id && "ring-2 ring-carbon-950 ring-offset-1")}>
+          {value === c.id && <Check size={14} strokeWidth={3} style={{ color: c.bar }} />}
+        </button>
+      ))}
+    </div>
   );
 }
