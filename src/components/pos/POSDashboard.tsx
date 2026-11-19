@@ -207,7 +207,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
   const waiterMode = operator?.role === 'mesero';
   // Solo dueño o gerente identificados pueden agregar/borrar productos desde el punto de venta
   const canEditMenu = !!menu && (operator?.role === 'dueno' || operator?.role === 'gerente');
-  const [newProd, setNewProd] = useState<{ name: string; price: string; categoryId: string } | null>(null);
+  const [newProd, setNewProd] = useState<{ name: string; price: string; categoryId: string; mods: string[] } | null>(null);
   const deleteProduct = (p: ProductRowData) => {
     if (!menu || !canEditMenu) return;
     if (!window.confirm(`¿Eliminar "${p.name}" del menú?\n\nSe quita del punto de venta, Tienda Física y tu tienda en línea. Las ventas que ya hiciste no se borran.`)) return;
@@ -220,7 +220,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
     const price = Math.round((parseFloat(newProd.price.replace(',', '.')) || 0) * 100) / 100;
     if (!name) { showToast('Escribe el nombre del producto'); return; }
     if (allRows.some(r => r.name.trim().toLowerCase() === name.toLowerCase())) { showToast('Ya existe un producto con ese nombre'); return; }
-    menu.addProducts([{ id: crypto.randomUUID(), name, costPrice: 0, salePrice: price, categoryId: newProd.categoryId || undefined }]);
+    menu.addProducts([{ id: crypto.randomUUID(), name, costPrice: 0, salePrice: price, categoryId: newProd.categoryId || undefined, modifierGroupIds: newProd.mods.filter(id => !(newProd.categoryId && modifierGroups.find(g => g.id === id)?.appliedToCategories?.includes(newProd.categoryId))) }]);
     setNewProd(null);
     showToast(`Se agregó "${name}"`);
   };
@@ -1017,7 +1017,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                     )}
                     {filteredProducts.map(p => renderCard(p, true))}
                     {canEditMenu && !searchQuery && (
-                        <button type="button" onClick={() => setNewProd({ name: '', price: '', categoryId: activeCategoryId || '' })}
+                        <button type="button" onClick={() => setNewProd({ name: '', price: '', categoryId: activeCategoryId || '', mods: [] })}
                             className="w-full border-2 border-dashed border-agave-400/60 text-agave-700 rounded-xl h-[96px] xl:h-[104px] flex flex-col items-center justify-center gap-1 font-bold text-xs hover:bg-agave-50 transition-all">
                             <Plus size={18} /> Agregar producto
                         </button>
@@ -1364,7 +1364,7 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                     {canEditMenu && !searchQuery && (
                         <button
                             type="button"
-                            onClick={() => setNewProd({ name: '', price: '', categoryId: activeCategoryId || '' })}
+                            onClick={() => setNewProd({ name: '', price: '', categoryId: activeCategoryId || '', mods: [] })}
                             className="w-full border-2 border-dashed border-agave-400/60 text-agave-700 rounded-2xl h-32 flex flex-col items-center justify-center gap-1 font-bold text-sm hover:bg-agave-50 transition-all"
                         >
                             <Plus size={20} /> Agregar producto
@@ -1822,6 +1822,23 @@ export function POSDashboard({ menu }: { menu?: POSMenuOps } = {}) {
                                     {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                                 </select>
                             </label>
+                            {modifierGroups.length > 0 && (
+                                <div className="text-xs font-bold text-slate-500">Modificadores
+                                    <div className="mt-1 max-h-48 overflow-y-auto rounded-xl border border-carbon-950/15 divide-y divide-carbon-950/[0.06]">
+                                        {modifierGroups.map(g => {
+                                            const byCat = !!newProd.categoryId && !!g.appliedToCategories?.includes(newProd.categoryId);
+                                            const checked = byCat || newProd.mods.includes(g.id);
+                                            return (
+                                                <label key={g.id} className={cn("flex items-center gap-2 px-3 py-2 text-sm font-semibold text-carbon-950", byCat ? "opacity-60" : "cursor-pointer hover:bg-agave-50")}>
+                                                    <input type="checkbox" checked={checked} disabled={byCat} onChange={(e) => setNewProd({ ...newProd, mods: e.target.checked ? [...newProd.mods, g.id] : newProd.mods.filter(x => x !== g.id) })} className="w-4 h-4 accent-emerald-600 shrink-0" />
+                                                    <span className="flex-1 min-w-0 break-words">{g.name}</span>
+                                                    {byCat && <span className="shrink-0 text-[10px] font-normal text-slate-500">por su categoría</span>}
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                             <p className="text-[11px] text-slate-500">Los precios de apps y la foto los ajustas en Plataformas / Tienda Física.</p>
                             <div className="flex gap-2 pt-1">
                                 <button type="button" onClick={() => setNewProd(null)} className="flex-1 py-2.5 rounded-xl border border-carbon-950/15 font-bold text-sm">Cancelar</button>
