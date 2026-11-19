@@ -143,15 +143,17 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
   const [pricingSearch, setPricingSearch] = useState('');
   const [profitsPage, setProfitsPage] = useState(1);
   const [pricingPage, setPricingPage] = useState(1);
+  // Plataformas: filtro por categoría, igual que en el punto de venta (null = todos, '__none' = sin categoría)
+  const [pricingCat, setPricingCat] = useState<string | null>(null);
   const PAGE_SIZE = 10;
 
   useEffect(() => { setProfitsPage(1); }, [profitsSearch]);
-  useEffect(() => { setPricingPage(1); }, [pricingSearch]);
+  useEffect(() => { setPricingPage(1); }, [pricingSearch, pricingCat]);
   // Agregar producto: queda primero en la lista → limpiar búsqueda y volver a la página 1 para verlo.
   const addRowVisible = () => {
     addRow();
     setProfitsSearch(''); setPricingSearch('');
-    setProfitsPage(1); setPricingPage(1);
+    setProfitsPage(1); setPricingPage(1); setPricingCat(null);
   };
 
   const [activeTab, setActiveTab] = useState<Tab>(() => {
@@ -1012,7 +1014,17 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
                 </div>
               ); })()}
               {viewTab === 'pricing' && (() => {
-                const filteredPricing = rows.filter(r => r.name.toLowerCase().includes(pricingSearch.toLowerCase()));
+                const catIds = new Set(categories.map(c => c.id));
+                const inCat = (r: typeof rows[number], cat: string) => cat === '__none' ? !r.categoryId || !catIds.has(r.categoryId) : r.categoryId === cat;
+                const activeCat = pricingCat && (pricingCat === '__none' || catIds.has(pricingCat)) ? pricingCat : null;
+                // Al buscar se busca en todo el menú, como en el punto de venta
+                const searching = pricingSearch.trim() !== '';
+                const filteredPricing = rows.filter(r => searching ? r.name.toLowerCase().includes(pricingSearch.toLowerCase()) : !activeCat || inCat(r, activeCat));
+                const catChips = [
+                    { id: null as string | null, name: 'Todos', count: rows.length },
+                    ...categories.map(c => ({ id: c.id as string | null, name: c.name, count: rows.filter(r => r.categoryId === c.id).length })),
+                    ...(rows.some(r => inCat(r, '__none')) ? [{ id: '__none' as string | null, name: 'Sin categoría', count: rows.filter(r => inCat(r, '__none')).length }] : []),
+                ];
                 const totalPricingPages = Math.max(1, Math.ceil(filteredPricing.length / PAGE_SIZE));
                 const safePricingPage = Math.min(pricingPage, totalPricingPages);
                 const pagedPricing = filteredPricing.slice((safePricingPage - 1) * PAGE_SIZE, safePricingPage * PAGE_SIZE);
@@ -1028,6 +1040,27 @@ function App({ userEmail, onLogout, onBilling, trialEnd, expired, onPlans }: App
                             className="w-full bg-slate-900 border border-carbon-950/10 rounded-xl pl-9 pr-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 focus:border-indigo-500/30 transition-all"
                         />
                     </div>
+                    {categories.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mb-4" data-pricing-cats>
+                            {catChips.map(c => {
+                                const on = !searching && activeCat === c.id;
+                                return (
+                                    <button
+                                        key={c.id ?? 'all'}
+                                        type="button"
+                                        onClick={() => { setPricingCat(c.id); setPricingSearch(''); }}
+                                        className={cn(
+                                            "px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap border flex items-center gap-1.5",
+                                            on ? "bg-indigo-500 border-indigo-400 text-white shadow-lg shadow-indigo-500/20" : "bg-white border-carbon-950/10 text-carbon-700 hover:border-agave-300 hover:text-agave-700"
+                                        )}
+                                    >
+                                        {c.name.toUpperCase()}
+                                        {c.count ? <span className={cn("text-[10px] font-black px-1.5 py-0.5 rounded-full", on ? "bg-carbon-950/20" : "bg-carbon-950/5")}>{c.count}</span> : null}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
                     <PricingGrid
                         rows={pagedPricing}
                         pricingResults={pricingResults}
