@@ -2,7 +2,7 @@ import { useState, useMemo, useRef } from 'react';
 import {
   Plus, Trash2, Edit3, Save, X, Package, AlertTriangle, ShoppingCart,
   CheckCircle, Camera, Loader2, AlertCircle, ClipboardCheck, History,
-  TrendingDown, ChevronDown, FileDown,
+  TrendingDown, ChevronDown, FileDown, Truck,
 } from 'lucide-react';
 import clsx from 'clsx';
 import * as XLSX from 'xlsx';
@@ -316,7 +316,7 @@ function FacturaModal({ onClose, onConfirm }: { onClose: () => void; onConfirm: 
 
 // ─── Main Module ──────────────────────────────────────────────────────────────
 
-type View = 'inventario' | 'cierre' | 'historial' | 'pedido';
+type View = 'inventario' | 'llegada' | 'cierre' | 'historial' | 'pedido';
 
 export function InventoryModule() {
   const [insumos, setInsumos] = useInsumos();
@@ -340,6 +340,12 @@ export function InventoryModule() {
 
   // Cierre del día state: saldoFinal per insumo
   const [cierreValues, setCierreValues] = useState<Record<string, string>>({});
+
+  // Llegó hoy: cantidad que llegó por insumo (se suma a lo que ya había)
+  const [llegadaValues, setLlegadaValues] = useState<Record<string, string>>({});
+  const num = (t: string | undefined) => { const n = parseFloat((t || '').replace(',', '.')); return Number.isFinite(n) && n > 0 ? n : 0; };
+  const cleanNum = (t: string) => t.replace(',', '.').replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+  const r2 = (n: number) => Math.round(n * 100) / 100;
 
   const today = TODAY();
 
@@ -372,7 +378,11 @@ export function InventoryModule() {
     setForm(BLANK_INSUMO);
     setEditId(null);
   }
-  function removeInsumo(id: string) { setInsumos(insumos.filter(i => i.id !== id)); }
+  function removeInsumo(id: string) {
+    const ins = insumos.find(i => i.id === id);
+    if (!ins || !confirm(`¿Borrar el insumo ${ins.nombre}?`)) return;
+    setInsumos(insumos.filter(i => i.id !== id));
+  }
 
   // ── Factura confirm ──
   function handleFacturaConfirm(items: FacturaItem[]) {
@@ -413,6 +423,29 @@ export function InventoryModule() {
     setShowFactura(false);
   }
 
+  // ── Llegó hoy (entrada manual): se suma al saldo que quedó ──
+  function saveLlegada() {
+    const nuevas: CompraDelDia[] = [];
+    const updated = insumos.map(ins => {
+      const n = num(llegadaValues[ins.id]);
+      if (!n) return ins;
+      nuevas.push({ id: crypto.randomUUID(), fecha: today, insumoId: ins.id, insumoNombre: ins.nombre, unidad: ins.unidad, cantidad: n });
+      return { ...ins, saldoActual: r2(ins.saldoActual + n) };
+    });
+    if (!nuevas.length) return;
+    setInsumos(updated);
+    setComprasHoy([...comprasHoy, ...nuevas]);
+    setLlegadaValues({});
+    setView('inventario');
+  }
+  // Quitar una entrada de hoy capturada por error: regresa el saldo a como estaba
+  function undoCompra(c: CompraDelDia) {
+    if (!confirm(`¿Quitar la entrada de ${c.cantidad} ${c.unidad} de ${c.insumoNombre}? Se resta del saldo.`)) return;
+    setInsumos(insumos.map(i => i.id === c.insumoId ? { ...i, saldoActual: Math.max(0, r2(i.saldoActual - c.cantidad)) } : i));
+    setComprasHoy(comprasHoy.filter(x => x.id !== c.id));
+  }
+  const llegadaCount = insumos.filter(i => num(llegadaValues[i.id]) > 0).length;
+
   // ── Cierre del día ──
   function initCierre() {
     const vals: Record<string, string> = {};
@@ -428,8 +461,8 @@ export function InventoryModule() {
       if (saldoFinalStr === '' || saldoFinalStr === undefined) return ins;
       const saldoFinal = parseFloat(saldoFinalStr) || 0;
       const comprado = compradoHoyMap.get(ins.id) || 0;
-      const saldoInicial = ins.saldoActual - comprado;
-      const consumido = Math.max(0, saldoInicial + comprado - saldoFinal);
+      const saldoInicial = r2(ins.saldoActual - comprado);
+      const consumido = Math.max(0, r2(saldoInicial + comprado - saldoFinal));
       registros.push({
         id: crypto.randomUUID(),
         fecha: today,
@@ -553,6 +586,7 @@ export function InventoryModule() {
 
   const VIEW_TABS: { key: View; label: string; icon: any; color: string }[] = [
     { key: 'inventario', label: 'Inventario', icon: Package, color: 'teal' },
+    { key: 'llegada',    label: 'Llegó hoy', icon: Truck, color: 'teal' },
     { key: 'cierre',     label: 'Cierre del Día', icon: ClipboardCheck, color: 'amber' },
     { key: 'historial',  label: 'Historial', icon: History, color: 'violet' },
     { key: 'pedido',     label: 'Pedido', icon: ShoppingCart, color: 'rose' },
@@ -756,9 +790,9 @@ export function InventoryModule() {
                           </span>
                         </td>
                         <td className="px-3 py-3">
-                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => openEdit(i)} className="text-slate-500 hover:text-carbon-950 transition-colors"><Edit3 size={14} /></button>
-                            <button onClick={() => removeInsumo(i.id)} className="text-slate-500 hover:text-rose-400 transition-colors"><Trash2 size={14} /></button>
+                          <div className="flex gap-1">
+                            <button onClick={() => openEdit(i)} aria-label={`Editar ${i.nombre}`} className="p-2 text-slate-500 hover:text-carbon-950 transition-colors"><Edit3 size={16} /></button>
+                            <button onClick={() => removeInsumo(i.id)} aria-label={`Borrar ${i.nombre}`} className="p-2 text-slate-500 hover:text-rose-400 transition-colors"><Trash2 size={16} /></button>
                           </div>
                         </td>
                       </tr>
@@ -772,18 +806,84 @@ export function InventoryModule() {
           {/* Today's purchases log */}
           {comprasDeHoy.length > 0 && (
             <div className="bg-teal-500/10 border border-teal-500/20 rounded-2xl p-5">
-              <div className="text-xs font-black text-teal-400 uppercase tracking-widest mb-3">Compras de Hoy ({today})</div>
+              <div className="text-xs font-black text-teal-400 uppercase tracking-widest mb-3">Lo que llegó hoy ({today})</div>
               <div className="space-y-1.5">
                 {comprasDeHoy.map(c => (
                   <div key={c.id} className="flex items-center justify-between text-sm">
                     <span className="text-slate-300 font-bold">{c.insumoNombre}</span>
-                    <span className="text-teal-400 font-black tabular-nums">+{c.cantidad} {c.unidad}</span>
+                    <span className="flex items-center gap-2">
+                      <span className="text-teal-400 font-black tabular-nums">+{c.cantidad} {c.unidad}</span>
+                      <button onClick={() => undoCompra(c)} aria-label={`Quitar entrada de ${c.insumoNombre}`} title="Quitar (me equivoqué)" className="p-1.5 text-slate-500 hover:text-rose-400"><X size={14} /></button>
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
           )}
         </>
+      )}
+
+      {/* ── LLEGÓ HOY view ── */}
+      {view === 'llegada' && (
+        <div className="space-y-4" data-llegada>
+          <div className="bg-teal-500/10 border border-teal-500/20 rounded-2xl p-4 text-sm text-teal-400">
+            Escribe cuánto llegó hoy de cada insumo. Se suma a lo que te quedó. Deja en blanco los que no llegaron.
+          </div>
+          {insumos.length === 0 ? (
+            <div className="text-center py-12 text-slate-500">Primero agrega tus insumos con el botón INSUMO.</div>
+          ) : (
+            <>
+              <div className="bg-slate-900 border border-carbon-950/10 rounded-2xl overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-carbon-950/10">
+                      <th className="px-4 py-3 text-left text-xs font-black text-slate-500 uppercase tracking-widest">Insumo</th>
+                      <th className="px-4 py-3 text-right text-xs font-black text-slate-500 uppercase tracking-widest">Tienes</th>
+                      <th className="px-4 py-3 text-right text-xs font-black text-slate-500 uppercase tracking-widest">Llegó hoy</th>
+                      <th className="px-4 py-3 text-right text-xs font-black text-slate-500 uppercase tracking-widest">Queda en</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-carbon-950/5">
+                    {insumos.map(ins => {
+                      const ya = compradoHoyMap.get(ins.id) || 0;
+                      const n = num(llegadaValues[ins.id]);
+                      return (
+                        <tr key={ins.id} className="hover:bg-carbon-950/[0.02]">
+                          <td className="px-4 py-3">
+                            <div className="font-bold text-carbon-950">{ins.nombre}</div>
+                            <div className="text-xs text-slate-500">{ins.unidad}{ya > 0 ? ` · hoy ya registraste +${ya}` : ''}</div>
+                          </td>
+                          <td className="px-4 py-3 text-right text-slate-400 tabular-nums">{ins.saldoActual}</td>
+                          <td className="px-4 py-3 text-right">
+                            <input
+                              type="text" inputMode="decimal"
+                              placeholder="0"
+                              aria-label={`Cuánto llegó hoy de ${ins.nombre}`}
+                              className="w-24 bg-slate-800 border border-carbon-950/10 rounded-lg px-2 py-2 text-carbon-950 text-sm text-right outline-none focus:border-teal-500/50 tabular-nums"
+                              value={llegadaValues[ins.id] ?? ''}
+                              onChange={e => setLlegadaValues(prev => ({ ...prev, [ins.id]: cleanNum(e.target.value) }))}
+                            />
+                          </td>
+                          <td className="px-4 py-3 text-right tabular-nums">
+                            {n > 0
+                              ? <span className="font-bold text-teal-400">{r2(ins.saldoActual + n)} {ins.unidad}</span>
+                              : <span className="text-slate-600">—</span>}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex justify-end gap-3">
+                <button onClick={() => { setLlegadaValues({}); setView('inventario'); }} className="px-5 py-2.5 rounded-xl text-slate-500 hover:text-carbon-950 font-bold text-sm transition-colors bg-slate-800/50">Cancelar</button>
+                <button onClick={saveLlegada} disabled={llegadaCount === 0} className="flex items-center gap-2 px-6 py-2.5 bg-teal-500 hover:bg-teal-400 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-black text-sm transition-all active:scale-95 shadow-lg shadow-teal-500/20">
+                  <Save size={15} /> Guardar lo que llegó{llegadaCount > 0 ? ` (${llegadaCount})` : ''}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       )}
 
       {/* ── CIERRE DEL DÍA view ── */}
@@ -810,10 +910,10 @@ export function InventoryModule() {
                   <tbody className="divide-y divide-carbon-950/5">
                     {insumos.map(ins => {
                       const compHoy = compradoHoyMap.get(ins.id) || 0;
-                      const saldoInicial = ins.saldoActual - compHoy;
+                      const saldoInicial = r2(ins.saldoActual - compHoy);
                       const saldoFinalStr = cierreValues[ins.id] ?? '';
                       const saldoFinal = saldoFinalStr !== '' ? parseFloat(saldoFinalStr) || 0 : null;
-                      const consumido = saldoFinal !== null ? Math.max(0, saldoInicial + compHoy - saldoFinal) : null;
+                      const consumido = saldoFinal !== null ? Math.max(0, r2(saldoInicial + compHoy - saldoFinal)) : null;
                       return (
                         <tr key={ins.id} className="hover:bg-carbon-950/[0.02]">
                           <td className="px-4 py-3">
