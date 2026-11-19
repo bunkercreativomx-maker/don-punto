@@ -297,7 +297,10 @@ export function MenuManagement({
                                         </span>
                                     ))}
                                 </div>
-                                {!(group.appliedToCategories && group.appliedToCategories.some(id => categories.some(c => c.id === id))) && (
+                                {(() => { const n = products.filter(pr => pr.modifierGroupIds?.includes(group.id) && !(pr.categoryId && group.appliedToCategories?.includes(pr.categoryId))).length; return n > 0 && (
+                                    <p className="mt-3 pt-2 border-t border-carbon-950/10 text-[10px] font-bold text-slate-500">También en {n} producto{n === 1 ? '' : 's'} fuera de sus categorías</p>
+                                ); })()}
+                                {!(group.appliedToCategories && group.appliedToCategories.some(id => categories.some(c => c.id === id))) && !products.some(pr => pr.modifierGroupIds?.includes(group.id)) && (
                                     <button onClick={() => openModGroupModal(group)} className="mt-3 pt-2 border-t border-carbon-950/10 w-full text-left text-[10px] font-bold text-amber-600 hover:text-amber-700">
                                         Sin categoría: toca aquí y elige en qué categoría sale (ej. Sodas)
                                     </button>
@@ -322,7 +325,7 @@ export function MenuManagement({
             </div>
 
             {/* Categoría de productos: solo pendientes + buscador (antes era una lista larga con todo) */}
-            <ProductCategoryBox products={products} categories={categories} updateProduct={updateProduct} />
+            <ProductCategoryBox products={products} categories={categories} modifierGroups={modifierGroups} updateProduct={updateProduct} />
             <BranchMenuBox products={products} categories={categories} updateProduct={updateProduct} />
 
             {/* Modal for Modifier Group Add/Edit */}
@@ -445,9 +448,10 @@ export function MenuManagement({
 }
 
 
-function ProductCategoryBox({ products, categories, updateProduct }: {
+function ProductCategoryBox({ products, categories, modifierGroups, updateProduct }: {
     products: ProductRowData[];
     categories: Category[];
+    modifierGroups: ModifierGroup[];
     updateProduct: (id: string, updates: Partial<ProductRowData>) => void;
 }) {
     const [q, setQ] = useState('');
@@ -456,19 +460,7 @@ function ProductCategoryBox({ products, categories, updateProduct }: {
     const norm = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     const found = q.trim().length >= 2 ? products.filter(p => validCat(p) && norm(p.name).includes(norm(q.trim()))).slice(0, 8) : [];
     if (products.length === 0) return null;
-    const Row = ({ p }: { p: ProductRowData }) => (
-        <div className="flex items-center gap-3 bg-slate-950/40 border border-carbon-950/10 rounded-xl px-3 py-2">
-            <span className="flex-1 min-w-0 break-words text-sm font-bold text-slate-200">{p.name}</span>
-            <select
-                value={validCat(p) ? p.categoryId : ''}
-                onChange={(e) => updateProduct(p.id, { categoryId: e.target.value || undefined })}
-                className="shrink-0 w-36 sm:w-52 bg-slate-900 border border-carbon-950/10 rounded-lg px-2 py-1.5 text-xs text-carbon-950 outline-none"
-            >
-                <option value="">Elige categoría…</option>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-        </div>
-    );
+    const rowProps = { categories, modifierGroups, updateProduct, validCat };
     return (
         <div className="lg:col-span-2 bg-slate-900 backdrop-blur-xl border border-carbon-950/10 rounded-2xl p-6 space-y-4">
             {pending.length > 0 && (
@@ -477,22 +469,83 @@ function ProductCategoryBox({ products, categories, updateProduct }: {
                         <h3 className="text-lg font-bold text-carbon-950">Productos sin categoría ({pending.length})</h3>
                         <p className="text-xs text-slate-400">Elige su categoría para que les salgan sus modificadores al cobrar. Al elegirla desaparecen de esta lista.</p>
                     </div>
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-2">
-                        {pending.map(p => <Row key={p.id} p={p} />)}
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-2 items-start">
+                        {pending.map(p => <ProductRow key={p.id} p={p} {...rowProps} />)}
                     </div>
                 </div>
             )}
             <div className="space-y-2">
-                <label className="text-xs font-black text-slate-500 uppercase tracking-widest block">Cambiar categoría de un producto</label>
+                <label className="text-xs font-black text-slate-500 uppercase tracking-widest block">Cambiar categoría o modificadores de un producto</label>
                 <input
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                     placeholder="Escribe el nombre del producto…"
                     className="w-full bg-slate-900 border border-carbon-950/10 rounded-xl px-4 py-2.5 text-sm text-carbon-950 outline-none focus:border-agave-500"
                 />
-                {found.length > 0 && <div className="space-y-2">{found.map(p => <Row key={p.id} p={p} />)}</div>}
+                {found.length > 0 && <div className="space-y-2">{found.map(p => <ProductRow key={p.id} p={p} {...rowProps} />)}</div>}
                 {q.trim().length >= 2 && found.length === 0 && <p className="text-xs text-slate-500">No encontré productos con ese nombre.</p>}
             </div>
+        </div>
+    );
+}
+
+// Renglón de producto: categoría + modificadores propios del producto (además de los de su categoría)
+function ProductRow({ p, categories, modifierGroups, updateProduct, validCat }: {
+    p: ProductRowData;
+    categories: Category[];
+    modifierGroups: ModifierGroup[];
+    updateProduct: (id: string, updates: Partial<ProductRowData>) => void;
+    validCat: (p: ProductRowData) => boolean;
+}) {
+    const [open, setOpen] = useState(false);
+    const own = (p.modifierGroupIds || []).filter(id => modifierGroups.some(g => g.id === id));
+    const byCat = (g: ModifierGroup) => !!p.categoryId && !!g.appliedToCategories?.includes(p.categoryId);
+    const count = modifierGroups.filter(g => byCat(g) || own.includes(g.id)).length;
+    const toggle = (gid: string, on: boolean) => {
+        const next = on ? [...own.filter(x => x !== gid), gid] : own.filter(x => x !== gid);
+        updateProduct(p.id, { modifierGroupIds: next });
+    };
+    return (
+        <div className="bg-slate-950/40 border border-carbon-950/10 rounded-xl px-3 py-2">
+            <div className="flex items-center gap-2 sm:gap-3">
+                <span className="flex-1 min-w-0 break-words text-sm font-bold text-slate-200">{p.name}</span>
+                <select
+                    value={validCat(p) ? p.categoryId : ''}
+                    onChange={(e) => updateProduct(p.id, { categoryId: e.target.value || undefined })}
+                    className="shrink-0 w-32 sm:w-52 bg-slate-900 border border-carbon-950/10 rounded-lg px-2 py-1.5 text-xs text-carbon-950 outline-none"
+                >
+                    <option value="">Elige categoría…</option>
+                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                {modifierGroups.length > 0 && (
+                    <button
+                        type="button"
+                        onClick={() => setOpen(o => !o)}
+                        title="Modificadores de este producto"
+                        aria-expanded={open}
+                        className={cn("shrink-0 flex items-center gap-1 rounded-lg border px-2 py-1.5 text-[11px] font-bold whitespace-nowrap", open ? "bg-indigo-500/10 border-indigo-400 text-indigo-600" : "bg-white border-carbon-950/10 text-carbon-700")}
+                    >
+                        <Layers size={12} /> <span className="hidden sm:inline">Modificadores</span> {count > 0 && <span className="tabular-nums">({count})</span>}
+                        {open ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                    </button>
+                )}
+            </div>
+            {open && (
+                <div className="mt-2 pt-2 border-t border-carbon-950/10 space-y-1">
+                    <p className="text-[11px] text-slate-500">Marca los grupos que lleva <b>{p.name}</b> al cobrar.</p>
+                    {modifierGroups.map(g => {
+                        const cat = byCat(g);
+                        const checked = cat || own.includes(g.id);
+                        return (
+                            <label key={g.id} className={cn("flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm", cat ? "opacity-70" : "cursor-pointer hover:bg-slate-800/30")}>
+                                <input type="checkbox" checked={checked} disabled={cat} onChange={(e) => toggle(g.id, e.target.checked)} className="w-4 h-4 accent-emerald-600 shrink-0" />
+                                <span className="flex-1 min-w-0 break-words font-semibold text-slate-200">{g.name}</span>
+                                {cat && <span className="shrink-0 text-[10px] text-slate-500">por su categoría</span>}
+                            </label>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }
