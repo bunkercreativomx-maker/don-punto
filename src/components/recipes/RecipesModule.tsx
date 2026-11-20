@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Trash2, Edit3, Save, X, BookOpen, ChevronLeft, ChefHat } from 'lucide-react';
+import { Plus, Trash2, Edit3, Save, X, BookOpen, ChevronLeft, ChefHat, Copy } from 'lucide-react';
 import clsx from 'clsx';
 import { storeGet, storeSet } from '../../lib/cloudStore';
 import { useCalculator } from '../../hooks/useCalculator';
@@ -96,6 +96,14 @@ export function RecipesModule() {
     setForm({ nombre: r.nombre, familia: r.familia, porciones: r.porciones, pvp: r.pvp, tiempoMin: r.tiempoMin, equipo: r.equipo, conservacion: r.conservacion, ingredientes: [...r.ingredientes], platillos: recipeLinks(r) });
     setEditMode(true);
     setSelectedId(r.id);
+  }
+
+  /** Abre una copia (ingredientes y datos) SIN platillos ligados, para no descontar doble; se guarda al tocar «Guardar Receta». */
+  function duplicateRecipe(r: Recipe) {
+    setForm({ nombre: `${r.nombre} (copia)`, familia: r.familia, porciones: r.porciones, pvp: r.pvp, tiempoMin: r.tiempoMin, equipo: r.equipo, conservacion: r.conservacion, ingredientes: r.ingredientes.map(i => ({ ...i, id: crypto.randomUUID() })), platillos: [] });
+    setEditMode(true);
+    setSelectedId(null); // se crea hasta que toque «Guardar Receta»
+    setTimeout(() => { const el = document.getElementById('recipe-name') as HTMLInputElement | null; el?.focus(); el?.select(); }, 50);
   }
 
   function saveRecipe() {
@@ -215,6 +223,9 @@ export function RecipesModule() {
                 <button onClick={() => openEdit(selected)} className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-carbon-950 rounded-xl text-sm font-bold transition-all">
                   <Edit3 size={14} /> Editar
                 </button>
+                <button onClick={() => duplicateRecipe(selected)} className="flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-carbon-950 rounded-xl text-sm font-bold transition-all">
+                  <Copy size={14} /> Duplicar
+                </button>
                 <button onClick={() => deleteRecipe(selected.id)} className="flex items-center gap-1.5 px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-xl text-sm font-bold transition-all">
                   <Trash2 size={14} />
                 </button>
@@ -311,7 +322,7 @@ export function RecipesModule() {
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
               <div className="col-span-2 lg:col-span-2">
                 <label className="block text-xs text-slate-500 font-bold mb-1">NOMBRE DE LA RECETA</label>
-                <input className="w-full bg-slate-800 border border-carbon-950/10 rounded-xl px-3 py-2 text-carbon-950 text-sm focus:outline-none focus:border-orange-500/50" value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Ej. Chilaquiles Verdes con Chorizo" />
+                <input id="recipe-name" className="w-full bg-slate-800 border border-carbon-950/10 rounded-xl px-3 py-2 text-carbon-950 text-sm focus:outline-none focus:border-orange-500/50" value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} placeholder="Ej. Chilaquiles Verdes con Chorizo" />
               </div>
               <div>
                 <label className="block text-xs text-slate-500 font-bold mb-1">FAMILIA</label>
