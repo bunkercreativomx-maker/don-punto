@@ -2,7 +2,7 @@ import { useState, useMemo, useRef } from 'react';
 import {
   Plus, Trash2, Edit3, Save, X, Package, AlertTriangle, ShoppingCart,
   CheckCircle, Camera, Loader2, AlertCircle, ClipboardCheck, History,
-  TrendingDown, ChevronDown, FileDown, Truck,
+  TrendingDown, ChevronDown, FileDown, Truck, UploadCloud,
 } from 'lucide-react';
 import clsx from 'clsx';
 import * as XLSX from 'xlsx';
@@ -162,6 +162,7 @@ const STATUS_META = {
 
 function FacturaModal({ onClose, onConfirm }: { onClose: () => void; onConfirm: (items: FacturaItem[]) => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const camRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -217,14 +218,19 @@ function FacturaModal({ onClose, onConfirm }: { onClose: () => void; onConfirm: 
 
         <div className="p-5 space-y-4 overflow-y-auto flex-1">
           {!preview ? (
-            <button
-              onClick={() => fileRef.current?.click()}
-              className="w-full border-2 border-dashed border-carbon-950/10 hover:border-teal-500/40 rounded-2xl py-14 flex flex-col items-center gap-3 transition-colors group"
-            >
-              <Camera size={36} className="text-slate-600 group-hover:text-teal-400 transition-colors" />
-              <div className="text-slate-400 font-bold text-sm">Toca para tomar foto o subir imagen</div>
-              <div className="text-slate-600 text-xs">JPG, PNG, WEBP — funciona con facturas, tickets o notas de compra</div>
-            </button>
+            <div className="w-full border-2 border-dashed border-carbon-950/10 rounded-2xl py-8 px-4 flex flex-col items-center gap-3 text-center">
+              <Camera size={36} className="text-slate-600" />
+              <div className="text-slate-400 font-bold text-sm">Toma una foto o súbela de tu galería</div>
+              <div className="text-slate-600 text-xs">Sirve con facturas, tickets o notas de compra (JPG, PNG, WEBP)</div>
+              <div className="mt-2 grid w-full max-w-sm grid-cols-1 sm:grid-cols-2 gap-3">
+                <button type="button" onClick={() => camRef.current?.click()} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-agave-600 hover:bg-agave-700 px-5 py-3.5 text-sm font-bold text-white transition-colors">
+                  <Camera size={18} /> TOMAR FOTO
+                </button>
+                <button type="button" onClick={() => fileRef.current?.click()} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-800 hover:bg-slate-700 px-5 py-3.5 text-sm font-bold text-carbon-950 transition-colors">
+                  <UploadCloud size={18} /> SUBIR DE GALERÍA
+                </button>
+              </div>
+            </div>
           ) : (
             <div className="space-y-3">
               <img src={preview} alt="Factura" className="w-full rounded-xl max-h-52 object-contain bg-slate-950 border border-carbon-950/10" />
@@ -234,11 +240,19 @@ function FacturaModal({ onClose, onConfirm }: { onClose: () => void; onConfirm: 
             </div>
           )}
 
+          {/* Dos inputs: con capture abre la cámara directo (en muchos Android sin capture solo sale la galería) */}
+          <input
+            ref={camRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]); e.target.value = ''; }}
+          />
           <input
             ref={fileRef}
             type="file"
             accept="image/*"
-            capture="environment"
             className="hidden"
             onChange={e => { if (e.target.files?.[0]) handleFile(e.target.files[0]); }}
           />
