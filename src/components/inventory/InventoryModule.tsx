@@ -32,6 +32,10 @@ interface CompraDelDia {
   insumoNombre: string;
   unidad: string;
   cantidad: number;
+  /** El insumo se creó con esta entrada (factura con nombre nuevo): si se corrige a otro insumo, se borra el que sobró */
+  nuevo?: boolean;
+  /** Entró por factura/ticket leído con IA */
+  factura?: boolean;
 }
 
 interface RegistroDiario {
@@ -423,12 +427,12 @@ export function InventoryModule() {
         };
         updated.push(newIns);
         idx = updated.length - 1;
-        newCompras.push({ id: crypto.randomUUID(), fecha: today, insumoId: newIns.id, insumoNombre: newIns.nombre, unidad: item.unidad, cantidad: item.cantidad });
+        newCompras.push({ id: crypto.randomUUID(), fecha: today, insumoId: newIns.id, insumoNombre: newIns.nombre, unidad: item.unidad, cantidad: item.cantidad, nuevo: true, factura: true });
       } else {
         // Si el insumo ya existe y no tiene costo, asignar el de la factura
         const costoActualizado = updated[idx].costoUnitario === 0 && item.precioUnitario ? item.precioUnitario : updated[idx].costoUnitario;
         updated[idx] = { ...updated[idx], saldoActual: updated[idx].saldoActual + item.cantidad, unidad: item.unidad, costoUnitario: costoActualizado };
-        newCompras.push({ id: crypto.randomUUID(), fecha: today, insumoId: updated[idx].id, insumoNombre: updated[idx].nombre, unidad: item.unidad, cantidad: item.cantidad });
+        newCompras.push({ id: crypto.randomUUID(), fecha: today, insumoId: updated[idx].id, insumoNombre: updated[idx].nombre, unidad: item.unidad, cantidad: item.cantidad, factura: true });
       }
     });
 
@@ -457,6 +461,44 @@ export function InventoryModule() {
     if (!confirm(`¿Quitar la entrada de ${c.cantidad} ${c.unidad} de ${c.insumoNombre}? Se resta del saldo.`)) return;
     setInsumos(insumos.map(i => i.id === c.insumoId ? { ...i, saldoActual: Math.max(0, r2(i.saldoActual - c.cantidad)) } : i));
     setComprasHoy(comprasHoy.filter(x => x.id !== c.id));
+  }
+  // Corregir una entrada de hoy (la IA leyó mal insumo, cantidad o precio): mueve/ajusta el saldo
+  const [editCompra, setEditCompra] = useState<{ id: string; insumoId: string; cantidad: string; costo: string } | null>(null);
+  function startEditCompra(c: CompraDelDia) {
+    const ins = insumos.find(i => i.id === c.insumoId);
+    setEditCompra({ id: c.id, insumoId: c.insumoId, cantidad: String(c.cantidad), costo: ins ? String(ins.costoUnitario || '') : '' });
+  }
+  function saveEditCompra() {
+    if (!editCompra) return;
+    const c = comprasHoy.find(x => x.id === editCompra.id);
+    const target = insumos.find(i => i.id === editCompra.insumoId);
+    const qty = num(editCompra.cantidad);
+    if (!c || !target || !qty) return;
+    const costoTxt = editCompra.costo.trim();
+    const costo = costoTxt === '' ? null : Math.max(0, parseFloat(costoTxt.replace(',', '.')) || 0);
+    const old = insumos.find(i => i.id === c.insumoId);
+    let next = insumos.map(i => {
+      let saldo = i.saldoActual;
+      if (i.id === c.insumoId) saldo -= c.cantidad;
+      if (i.id === target.id) saldo += qty;
+      const upd = { ...i, saldoActual: Math.max(0, r2(saldo)) };
+      if (i.id === target.id) {
+        if (costo !== null) upd.costoUnitario = costo;
+        else if (!upd.costoUnitario && old && old.id !== target.id && old.costoUnitario) upd.costoUnitario = old.costoUnitario;
+      }
+      return upd;
+    });
+    // El insumo que creó la IA por error (nombre mal leído) ya no sirve: se quita si quedó en 0 y nada más lo usa
+    let removed = '';
+    if (c.nuevo && old && old.id !== target.id) {
+      const left = next.find(i => i.id === old.id);
+      const otherUse = comprasHoy.some(x => x.id !== c.id && x.insumoId === old.id);
+      if (left && left.saldoActual <= 0 && !otherUse) { next = next.filter(i => i.id !== old.id); removed = old.nombre; }
+    }
+    setInsumos(next);
+    setComprasHoy(comprasHoy.map(x => x.id === c.id ? { ...x, insumoId: target.id, insumoNombre: target.nombre, unidad: target.unidad, cantidad: qty, nuevo: x.nuevo && x.insumoId === target.id } : x));
+    setEditCompra(null);
+    if (removed) alert(`Listo. Se quitó el insumo «${removed}» que la IA había creado por error.`);
   }
   const llegadaCount = insumos.filter(i => num(llegadaValues[i.id]) > 0).length;
 
@@ -822,11 +864,36 @@ export function InventoryModule() {
             <div className="bg-teal-500/10 border border-teal-500/20 rounded-2xl p-5">
               <div className="text-xs font-black text-teal-400 uppercase tracking-widest mb-3">Lo que llegó hoy ({today})</div>
               <div className="space-y-1.5">
-                {comprasDeHoy.map(c => (
-                  <div key={c.id} className="flex items-center justify-between text-sm">
-                    <span className="text-slate-300 font-bold">{c.insumoNombre}</span>
-                    <span className="flex items-center gap-2">
-                      <span className="text-teal-400 font-black tabular-nums">+{c.cantidad} {c.unidad}</span>
+                {comprasDeHoy.map(c => editCompra?.id === c.id ? (
+                  <div key={c.id} data-edit-compra className="bg-white/70 rounded-xl p-3 space-y-2 text-sm">
+                    <div className="text-xs font-bold text-slate-500">Corregir entrada{c.factura ? ' (leída de factura)' : ''}</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2">
+                      <label className="min-w-0">
+                        <span className="block text-[11px] font-bold text-slate-500 mb-0.5">INSUMO</span>
+                        <select className="w-full min-w-0 bg-slate-800 border border-carbon-950/10 rounded-lg px-2 py-2 text-carbon-950 text-sm" value={editCompra.insumoId} onChange={e => { const ins = insumos.find(i => i.id === e.target.value); setEditCompra(v => v && ({ ...v, insumoId: e.target.value, costo: ins && ins.costoUnitario ? String(ins.costoUnitario) : v.costo })); }}>
+                          {insumos.map(i => <option key={i.id} value={i.id}>{i.nombre} ({i.unidad})</option>)}
+                        </select>
+                      </label>
+                      <label>
+                        <span className="block text-[11px] font-bold text-slate-500 mb-0.5">CANTIDAD ({insumos.find(i => i.id === editCompra.insumoId)?.unidad || c.unidad})</span>
+                        <input inputMode="decimal" className="w-full sm:w-24 bg-slate-800 border border-carbon-950/10 rounded-lg px-2 py-2 text-carbon-950 text-sm tabular-nums" value={editCompra.cantidad} onChange={e => setEditCompra(v => v && ({ ...v, cantidad: cleanNum(e.target.value) }))} />
+                      </label>
+                      <label>
+                        <span className="block text-[11px] font-bold text-slate-500 mb-0.5">COSTO POR UNIDAD ($)</span>
+                        <input inputMode="decimal" className="w-full sm:w-28 bg-slate-800 border border-carbon-950/10 rounded-lg px-2 py-2 text-carbon-950 text-sm tabular-nums" value={editCompra.costo} onChange={e => setEditCompra(v => v && ({ ...v, costo: cleanNum(e.target.value) }))} />
+                      </label>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => setEditCompra(null)} className="px-3 py-1.5 text-xs font-bold text-slate-500">Cancelar</button>
+                      <button onClick={saveEditCompra} disabled={!num(editCompra.cantidad)} className="px-3 py-1.5 rounded-lg bg-teal-600 text-white text-xs font-black disabled:opacity-40">GUARDAR</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div key={c.id} className="flex items-center justify-between gap-2 text-sm">
+                    <span className="text-slate-300 font-bold min-w-0 truncate">{c.insumoNombre}</span>
+                    <span className="flex items-center gap-1 shrink-0">
+                      <span className="text-teal-400 font-black tabular-nums mr-1">+{c.cantidad} {c.unidad}</span>
+                      <button onClick={() => startEditCompra(c)} aria-label={`Corregir entrada de ${c.insumoNombre}`} title="Corregir" className="p-1.5 text-slate-500 hover:text-carbon-950"><Edit3 size={14} /></button>
                       <button onClick={() => undoCompra(c)} aria-label={`Quitar entrada de ${c.insumoNombre}`} title="Quitar (me equivoqué)" className="p-1.5 text-slate-500 hover:text-rose-400"><X size={14} /></button>
                     </span>
                   </div>
