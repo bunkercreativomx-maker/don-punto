@@ -98,9 +98,9 @@ export function RecipesModule() {
     setSelectedId(r.id);
   }
 
-  /** Abre una copia (ingredientes y datos) SIN platillos ligados, para no descontar doble; se guarda al tocar «Guardar Receta». */
+  /** Abre una copia (ingredientes, datos y platillos ligados con sus ×veces); se guarda al tocar «Guardar Receta». */
   function duplicateRecipe(r: Recipe) {
-    setForm({ nombre: `${r.nombre} (copia)`, familia: r.familia, porciones: r.porciones, pvp: r.pvp, tiempoMin: r.tiempoMin, equipo: r.equipo, conservacion: r.conservacion, ingredientes: r.ingredientes.map(i => ({ ...i, id: crypto.randomUUID() })), platillos: [] });
+    setForm({ nombre: `${r.nombre} (copia)`, familia: r.familia, porciones: r.porciones, pvp: r.pvp, tiempoMin: r.tiempoMin, equipo: r.equipo, conservacion: r.conservacion, ingredientes: r.ingredientes.map(i => ({ ...i, id: crypto.randomUUID() })), platillos: recipeLinks(r).map(l => ({ ...l })) });
     setEditMode(true);
     setSelectedId(null); // se crea hasta que toque «Guardar Receta»
     setTimeout(() => { const el = document.getElementById('recipe-name') as HTMLInputElement | null; el?.focus(); el?.select(); }, 50);
