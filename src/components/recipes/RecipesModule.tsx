@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import { storeGet, storeSet } from '../../lib/cloudStore';
 import { useCalculator } from '../../hooks/useCalculator';
 import { isPro } from '../../lib/session';
+import { recipeLinks, type RecipeLink } from '../../lib/inventoryAuto';
 
 function readInsumos(): { id: string; nombre: string; unidad: string; costoUnitario: number }[] {
   try { return JSON.parse(storeGet('donPuntoInsumos2') || '[]'); } catch { return []; }
@@ -29,8 +30,10 @@ interface Recipe {
   equipo: string;
   conservacion: string;
   ingredientes: Ingredient[];
-  /** Platillo del menú que usa esta receta (Pro: descuenta inventario al vender) */
+  /** (viejo) Platillo del menú que usa esta receta — se migra a `platillos` al editar */
   productoId?: string;
+  /** Platillos del menú que llevan esta receta y cuántas veces (Pro: descuenta inventario al vender) */
+  platillos?: RecipeLink[];
 }
 
 const BLANK_RECIPE: Omit<Recipe, 'id'> = {
@@ -90,18 +93,21 @@ export function RecipesModule() {
   }
 
   function openEdit(r: Recipe) {
-    setForm({ nombre: r.nombre, familia: r.familia, porciones: r.porciones, pvp: r.pvp, tiempoMin: r.tiempoMin, equipo: r.equipo, conservacion: r.conservacion, ingredientes: [...r.ingredientes], productoId: r.productoId });
+    setForm({ nombre: r.nombre, familia: r.familia, porciones: r.porciones, pvp: r.pvp, tiempoMin: r.tiempoMin, equipo: r.equipo, conservacion: r.conservacion, ingredientes: [...r.ingredientes], platillos: recipeLinks(r) });
     setEditMode(true);
     setSelectedId(r.id);
   }
 
   function saveRecipe() {
     if (!form.nombre.trim()) return;
+    const seen = new Set<string>();
+    const platillos = (form.platillos || []).filter(l => l.productoId && !seen.has(l.productoId) && seen.add(l.productoId)).map(l => ({ productoId: l.productoId, veces: l.veces > 0 ? l.veces : 1 }));
+    const data = { ...form, productoId: undefined, platillos };
     if (selectedId && recipes.find(r => r.id === selectedId)) {
-      setRecipes(recipes.map(r => r.id === selectedId ? { ...form, id: selectedId } : r));
+      setRecipes(recipes.map(r => r.id === selectedId ? { ...data, id: selectedId } : r));
     } else {
       const newId = crypto.randomUUID();
-      setRecipes([...recipes, { ...form, id: newId }]);
+      setRecipes([...recipes, { ...data, id: newId }]);
       setSelectedId(newId);
     }
     setEditMode(false);
@@ -223,6 +229,19 @@ export function RecipesModule() {
               {selected.conservacion && <span className="bg-slate-800 text-slate-300 px-3 py-1 rounded-full">🧊 {selected.conservacion}</span>}
             </div>
 
+            {recipeLinks(selected).length > 0 && (
+              <div>
+                <div className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Se descuenta al vender</div>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  {recipeLinks(selected).map(l => (
+                    <span key={l.productoId} className="bg-orange-500/10 text-orange-400 font-bold px-3 py-1 rounded-full">
+                      {menuRows.find(r => r.id === l.productoId)?.name || 'Platillo borrado'} ×{l.veces}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Cost KPIs */}
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-slate-800/50 rounded-xl p-3 text-center">
@@ -319,12 +338,25 @@ export function RecipesModule() {
                 <label className="block text-xs text-slate-500 font-bold mb-1">CONSERVACIÓN</label>
                 <input className="w-full bg-slate-800 border border-carbon-950/10 rounded-xl px-3 py-2 text-carbon-950 text-sm focus:outline-none focus:border-orange-500/50" value={form.conservacion} onChange={e => setForm(f => ({ ...f, conservacion: e.target.value }))} placeholder="Ej. Refrigerar hasta 3 días en recipiente hermético" />
               </div>
-              <div className="col-span-full">
-                <label className="block text-xs text-slate-500 font-bold mb-1">PLATILLO DEL MENÚ {pro ? '(al venderlo se descuentan estos insumos del inventario)' : '· Pro: descuento automático de inventario'}</label>
-                <select disabled={!pro} className="w-full bg-slate-800 border border-carbon-950/10 rounded-xl px-3 py-2 text-carbon-950 text-sm focus:outline-none focus:border-orange-500/50 disabled:opacity-50" value={form.productoId || ''} onChange={e => setForm(f => ({ ...f, productoId: e.target.value || undefined }))}>
-                  <option value="">— Sin enlazar —</option>
-                  {menuRows.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                </select>
+              <div className="col-span-full" data-recipe-links>
+                <label className="block text-xs text-slate-500 font-bold mb-1">PLATILLOS DEL MENÚ QUE LA LLEVAN {pro ? '(al venderlos se descuentan estos insumos)' : '· Pro: descuento automático de inventario'}</label>
+                <div className="space-y-2">
+                  {(form.platillos || []).map((l, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <select disabled={!pro} aria-label="Platillo" className="flex-1 min-w-0 bg-slate-800 border border-carbon-950/10 rounded-xl px-3 py-2 text-carbon-950 text-sm focus:outline-none focus:border-orange-500/50 disabled:opacity-50" value={l.productoId} onChange={e => setForm(f => ({ ...f, platillos: (f.platillos || []).map((x, i) => i === idx ? { ...x, productoId: e.target.value } : x) }))}>
+                        <option value="">— Elegir platillo —</option>
+                        {menuRows.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                      </select>
+                      <span className="text-xs font-bold text-slate-500 shrink-0">×</span>
+                      <input disabled={!pro} type="number" min={0.25} step={0.25} aria-label="Veces que lleva la receta" className="w-16 shrink-0 bg-slate-800 border border-carbon-950/10 rounded-xl px-2 py-2 text-carbon-950 text-sm text-center tabular-nums focus:outline-none focus:border-orange-500/50 disabled:opacity-50" value={Number.isFinite(l.veces) ? l.veces : ''} onChange={e => { const v = parseFloat(e.target.value); setForm(f => ({ ...f, platillos: (f.platillos || []).map((x, i) => i === idx ? { ...x, veces: Number.isFinite(v) ? v : NaN } : x) })); }} />
+                      <button type="button" disabled={!pro} aria-label="Quitar platillo" onClick={() => setForm(f => ({ ...f, platillos: (f.platillos || []).filter((_, i) => i !== idx) }))} className="shrink-0 p-2 text-slate-500 hover:text-rose-400 disabled:opacity-50"><Trash2 size={14} /></button>
+                    </div>
+                  ))}
+                  <button type="button" disabled={!pro} onClick={() => setForm(f => ({ ...f, platillos: [...(f.platillos || []), { productoId: '', veces: 1 }] }))} className="text-xs flex items-center gap-1.5 text-orange-400 hover:text-orange-300 font-bold disabled:opacity-50">
+                    <Plus size={13} strokeWidth={3} /> Agregar platillo
+                  </button>
+                  {pro && <p className="text-[11px] text-slate-500 leading-snug">Una sola receta para varios platillos. El número es cuántas veces la lleva cada uno: «Boneless sin papas» ×1, «Paquete 20 boneless» ×2. Si un platillo lleva papas, ligalo también a la receta de papas.</p>}
+                </div>
               </div>
             </div>
 
@@ -402,7 +434,7 @@ export function RecipesModule() {
                           <td className="px-3 py-2 text-right text-slate-400 tabular-nums">${i.costoUnitario}</td>
                           <td className="px-3 py-2 text-right font-bold text-carbon-950 tabular-nums">${F(i.cantidad * i.costoUnitario)}</td>
                           <td className="px-2 py-2">
-                            <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex gap-2.5">
                               <button onClick={() => openEditIng(i)} className="text-slate-500 hover:text-carbon-950 transition-colors"><Edit3 size={12} /></button>
                               <button onClick={() => removeIngredient(i.id)} className="text-slate-500 hover:text-rose-400 transition-colors"><Trash2 size={12} /></button>
                             </div>
