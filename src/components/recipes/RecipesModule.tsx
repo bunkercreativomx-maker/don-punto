@@ -4,7 +4,7 @@ import clsx from 'clsx';
 import { storeGet, storeSet } from '../../lib/cloudStore';
 import { useCalculator } from '../../hooks/useCalculator';
 import { isPro } from '../../lib/session';
-import { recipeLinks, type RecipeLink } from '../../lib/inventoryAuto';
+import { recipeLinks, type RecipeLink, type ModLink } from '../../lib/inventoryAuto';
 
 function readInsumos(): { id: string; nombre: string; unidad: string; costoUnitario: number }[] {
   try { return JSON.parse(storeGet('donPuntoInsumos2') || '[]'); } catch { return []; }
@@ -34,6 +34,8 @@ interface Recipe {
   productoId?: string;
   /** Platillos del menú que llevan esta receta y cuántas veces (Pro: descuenta inventario al vender) */
   platillos?: RecipeLink[];
+  /** Opciones de modificador que llevan esta receta y cuántas veces (ej. «20 piezas» ×2) */
+  modificadores?: ModLink[];
 }
 
 const BLANK_RECIPE: Omit<Recipe, 'id'> = {
@@ -70,7 +72,7 @@ export function RecipesModule() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState<Omit<Recipe, 'id'>>(BLANK_RECIPE);
-  const { rows: menuRows } = useCalculator();
+  const { rows: menuRows, modifierGroups } = useCalculator();
   const insumos = useMemo(() => readInsumos(), []);
   const pro = isPro();
   const [ingForm, setIngForm] = useState<Omit<Ingredient, 'id'>>(BLANK_ING);
@@ -93,14 +95,14 @@ export function RecipesModule() {
   }
 
   function openEdit(r: Recipe) {
-    setForm({ nombre: r.nombre, familia: r.familia, porciones: r.porciones, pvp: r.pvp, tiempoMin: r.tiempoMin, equipo: r.equipo, conservacion: r.conservacion, ingredientes: [...r.ingredientes], platillos: recipeLinks(r) });
+    setForm({ nombre: r.nombre, familia: r.familia, porciones: r.porciones, pvp: r.pvp, tiempoMin: r.tiempoMin, equipo: r.equipo, conservacion: r.conservacion, ingredientes: [...r.ingredientes], platillos: recipeLinks(r), modificadores: (r.modificadores || []).map(l => ({ ...l })) });
     setEditMode(true);
     setSelectedId(r.id);
   }
 
   /** Abre una copia (ingredientes, datos y platillos ligados con sus ×veces); se guarda al tocar «Guardar Receta». */
   function duplicateRecipe(r: Recipe) {
-    setForm({ nombre: `${r.nombre} (copia)`, familia: r.familia, porciones: r.porciones, pvp: r.pvp, tiempoMin: r.tiempoMin, equipo: r.equipo, conservacion: r.conservacion, ingredientes: r.ingredientes.map(i => ({ ...i, id: crypto.randomUUID() })), platillos: recipeLinks(r).map(l => ({ ...l })) });
+    setForm({ nombre: `${r.nombre} (copia)`, familia: r.familia, porciones: r.porciones, pvp: r.pvp, tiempoMin: r.tiempoMin, equipo: r.equipo, conservacion: r.conservacion, ingredientes: r.ingredientes.map(i => ({ ...i, id: crypto.randomUUID() })), platillos: recipeLinks(r).map(l => ({ ...l })), modificadores: (r.modificadores || []).map(l => ({ ...l })) });
     setEditMode(true);
     setSelectedId(null); // se crea hasta que toque «Guardar Receta»
     setTimeout(() => { const el = document.getElementById('recipe-name') as HTMLInputElement | null; el?.focus(); el?.select(); }, 50);
@@ -110,7 +112,9 @@ export function RecipesModule() {
     if (!form.nombre.trim()) return;
     const seen = new Set<string>();
     const platillos = (form.platillos || []).filter(l => l.productoId && !seen.has(l.productoId) && seen.add(l.productoId)).map(l => ({ productoId: l.productoId, veces: l.veces > 0 ? l.veces : 1 }));
-    const data = { ...form, productoId: undefined, platillos };
+    const seenM = new Set<string>();
+    const modificadores = (form.modificadores || []).filter(l => l.modId && !seenM.has(l.modId) && seenM.add(l.modId)).map(l => ({ modId: l.modId, veces: l.veces > 0 ? l.veces : 1 }));
+    const data = { ...form, productoId: undefined, platillos, modificadores };
     if (selectedId && recipes.find(r => r.id === selectedId)) {
       setRecipes(recipes.map(r => r.id === selectedId ? { ...data, id: selectedId } : r));
     } else {
@@ -148,6 +152,8 @@ export function RecipesModule() {
     setEditIngId(ing.id);
     setShowIngForm(true);
   }
+
+  const modLabel = (id: string) => { for (const g of modifierGroups) { const o = g.options.find(x => x.id === id); if (o) return `${g.name}: ${o.name}`; } return 'Opción borrada'; };
 
   const recipeTotal = (r: Omit<Recipe, 'id'>) => r.ingredientes.reduce((s, i) => s + i.cantidad * i.costoUnitario, 0);
 
@@ -240,13 +246,18 @@ export function RecipesModule() {
               {selected.conservacion && <span className="bg-slate-800 text-slate-300 px-3 py-1 rounded-full">🧊 {selected.conservacion}</span>}
             </div>
 
-            {recipeLinks(selected).length > 0 && (
+            {(recipeLinks(selected).length > 0 || (selected.modificadores || []).length > 0) && (
               <div>
                 <div className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Se descuenta al vender</div>
                 <div className="flex flex-wrap gap-2 text-xs">
                   {recipeLinks(selected).map(l => (
                     <span key={l.productoId} className="bg-orange-500/10 text-orange-400 font-bold px-3 py-1 rounded-full">
                       {menuRows.find(r => r.id === l.productoId)?.name || 'Platillo borrado'} ×{l.veces}
+                    </span>
+                  ))}
+                  {(selected.modificadores || []).map(l => (
+                    <span key={l.modId} className="bg-agave-500/10 text-agave-700 font-bold px-3 py-1 rounded-full">
+                      {modLabel(l.modId)} ×{l.veces}
                     </span>
                   ))}
                 </div>
@@ -367,6 +378,30 @@ export function RecipesModule() {
                     <Plus size={13} strokeWidth={3} /> Agregar platillo
                   </button>
                   {pro && <p className="text-[11px] text-slate-500 leading-snug">Una sola receta para varios platillos. El número es cuántas veces la lleva cada uno: «Boneless sin papas» ×1, «Paquete 20 boneless» ×2. Si un platillo lleva papas, ligalo también a la receta de papas.</p>}
+                </div>
+              </div>
+              <div className="col-span-full" data-recipe-mods>
+                <label className="block text-xs text-slate-500 font-bold mb-1">MODIFICADORES QUE LA LLEVAN {pro ? '(para paquetes por piezas: 10 pz ×1, 20 pz ×2…)' : '· Pro'}</label>
+                <div className="space-y-2">
+                  {(form.modificadores || []).map((l, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <select disabled={!pro} aria-label="Opción de modificador" className="flex-1 min-w-0 bg-slate-800 border border-carbon-950/10 rounded-xl px-3 py-2 text-carbon-950 text-sm focus:outline-none focus:border-orange-500/50 disabled:opacity-50" value={l.modId} onChange={e => setForm(f => ({ ...f, modificadores: (f.modificadores || []).map((x, i) => i === idx ? { ...x, modId: e.target.value } : x) }))}>
+                        <option value="">— Elegir opción —</option>
+                        {modifierGroups.map(g => (
+                          <optgroup key={g.id} label={g.name}>
+                            {g.options.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
+                          </optgroup>
+                        ))}
+                      </select>
+                      <span className="text-xs font-bold text-slate-500 shrink-0">×</span>
+                      <input disabled={!pro} type="number" min={0.25} step={0.25} aria-label="Veces que lleva la receta" className="w-16 shrink-0 bg-slate-800 border border-carbon-950/10 rounded-xl px-2 py-2 text-carbon-950 text-sm text-center tabular-nums focus:outline-none focus:border-orange-500/50 disabled:opacity-50" value={Number.isFinite(l.veces) ? l.veces : ''} onChange={e => { const v = parseFloat(e.target.value); setForm(f => ({ ...f, modificadores: (f.modificadores || []).map((x, i) => i === idx ? { ...x, veces: Number.isFinite(v) ? v : NaN } : x) })); }} />
+                      <button type="button" disabled={!pro} aria-label="Quitar modificador" onClick={() => setForm(f => ({ ...f, modificadores: (f.modificadores || []).filter((_, i) => i !== idx) }))} className="shrink-0 p-2 text-slate-500 hover:text-rose-400 disabled:opacity-50"><Trash2 size={14} /></button>
+                    </div>
+                  ))}
+                  <button type="button" disabled={!pro} onClick={() => setForm(f => ({ ...f, modificadores: [...(f.modificadores || []), { modId: '', veces: 1 }] }))} className="text-xs flex items-center gap-1.5 text-orange-400 hover:text-orange-300 font-bold disabled:opacity-50">
+                    <Plus size={13} strokeWidth={3} /> Agregar modificador
+                  </button>
+                  {pro && <p className="text-[11px] text-slate-500 leading-snug">Se descuenta cuando eligen esa opción al cobrar. Si el platillo ya cobra la receta por la opción, quítalo de «Platillos» para no descontar doble.</p>}
                 </div>
               </div>
             </div>

@@ -1,18 +1,29 @@
 /**
  * Inventario automático (plan Pro): al vender un platillo se descuentan los insumos de su receta.
- * Enlace receta → platillos: receta.platillos [{productoId, veces}] (o el viejo productoId, o mismo nombre). Un platillo puede llevar varias recetas. Ingrediente → insumo: ingrediente.insumoId (o mismo nombre).
+ * Enlace receta → platillos: receta.platillos [{productoId, veces}] (o el viejo productoId, o mismo nombre). Un platillo puede llevar varias recetas. Las opciones de modificador también: receta.modificadores [{modId, veces}]. Ingrediente → insumo: ingrediente.insumoId (o mismo nombre).
  */
 import { storeGet, storeSet } from './cloudStore';
 import type { CartItem } from '../types/pos';
 
 interface Ing { id: string; nombre: string; cantidad: number; unidad: string; insumoId?: string }
 export interface RecipeLink { productoId: string; veces: number }
-interface Recipe { id: string; nombre: string; porciones: number; productoId?: string; platillos?: RecipeLink[]; ingredientes: Ing[] }
+export interface ModLink { modId: string; veces: number }
+interface Recipe { id: string; nombre: string; porciones: number; productoId?: string; platillos?: RecipeLink[]; modificadores?: ModLink[]; ingredientes: Ing[] }
 
 /** Platillos ligados a una receta con cuántas veces la lleva cada uno (compatible con el viejo productoId). */
 export function recipeLinks(r: { productoId?: string; platillos?: RecipeLink[] }): RecipeLink[] {
   const out: RecipeLink[] = (r.platillos || []).filter((l) => l && l.productoId).map((l) => ({ productoId: l.productoId, veces: l.veces > 0 ? l.veces : 1 }));
   if (r.productoId && !out.some((l) => l.productoId === r.productoId)) out.unshift({ productoId: r.productoId, veces: 1 });
+  return out;
+}
+
+/** Recetas ligadas a una opción de modificador (ej. «20 piezas» = Boneless ×2). */
+export function recipesForModifier<T extends Recipe>(recipes: T[], modId: string): { recipe: T; veces: number }[] {
+  const out: { recipe: T; veces: number }[] = [];
+  for (const r of recipes) {
+    const l = (r.modificadores || []).find((x) => x && x.modId === modId);
+    if (l) out.push({ recipe: r, veces: l.veces > 0 ? l.veces : 1 });
+  }
   return out;
 }
 
@@ -24,7 +35,7 @@ export function recipesForProduct<T extends Recipe>(recipes: T[], row: { id: str
     if (l) linked.push({ recipe: r, veces: l.veces });
   }
   if (linked.length) return linked;
-  const byName = recipes.find((r) => !recipeLinks(r).length && norm(r.nombre) === norm(row.name));
+  const byName = recipes.find((r) => !recipeLinks(r).length && !(r.modificadores || []).length && norm(r.nombre) === norm(row.name));
   return byName ? [{ recipe: byName, veces: 1 }] : [];
 }
 interface Insumo { id: string; nombre: string; unidad: string; saldoActual: number; consumoMinDiario: number; consumoMaxDiario: number; tiempoReposicion: number }
@@ -70,7 +81,9 @@ export function applySaleToInventory(cart: CartItem[], rows: { id: string; name:
   for (const item of cart) {
     const row = rows.find((r) => r.id === item.rowId);
     if (!row) continue;
-    for (const { recipe, veces } of recipesForProduct(recipes, row)) {
+    const uses = [...recipesForProduct(recipes, row)];
+    for (const g of item.selectedModifiers || []) for (const m of g.modifiers || []) if (m?.id) uses.push(...recipesForModifier(recipes, m.id));
+    for (const { recipe, veces } of uses) {
       const porciones = recipe.porciones > 0 ? recipe.porciones : 1;
       for (const ing of recipe.ingredientes || []) {
         const ins = insumos.find((i) => i.id === ing.insumoId) || insumos.find((i) => norm(i.nombre) === norm(ing.nombre));
