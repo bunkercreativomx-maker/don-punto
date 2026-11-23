@@ -400,7 +400,11 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 <li className="flex gap-3"><Check size={18} className="mt-1 shrink-0 text-agave-500" /> <span><b className="font-semibold text-carbon-950">Te contesta una persona,</b> de 9 de la mañana a 6 de la tarde.</span></li>
                 <li className="flex gap-3"><Check size={18} className="mt-1 shrink-0 text-agave-500" /> <span>Los negocios que ya cobran con Don Punto nos dicen que ahora llevan sus ventas en orden y en menos tiempo.</span></li>
               </ul>
-              <button onClick={onSubscribe} className="mt-8 rounded-full bg-agave-600 hover:bg-agave-700 px-7 py-3.5 font-semibold text-white transition-colors">Probar 15 días gratis</button>
+              <button onClick={onSubscribe} className="group mt-9 flex w-full sm:w-auto items-center justify-center gap-4 rounded-full bg-agave-600 hover:bg-agave-700 pl-9 pr-3 py-3 text-xl sm:text-2xl font-bold text-white shadow-[0_18px_40px_-14px_rgba(4,33,26,0.55)] transition-colors">
+                Probar 15 días gratis
+                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white/15 transition-transform duration-300 group-hover:translate-x-0.5"><ArrowRight size={24} /></span>
+              </button>
+              <p className="mt-3 text-center sm:text-left text-sm text-carbon-600">Sin tarjeta · Sin contratos</p>
             </div>
           </div>
         </Section>
