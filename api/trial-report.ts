@@ -48,9 +48,16 @@ export default async function handler(req: any, res: any) {
     if (b.capiCheck) {
       const tok = (process.env.META_CAPI_TOKEN || '').trim();
       if (!tok) return res.status(200).json({ capi: 'sin token' });
-      const r = await fetch(`https://graph.facebook.com/v21.0/${PIXEL_ID}?fields=id,name&access_token=${encodeURIComponent(tok)}`);
+      // Evento con fecha de hace 30 días: Meta valida el token y lo rechaza por la fecha (no se cuenta)
+      const old = Math.floor(Date.now() / 1000) - 30 * 86400;
+      const r = await fetch(`https://graph.facebook.com/v21.0/${PIXEL_ID}/events?access_token=${encodeURIComponent(tok)}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: [{ event_name: 'CapiCheck', event_time: old, action_source: 'website', user_data: { external_id: ['0'.repeat(64)] } }] }),
+      });
       const d: any = await r.json().catch(() => null);
-      return res.status(200).json({ capi: r.ok ? 'ok' : 'error', status: r.status, pixel: d?.name || d?.id, error: d?.error?.message });
+      const msg = String(d?.error?.error_user_msg || d?.error?.message || '');
+      const tokenOk = r.ok || (d?.error?.code === 100 && /event_time|time|tiempo|hora|fecha/i.test(msg + JSON.stringify(d?.error || {})));
+      return res.status(200).json({ capi: tokenOk ? 'token ok' : 'error', status: r.status, error: d?.error });
     }
     const rows = await trialRows();
     const text = buildReport(rows);
