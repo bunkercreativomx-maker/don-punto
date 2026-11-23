@@ -1,6 +1,7 @@
 import { getMember, stripe, stripeConfigured, readJsonBody, sendError, pbFetch, HttpError, APP_URL, adminToken } from './_lib/server.js';
 import { TRIAL_DAYS, FOUNDER_LIMIT, FOUNDER_PRICES, inFreeTrial, pbDate } from './_lib/membership.js';
 import { foundersTaken } from './founders.js';
+import { visitorFrom, visitorMeta } from './_lib/capi.js';
 
 const PLANS: Record<string, { name: string; amount: number; pbName: string }> = {
   basico: { name: 'Don Punto Básico', amount: 35000, pbName: 'Basico' },
@@ -53,6 +54,8 @@ export default async function handler(req: any, res: any) {
         ? { trial_period_days: TRIAL_DAYS }
         : null;
     const meta = { uid: m.user.id, plan, founder: founder ? '1' : '0' };
+    // Para Meta CAPI en el webhook (el cobro real no pasa por el navegador)
+    const subMeta = { ...meta, ...visitorMeta(visitorFrom(req)) };
 
     const session = await stripe('POST', '/checkout/sessions', {
       mode: 'subscription',
@@ -63,7 +66,7 @@ export default async function handler(req: any, res: any) {
       allow_promotion_codes: 'true',
       metadata: meta,
       payment_method_collection: 'always',
-      subscription_data: { metadata: meta, ...(trial ? { ...trial, trial_settings: { end_behavior: { missing_payment_method: 'cancel' } } } : {}) },
+      subscription_data: { metadata: subMeta, ...(trial ? { ...trial, trial_settings: { end_behavior: { missing_payment_method: 'cancel' } } } : {}) },
       success_url: `${APP_URL}/?pago=ok&plan=${plan}&trial=${trial ? 1 : 0}`,
       cancel_url: `${APP_URL}/?pago=cancelado`,
     });

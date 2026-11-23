@@ -53,7 +53,9 @@ n.queue=[];t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];
 s.parentNode.insertBefore(t,s)}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '1694005152257419');
+// Coincidencias avanzadas: si ya inició sesión, el píxel manda su correo (Meta lo cifra) e id
+var ud={};try{var a=JSON.parse(localStorage.getItem('pocketbase_auth')||'null');var r=a&&(a.record||a.model);if(r&&r.email){ud.em=String(r.email).toLowerCase();ud.external_id=r.id;}}catch(e){}
+fbq('init', '1694005152257419', ud);
 fbq('track', 'PageView');
 })();
 </script>

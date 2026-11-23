@@ -138,7 +138,7 @@ function RootApp() {
       if (info.canTrial) {
         try {
           const r = await apiPost<{ started: boolean }>('/api/trial', {});
-          if (r.started) track('StartTrial', { value: 0, currency: 'MXN' });
+          if (r.started) track('StartTrial', { value: 0, currency: 'MXN', predicted_ltv: 350 }, 'trial_' + user.id);
           info = await fetchSubscription(user.id);
         } catch (err) {
           console.error('prueba gratis', err);
@@ -203,8 +203,9 @@ function RootApp() {
     const planKey = params.get('plan') === 'basico' ? 'basico' : params.get('plan') === 'pro' ? 'pro' : null;
     if (planKey) {
       const price = PLANS[planKey].price;
-      if (params.get('trial') === '1') track('StartTrial', { value: 0, currency: 'MXN', predicted_ltv: price, content_name: PLANS[planKey].name });
-      else track('Subscribe', { value: price, currency: 'MXN', content_name: PLANS[planKey].name });
+      // Con prueba: solo dejó su tarjeta (el cobro real lo manda el webhook por CAPI). Sin prueba: pagó hoy.
+      if (params.get('trial') === '1') track('AddPaymentInfo', { value: price, currency: 'MXN', content_name: PLANS[planKey].name });
+      else track('Subscribe', { value: price, currency: 'MXN', content_name: PLANS[planKey].name }, 'sub_' + uid);
     }
     if (sub.status === 'active' && sub.hasStripeCustomer && !sub.trialEnd) return;
     setVerifying(true);

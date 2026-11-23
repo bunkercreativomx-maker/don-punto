@@ -1,6 +1,16 @@
 import { getMember, adminToken, pbFetch, sendError, HttpError } from './_lib/server.js';
 import { TRIAL_DAYS } from './_lib/membership.js';
 import { notifyTeam, INTERNAL, who, fmtDay } from './_lib/notify.js';
+import { capi, visitorFrom } from './_lib/capi.js';
+
+// Meta CAPI: registro + prueba (mismos event_id que el navegador: reg_<uid>, trial_<uid>)
+const metaTrial = (req: any, user: { id: string; email: string }) => {
+  const base = { email: user.email, uid: user.id, visitor: visitorFrom(req) };
+  return capi([
+    { ...base, name: 'CompleteRegistration', eventId: 'reg_' + user.id },
+    { ...base, name: 'StartTrial', eventId: 'trial_' + user.id, value: 0, custom: { predicted_ltv: 350 } },
+  ]);
+};
 
 // Aviso al grupo de soporte en Telegram por cada prueba nueva (no bloquea si falla)
 async function announce(user: { id: string; email: string }, trialEnd: string, token: string) {
@@ -32,7 +42,7 @@ export default async function handler(req: any, res: any) {
     if (!s) {
       const r = await pbFetch('/api/collections/subscriptions/records', { method: 'POST', token, body: { owner: m.user.id, status: 'trialing', trial_end: trialEnd } });
       if (!r.ok) throw new HttpError(500, 'No se pudo iniciar la prueba.');
-      await announce(m.user, trialEnd, token).catch(() => {});
+      await Promise.all([announce(m.user, trialEnd, token).catch(() => {}), metaTrial(req, m.user)]);
       return res.status(200).json({ started: true, trial_end: trialEnd });
     }
     const eligible = s.status === 'inactive' && !s.stripe_customer_id && !s.stripe_subscription_id && !s.trial_end;
@@ -40,7 +50,7 @@ export default async function handler(req: any, res: any) {
 
     const r = await pbFetch(`/api/collections/subscriptions/records/${s.id}`, { method: 'PATCH', token, body: { status: 'trialing', trial_end: trialEnd } });
     if (!r.ok) throw new HttpError(500, 'No se pudo iniciar la prueba.');
-    await announce(m.user, trialEnd, token).catch(() => {});
+    await Promise.all([announce(m.user, trialEnd, token).catch(() => {}), metaTrial(req, m.user)]);
     return res.status(200).json({ started: true, trial_end: trialEnd });
   } catch (e) {
     return sendError(res, e);

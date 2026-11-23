@@ -65,7 +65,7 @@ export function AuthPage({ onAuthSuccess, onBack, signup }: { onAuthSuccess: () 
                 // Crear su restaurante
                 await pb.collection('restaurants').create({ name: restaurantName.trim(), owner: newUser.id });
                 if (code) await attachRef(code, code === linkRef ? 'link' : 'manual');
-                track('CompleteRegistration');
+                track('CompleteRegistration', undefined, 'reg_' + newUser.id);
                 onAuthSuccess();
             }
         } catch (err: any) {

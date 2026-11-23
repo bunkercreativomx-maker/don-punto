@@ -1,6 +1,30 @@
 import crypto from 'node:crypto';
 import { adminToken, pbFetch, stripe } from './_lib/server.js';
 import { sendToUser } from './_lib/push.js';
+import { capi, visitorFromMeta } from './_lib/capi.js';
+
+// Meta CAPI: cobro REAL. Subscribe = primer pago (sub_<uid>, igual que el navegador); Purchase = cada pago (pay_<factura>).
+async function metaPaid(sub: any, opts: { first: boolean; invoiceId?: string; amount?: number }) {
+  const m = sub?.metadata || {};
+  const uid = m.uid || '';
+  const invId = opts.invoiceId || (typeof sub.latest_invoice === 'string' ? sub.latest_invoice : sub.latest_invoice?.id) || '';
+  let amount = opts.amount;
+  let email = '';
+  try {
+    if (invId) {
+      const inv = await stripe('GET', `/invoices/${invId}`);
+      if (amount === undefined) amount = (inv.amount_paid ?? 0) / 100;
+      email = inv.customer_email || '';
+    }
+  } catch { /* sin factura */ }
+  if (!amount) return; // $0 (prueba) no es venta
+  const plan = m.plan === 'pro' ? 'Pro' : 'Básico';
+  const base = { email, uid, visitor: visitorFromMeta(m), value: amount, custom: { content_name: `Don Punto ${plan}`, founder: m.founder === '1' } };
+  const evs: any[] = [];
+  if (opts.first && uid) evs.push({ ...base, name: 'Subscribe', eventId: 'sub_' + uid });
+  if (invId) evs.push({ ...base, name: 'Purchase', eventId: 'pay_' + invId });
+  if (evs.length) await capi(evs);
+}
 
 // Webhook de Stripe: ÚNICA vía para activar/desactivar membresías (firma verificada)
 export const config = { api: { bodyParser: false } };
@@ -112,12 +136,27 @@ export default async function handler(req: any, res: any) {
         const sub = await stripe('GET', `/subscriptions/${obj.subscription}`);
         sub.metadata = { ...(obj.metadata || {}), ...(sub.metadata || {}) };
         await upsertSubscription(obj.client_reference_id || sub.metadata?.uid, sub);
+        if (sub.status === 'active') await metaPaid(sub, { first: true, amount: (obj.amount_total ?? 0) / 100 }); // pagó hoy (sin prueba)
+        break;
+      }
+      case 'invoice.paid': {
+        // Renovaciones (requiere el evento invoice.paid en el webhook de Stripe; si no está, no pasa nada)
+        const subId = obj.subscription || obj.parent?.subscription_details?.subscription;
+        if (!subId || !(obj.amount_paid > 0)) break;
+        try {
+          const sub = await stripe('GET', `/subscriptions/${typeof subId === 'string' ? subId : subId.id}`);
+          await metaPaid(sub, { first: false, invoiceId: obj.id, amount: obj.amount_paid / 100 });
+        } catch (err: any) { console.error('capi invoice', err?.message); }
         break;
       }
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted':
         await upsertSubscription(obj.metadata?.uid, obj);
+        // Terminó la prueba y se cobró el primer mes
+        if (event.type === 'customer.subscription.updated' && obj.status === 'active' && event.data?.previous_attributes?.status === 'trialing') {
+          await metaPaid(obj, { first: true });
+        }
         break;
       case 'customer.subscription.trial_will_end': {
         // Stripe lo manda 3 días antes de que termine la prueba
