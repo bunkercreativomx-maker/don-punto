@@ -1,5 +1,6 @@
 import { HttpError, sendError } from './_lib/server.js';
 import { notifyTeam, trialRows, who, fmtDay, TrialRow } from './_lib/notify.js';
+import { PIXEL_ID } from './_lib/capi.js';
 
 // Resumen diario de pruebas gratis → grupo de soporte en Telegram.
 // Cron donpunto-cron "0 15 * * *" (8 am Juárez en invierno, 9 am en horario de verano).
@@ -43,6 +44,14 @@ export default async function handler(req: any, res: any) {
     const secret = (process.env.CRON_SECRET || '').trim();
     if (!secret || req.headers?.authorization !== `Bearer ${secret}`) throw new HttpError(401, 'unauthorized');
     const b = typeof req.body === 'object' && req.body ? req.body : {};
+    // {capiCheck:true}: ¿el token de Meta CAPI sirve para el píxel? (no manda eventos)
+    if (b.capiCheck) {
+      const tok = (process.env.META_CAPI_TOKEN || '').trim();
+      if (!tok) return res.status(200).json({ capi: 'sin token' });
+      const r = await fetch(`https://graph.facebook.com/v21.0/${PIXEL_ID}?fields=id,name&access_token=${encodeURIComponent(tok)}`);
+      const d: any = await r.json().catch(() => null);
+      return res.status(200).json({ capi: r.ok ? 'ok' : 'error', status: r.status, pixel: d?.name || d?.id, error: d?.error?.message });
+    }
     const rows = await trialRows();
     const text = buildReport(rows);
     if (b.dry) return res.status(200).json({ dry: true, rows: rows.length, text });
