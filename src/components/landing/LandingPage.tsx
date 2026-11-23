@@ -280,6 +280,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
   const pro = priceFor('pro', founders);
   const perDay = Math.ceil(basico.price / 30);
   const [sticky, setSticky] = useState(false);
+  const [story, setStory] = useState(false); // «Leer la historia completa» en celular
   useEffect(() => {
     const onScroll = () => setSticky(window.scrollY > 640);
     onScroll();
@@ -382,30 +383,58 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
 
         {/* Quiénes somos */}
         <Section id="nosotros" className="pb-16 sm:pb-28">
-          <div className="grid gap-8 lg:gap-14 lg:grid-cols-2 items-center">
-            <figure>
-              <img src="/equipo.webp" alt="Francisco Cota y Tlaloc, el equipo de Don Punto" width={1200} height={704} loading="lazy" decoding="async" className="block w-full rounded-[1.6rem] ring-1 ring-carbon-200/70" />
+          <div className="flex flex-col lg:grid lg:grid-cols-[0.9fr_1.1fr] lg:gap-x-14 lg:items-start">
+            <div className="contents lg:block">
+            <figure className="order-1">
+              <img src="/equipo.webp" alt="Francisco Cota y Tlaloc, creadores de DonPunto.com" width={1200} height={704} loading="lazy" decoding="async" className="block w-full rounded-[1.6rem] ring-1 ring-carbon-200/70" />
               <figcaption className="mt-4 grid grid-cols-2 gap-4 text-center text-sm">
                 <span><b className="block text-base font-semibold text-carbon-950">Francisco Cota</b><span className="text-carbon-600">Desarrollo y tecnología</span></span>
                 <span><b className="block text-base font-semibold text-carbon-950">Tlaloc</b><span className="text-carbon-600">Soporte y atención al cliente</span></span>
               </figcaption>
             </figure>
-            <div>
-              <span className="inline-flex rounded-full bg-agave-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-agave-800">Quiénes somos</span>
-              <h2 className="mt-5 font-display text-4xl sm:text-5xl font-bold leading-[1.05] tracking-[-0.03em]">Lo hicimos porque nos pasó a nosotros.</h2>
-              <p className="mt-5 text-lg text-carbon-700 leading-relaxed">Yo, Francisco, tenía un restaurante. No sabía cuánto apartar de IVA, batallaba con el SAT y una libreta ya no me alcanzaba para llevar el negocio.</p>
-              <p className="mt-4 text-lg text-carbon-700 leading-relaxed">Tlaloc se dedicaba a asesorar restaurantes que venden por plataformas. Juntamos lo que sabíamos los dos e hicimos Don Punto, para hacerle la vida más fácil a quien tiene un restaurante o un negocio pequeño.</p>
-              <p className="mt-4 text-lg text-carbon-700 leading-relaxed">Somos un negocio chico, igual que el tuyo.{founderOpen && <> Y como vamos empezando, los primeros {FOUNDER.limit} negocios se quedan con el precio de fundador.</>}</p>
-              <ul className="mt-7 space-y-3 text-carbon-800">
-                <li className="flex gap-3"><Check size={18} className="mt-1 shrink-0 text-agave-500" /> <span><b className="font-semibold text-carbon-950">Te contesta una persona,</b> de 9 de la mañana a 6 de la tarde.</span></li>
-                <li className="flex gap-3"><Check size={18} className="mt-1 shrink-0 text-agave-500" /> <span>Los negocios que ya cobran con Don Punto nos dicen que ahora llevan sus ventas en orden y en menos tiempo.</span></li>
+            <div className="order-3 mt-10 lg:mt-14">
+              <h3 className="font-display text-3xl sm:text-4xl font-bold leading-[1.08] tracking-[-0.025em]">Somos emprendedores, igual que tú</h3>
+              <p className="mt-4 text-lg text-carbon-700 leading-relaxed">No somos una gran empresa. Somos dos personas que conocen los retos de sacar adelante un negocio y que decidieron crear una herramienta para hacer las cosas más fáciles.</p>
+            </div>
+            <div className="order-4 lg:mt-2">
+              <p className="mt-6 lg:mt-0 text-lg font-semibold text-carbon-950">Por eso, en DonPunto:</p>
+              <ul className="mt-4 space-y-3 text-carbon-800">
+                <li className="flex gap-3"><Check size={18} className="mt-1 shrink-0 text-agave-500" /> <span><b className="font-semibold text-carbon-950">Te atienden personas reales</b>, de 9:00 a. m. a 6:00 p. m.</span></li>
+                <li className="flex gap-3"><Check size={18} className="mt-1 shrink-0 text-agave-500" /> <span><b className="font-semibold text-carbon-950">Puedes llevar un mejor control de tus ventas</b> y dedicar menos tiempo a las cuentas.</span></li>
+                <li className="flex gap-3"><Check size={18} className="mt-1 shrink-0 text-agave-500" /> <span><b className="font-semibold text-carbon-950">Puedes calcular tus precios para plataformas digitales</b>, tomando en cuenta comisiones y otros costos para proteger tus ganancias.</span></li>
+                {founderOpen && (
+                  <li className="flex gap-3"><Check size={18} className="mt-1 shrink-0 text-agave-500" /> <span><b className="font-semibold text-carbon-950">Los primeros {FOUNDER.limit} negocios obtienen precio de fundador.</b> Después, las nuevas suscripciones tendrán el precio regular.</span></li>
+                )}
               </ul>
-              <button onClick={onSubscribe} className="group mt-9 flex w-full sm:w-auto items-center justify-center gap-4 rounded-full bg-agave-600 hover:bg-agave-700 pl-9 pr-3 py-3 text-xl sm:text-2xl font-bold text-white shadow-[0_18px_40px_-14px_rgba(4,33,26,0.55)] transition-colors">
+            </div>
+            </div>
+            <div className="contents lg:block">
+            <div className="order-2 mt-8 lg:mt-0">
+              <span className="inline-flex rounded-full bg-agave-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-agave-800">Quiénes somos</span>
+              <h2 className="mt-5 font-display text-4xl sm:text-5xl font-bold leading-[1.05] tracking-[-0.03em]">DonPunto nació de una necesidad real</h2>
+              <p className="mt-5 text-lg text-carbon-700 leading-relaxed">Soy <b className="font-semibold text-carbon-950">Francisco Cota y tengo un restaurante</b>. Como muchos dueños de negocios, me he enfrentado a problemas que no siempre son fáciles de resolver: saber cuánto dinero separar para el IVA, lidiar con el SAT y llevar el control de las ventas sin depender de una libreta.</p>
+              <p className="mt-4 text-lg text-carbon-700 leading-relaxed">Pero uno de mis mayores dolores de cabeza era <b className="font-semibold text-carbon-950">no saber en cuánto vender mis productos en las plataformas de reparto para realmente ganar dinero</b>. Entre comisiones, impuestos y costos, podía estar vendiendo mucho sin saber cuánto estaba ganando.</p>
+              <div className={story ? '' : 'hidden sm:block'}>
+                <p className="mt-4 text-lg text-carbon-700 leading-relaxed">Fue precisamente buscando ayuda con ese problema que conocí a <b className="font-semibold text-carbon-950">Tlaloc</b>, quien se dedicaba a asesorar restaurantes sobre sus ventas en plataformas digitales.</p>
+                <p className="mt-4 text-lg text-carbon-700 leading-relaxed">Nos dimos cuenta de que podíamos unir nuestras experiencias: yo conocía los problemas de administrar un restaurante todos los días y Tlaloc sabía cómo ayudar a los negocios a entender sus costos y vender mejor en las plataformas.</p>
+                <p className="mt-4 text-lg text-carbon-700 leading-relaxed"><b className="font-semibold text-carbon-950">Así nació DonPunto.</b> Juntos desarrollamos un sistema para que otros emprendedores puedan llevar sus ventas en orden, entender mejor sus números y administrar su negocio sin tantas complicaciones.</p>
+              </div>
+              {!story && (
+                <button type="button" onClick={() => setStory(true)} className="sm:hidden mt-4 text-base font-semibold text-agave-700 underline underline-offset-4">Leer la historia completa</button>
+              )}
+            </div>
+            <div className="order-5 lg:mt-6">
+              <p className="mt-7 border-l-4 border-maiz-400 pl-4 text-lg font-semibold leading-snug text-carbon-950">DonPunto no nació de una idea en una oficina. Nació de los problemas reales que vivimos trabajando con restaurantes.</p>
+              <p className="mt-6 text-carbon-950"><b className="font-semibold">Francisco Cota y Tlaloc</b><br /><i className="text-carbon-600">Creadores y desarrolladores de DonPunto.com</i></p>
+            </div>
+            </div>
+          </div>
+          <div className="mt-9 lg:mt-14">
+              <button onClick={onSubscribe} className="group flex w-full sm:w-auto lg:mx-auto items-center justify-center gap-4 rounded-full bg-agave-600 hover:bg-agave-700 pl-9 pr-3 py-3 text-xl sm:text-2xl font-bold text-white shadow-[0_18px_40px_-14px_rgba(4,33,26,0.55)] transition-colors">
                 Probar 15 días gratis
                 <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white/15 transition-transform duration-300 group-hover:translate-x-0.5"><ArrowRight size={24} /></span>
               </button>
-              <p className="mt-3 text-center sm:text-left text-sm text-carbon-600">Sin tarjeta · Sin contratos</p>
-            </div>
+              <p className="mt-3 text-center sm:text-left lg:text-center text-sm text-carbon-600">Sin tarjeta · Sin contratos</p>
           </div>
         </Section>
 
