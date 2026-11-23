@@ -3,7 +3,7 @@ import { LockKeyhole, Store, UserCog, PackageCheck, HeartHandshake, BarChart3, F
   Check, ChevronDown, Receipt, Calculator, Wallet, Boxes, ChefHat, ScanLine, WifiOff, BellRing,
   Smartphone, MessageCircle, Mail, ArrowRight, ShieldCheck, Globe, Bike, Banknote,
   EyeOff, Ban, TrendingDown, Coffee, Croissant, IceCream, Truck, ShoppingBag, Volume2, VolumeX,
-  Download,
+  Download, Camera,
 } from 'lucide-react';
 import { Logo, Mark, Wordmark } from '../brand/Logo';
 import { InstallAppButton } from '../pwa/InstallApp';
@@ -278,6 +278,14 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
   const founderOpen = !founders || founders.left > 0;
   const basico = priceFor('basico', founders);
   const pro = priceFor('pro', founders);
+  const perDay = Math.ceil(basico.price / 30);
+  const [sticky, setSticky] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setSticky(window.scrollY > 640);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   return (
     <div className="min-h-[100dvh] bg-[#FAFAF7] text-carbon-950 overflow-x-hidden selection:bg-maiz-200">
@@ -334,7 +342,13 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                   Ver precios
                 </a>
               </div>
-              <a href={ANDROID_APP_URL} className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-agave-700 hover:underline"><Download size={15} /> Descargar app para Android (APK)</a>
+              {founderOpen && (
+                <p className="mt-5 flex max-w-xl gap-3 rounded-2xl bg-maiz-50 px-4 py-3.5 text-[15px] leading-snug text-carbon-800 ring-1 ring-maiz-300">
+                  <Camera size={20} className="mt-0.5 shrink-0 text-maiz-700" />
+                  <span><b className="font-semibold text-carbon-950">¿No tienes tiempo de capturar tu menú?</b> Con el precio de fundador nosotros te lo cargamos desde una foto y te dejamos listo en una videollamada de 15 minutos.</span>
+                </p>
+              )}
+              <a href={ANDROID_APP_URL} className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-agave-700 hover:underline"><Download size={15} /> Descargar app para Android (APK)</a>
               <ul className="mt-8 flex flex-col sm:flex-row sm:flex-wrap gap-x-6 gap-y-2 text-sm text-carbon-600">
                 {['15 días gratis, sin tarjeta', founderOpen ? `Precio de fundador desde $${FOUNDER.prices.basico} al mes` : `Luego desde $${PLANS.basico.price} al mes`, 'Sin contratos'].map((t) => (
                   <li key={t} className="flex items-center gap-2"><Check size={16} className="text-agave-500" /> {t}</li>
@@ -368,19 +382,21 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
 
         {/* El dolor de no tener un buen punto de venta */}
         <section id="por-que" className="bg-agave-950 text-white">
-          <div className="mx-auto max-w-6xl px-5 sm:px-8 py-20 sm:py-28">
+          <div className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-28">
             <div className="max-w-3xl">
               <h2 className="font-display text-4xl sm:text-5xl font-bold leading-[1.05] tracking-[-0.03em]">
                 Sin un buen punto de venta, tu dinero se te escapa <span className="text-maiz-400">sin que lo veas</span>.
               </h2>
               <p className="mt-5 text-lg text-agave-100/90 leading-relaxed">La libreta, la calculadora y el cajón funcionan… hasta el día que no. Esto le pasa todos los días a los negocios sin control:</p>
             </div>
-            <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-8 sm:mt-14 grid gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {PAINS.map((p) => (
-                <div key={p.pain} className="rounded-[1.4rem] bg-white/[0.06] p-7 ring-1 ring-white/10">
-                  <div className="grid h-11 w-11 place-items-center rounded-xl bg-maiz-400/15 text-maiz-400 [&>svg]:h-5 [&>svg]:w-5">{p.icon}</div>
-                  <h3 className="mt-5 text-lg font-semibold">{p.pain}</h3>
-                  <p className="mt-2 text-agave-100/70 leading-relaxed">{p.hurt}</p>
+                <div key={p.pain} className="rounded-[1.4rem] bg-white/[0.06] p-5 sm:p-7 ring-1 ring-white/10">
+                  <div className="flex items-center gap-3 sm:block">
+                    <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-maiz-400/15 text-maiz-400 [&>svg]:h-5 [&>svg]:w-5">{p.icon}</div>
+                    <h3 className="text-lg font-semibold leading-snug sm:mt-5">{p.pain}</h3>
+                  </div>
+                  <p className="mt-3 sm:mt-2 text-agave-100/70 leading-relaxed">{p.hurt}</p>
                   <p className="mt-4 flex gap-2.5 border-t border-white/10 pt-4 text-white/90 leading-relaxed"><Check size={18} className="mt-0.5 shrink-0 text-maiz-400" /> {p.fix}</p>
                 </div>
               ))}
@@ -391,7 +407,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
         </section>
 
         {/* No solo restaurantes */}
-        <Section id="negocios" className="pt-24 sm:pt-32">
+        <Section id="negocios" className="pt-16 sm:pt-32">
           <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] items-center rounded-[2rem] bg-white p-6 sm:p-14 ring-1 ring-carbon-200/70">
             <div>
               <span className="inline-flex rounded-full bg-maiz-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-maiz-800">No solo restaurantes</span>
@@ -415,14 +431,14 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
         </Section>
 
         {/* Producto */}
-        <Section id="como-funciona" className="py-24 sm:py-32">
+        <Section id="como-funciona" className="py-16 sm:py-32">
           <div className="max-w-2xl">
             <h2 className="font-display text-4xl sm:text-5xl font-bold tracking-[-0.03em] leading-[1.05]">Todo tu negocio en una sola pantalla</h2>
             <p className="mt-5 text-lg text-carbon-600 leading-relaxed">Hecho para la hora pico: botones grandes, cobro en dos toques y tickets para cliente y cocina.</p>
           </div>
 
           <div className="mt-14 grid gap-6 lg:grid-cols-12">
-            <div className="lg:col-span-8">
+            <div className="hidden lg:block lg:col-span-8">
               <Shot src="/screens/pos.webp" alt="Pantalla de cobro de Don Punto con el menú y la orden actual" />
             </div>
             <div className="lg:col-span-4 flex flex-col justify-between gap-6 rounded-[1.4rem] bg-white p-8 ring-1 ring-carbon-200/70">
@@ -463,9 +479,83 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
           </div>
         </Section>
 
+        {/* Cómo empiezas */}
+        <Section className="pb-16 sm:pb-32">
+          <h2 className="font-display text-4xl sm:text-5xl font-bold tracking-[-0.03em]">Empiezas hoy mismo</h2>
+          <ol className="mt-12 grid gap-8 md:grid-cols-3">
+            {[
+              ['Crea tu cuenta', 'Tu correo y el nombre de tu negocio. Sin tarjeta: entras directo y tienes 15 días gratis.'],
+              ['Sube tu menú', 'Captúralo, impórtalo desde una hoja de cálculo o tómale foto y la IA lo digitaliza.'],
+              ['Cobra y cuadra', 'Vende en mostrador y apps, imprime tickets y haz tu corte con el IVA ya separado.'],
+            ].map(([t, d], i) => (
+              <li key={t} className="border-t-2 border-carbon-950 pt-6">
+                <span className="font-display text-5xl font-bold text-agave-600 tabular-nums">{i + 1}</span>
+                <h3 className="mt-4 text-xl font-semibold">{t}</h3>
+                <p className="mt-2 text-carbon-600 leading-relaxed">{d}</p>
+              </li>
+            ))}
+          </ol>
+        </Section>
+
+        {/* Precios */}
+        <section id="precios" className="bg-white border-y border-carbon-200/70">
+          <div className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-32">
+            <div className="max-w-2xl">
+              <h2 className="font-display text-4xl sm:text-5xl font-bold tracking-[-0.03em]">Precio claro, sin contratos</h2>
+              <p className="mt-5 text-lg text-carbon-600">Pruébalo 15 días gratis y sin tarjeta. Después pagas mes a mes en pesos y cancelas desde tu cuenta cuando quieras.</p>
+              <p className="mt-3 text-lg font-semibold text-carbon-950">${basico.price} al mes es menos de ${perDay} al día. Un solo descuento sin autorizar te cuesta más.</p>
+            </div>
+            {founderOpen && (
+              <div className="mt-10 max-w-4xl rounded-[1.4rem] bg-maiz-50 ring-1 ring-maiz-300 p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center gap-5">
+                <div className="shrink-0">
+                  {founders && founders.taken > 0 ? (
+                    <>
+                      <p className="font-display text-5xl font-bold tabular-nums text-carbon-950">{founders.left}<span className="text-2xl text-carbon-500"> / {FOUNDER.limit}</span></p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-maiz-800">lugares que quedan</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-maiz-800">Solo los primeros</p>
+                      <p className="font-display text-5xl font-bold tabular-nums text-carbon-950">{FOUNDER.limit}</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-maiz-800">negocios</p>
+                    </>
+                  )}
+                </div>
+                <p className="text-carbon-700 leading-relaxed">
+                  <b className="text-carbon-950">Precio de fundador de por vida.</b> Los primeros {FOUNDER.limit} negocios pagan ${FOUNDER.prices.basico} en lugar de ${PLANS.basico.price} (Pro ${FOUNDER.prices.pro} en lugar de ${PLANS.pro.price}) mientras sigan suscritos. Y te cargamos tu menú desde una foto, con una videollamada de 15 minutos para dejarte listo.
+                </p>
+              </div>
+            )}
+            <div className="mt-14 grid gap-6 lg:grid-cols-2 max-w-4xl">
+              <Plan
+                name="Básico"
+                price={basico.price}
+                regular={basico.founder ? basico.regular : undefined}
+                text="Para un negocio con una sucursal que quiere orden y vender más."
+                items={['1 sucursal, ventas ilimitadas', 'Tienda en línea propia, sin comisión por pedido', 'Calculadora de precios para apps de delivery', 'Tu menú desde una foto con IA', 'Combos sugeridos para mover tus platillos', 'Corte de caja con IVA, inventario y recetario', '2 usuarios: tú y 1 cajero con su PIN', 'Reportes y ganancias protegidos con PIN', 'Respaldo en la nube y app instalable']}
+                cta="Cobra tu primera venta hoy, gratis"
+                note={`15 días gratis, sin tarjeta. Luego $${basico.price} al mes${basico.founder ? ' de por vida' : ''}.`}
+                onClick={onSubscribe}
+              />
+              <Plan
+                featured
+                name="Pro"
+                price={pro.price}
+                regular={pro.founder ? pro.regular : undefined}
+                text="Para negocios con equipo, varias sucursales y ganas de crecer."
+                items={['Todo lo del plan Básico, incluida la tienda en línea', 'Varias sucursales con reporte de todas juntas', 'Empleados ilimitados (meseros, cajeros y gerentes) con su PIN y reporte por persona', 'Inventario que se descuenta solo y avisos al celular', 'Clientes frecuentes y recompensas por visita', 'Reportes avanzados con hoja de cálculo y PDF', 'Facturas de proveedor leídas con IA', 'Soporte prioritario']}
+                cta="Empieza gratis con Pro"
+                note={`15 días gratis, sin tarjeta. Luego $${pro.price} al mes${pro.founder ? ' de por vida' : ''}.`}
+                onClick={onSubscribe}
+              />
+            </div>
+            <p className="mt-8 flex items-center justify-center lg:justify-start max-w-4xl gap-2 text-sm text-carbon-500"><ShieldCheck size={16} className="text-agave-500" /> Pago seguro con tarjeta procesado por Stripe. <a href="/privacidad" className="underline underline-offset-4 hover:text-carbon-800">Aviso de Privacidad</a> · <a href="/terminos" className="underline underline-offset-4 hover:text-carbon-800">Términos</a></p>
+          </div>
+        </section>
+
         {/* Si vendes en apps de reparto */}
         <section id="apps" className="bg-agave-950 text-white">
-          <div className="mx-auto max-w-6xl px-5 sm:px-8 py-20 sm:py-28 grid gap-14 lg:grid-cols-[1.05fr_0.95fr] items-center">
+          <div className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-28 grid gap-14 lg:grid-cols-[1.05fr_0.95fr] items-center">
             <div>
               <span className="inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-maiz-400">¿También vendes en apps de reparto?</span>
               <h2 className="mt-5 font-display text-4xl sm:text-5xl font-bold leading-[1.05] tracking-[-0.03em]">
@@ -481,7 +571,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
         </section>
 
         {/* Tienda en línea */}
-        <Section id="tienda-en-linea" className="py-24 sm:py-32">
+        <Section id="tienda-en-linea" className="py-16 sm:py-32">
           <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
             <div>
               <p className="inline-flex items-center gap-2 rounded-full bg-maiz-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-maiz-800">Nuevo · incluido en todos los planes</p>
@@ -521,7 +611,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
         </Section>
 
         {/* App instalable + notificaciones */}
-        <Section className="pb-24 sm:pb-32">
+        <Section className="pb-16 sm:pb-32">
           <div className="grid overflow-hidden rounded-[2rem] bg-carbon-950 text-white lg:grid-cols-2">
             <div className="p-10 sm:p-14">
               <Smartphone className="text-maiz-400" strokeWidth={1.6} />
@@ -547,7 +637,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
         </Section>
 
         {/* Plan Pro */}
-        <Section className="pb-24 sm:pb-32">
+        <Section className="pb-16 sm:pb-32">
           <div className="rounded-[2rem] bg-gradient-to-br from-maiz-50 via-white to-agave-50 ring-1 ring-carbon-200/70 p-8 sm:p-14">
             <span className="inline-flex rounded-full bg-maiz-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-maiz-800">Plan Pro</span>
             <h2 className="mt-5 max-w-2xl font-display text-4xl sm:text-5xl font-bold leading-[1.05] tracking-[-0.03em]">Para cuando ya tienes equipo, más de un local y quieres crecer.</h2>
@@ -570,71 +660,8 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
           </div>
         </Section>
 
-        {/* Cómo empiezas */}
-        <Section className="pb-24 sm:pb-32">
-          <h2 className="font-display text-4xl sm:text-5xl font-bold tracking-[-0.03em]">Empiezas hoy mismo</h2>
-          <ol className="mt-12 grid gap-8 md:grid-cols-3">
-            {[
-              ['Crea tu cuenta', 'Tu correo y el nombre de tu negocio. Sin tarjeta: entras directo y tienes 15 días gratis.'],
-              ['Sube tu menú', 'Captúralo, impórtalo desde una hoja de cálculo o tómale foto y la IA lo digitaliza.'],
-              ['Cobra y cuadra', 'Vende en mostrador y apps, imprime tickets y haz tu corte con el IVA ya separado.'],
-            ].map(([t, d], i) => (
-              <li key={t} className="border-t-2 border-carbon-950 pt-6">
-                <span className="font-display text-5xl font-bold text-agave-600 tabular-nums">{i + 1}</span>
-                <h3 className="mt-4 text-xl font-semibold">{t}</h3>
-                <p className="mt-2 text-carbon-600 leading-relaxed">{d}</p>
-              </li>
-            ))}
-          </ol>
-        </Section>
-
-        {/* Precios */}
-        <section id="precios" className="bg-white border-y border-carbon-200/70">
-          <div className="mx-auto max-w-6xl px-5 sm:px-8 py-24 sm:py-32">
-            <div className="max-w-2xl">
-              <h2 className="font-display text-4xl sm:text-5xl font-bold tracking-[-0.03em]">Precio claro, sin contratos</h2>
-              <p className="mt-5 text-lg text-carbon-600">Pruébalo 15 días gratis y sin tarjeta. Después pagas mes a mes en pesos y cancelas desde tu cuenta cuando quieras.</p>
-            </div>
-            {founderOpen && (
-              <div className="mt-10 max-w-4xl rounded-[1.4rem] bg-maiz-50 ring-1 ring-maiz-300 p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center gap-5">
-                <div className="shrink-0">
-                  <p className="font-display text-5xl font-bold tabular-nums text-carbon-950">{founders ? founders.left : FOUNDER.limit}<span className="text-2xl text-carbon-500"> / {FOUNDER.limit}</span></p>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-maiz-800">lugares de fundador</p>
-                </div>
-                <p className="text-carbon-700 leading-relaxed">
-                  <b className="text-carbon-950">Precio de fundador de por vida.</b> Los primeros {FOUNDER.limit} negocios pagan ${FOUNDER.prices.basico} en lugar de ${PLANS.basico.price} (Pro ${FOUNDER.prices.pro} en lugar de ${PLANS.pro.price}) mientras sigan suscritos. Y te cargamos tu menú desde una foto, con una videollamada de 15 minutos para dejarte listo.
-                </p>
-              </div>
-            )}
-            <div className="mt-14 grid gap-6 lg:grid-cols-2 max-w-4xl">
-              <Plan
-                name="Básico"
-                price={basico.price}
-                regular={basico.founder ? basico.regular : undefined}
-                text="Para un negocio con una sucursal que quiere orden y vender más."
-                items={['1 sucursal, ventas ilimitadas', 'Tienda en línea propia, sin comisión por pedido', 'Calculadora de precios para apps de delivery', 'Tu menú desde una foto con IA', 'Combos sugeridos para mover tus platillos', 'Corte de caja con IVA, inventario y recetario', '2 usuarios: tú y 1 cajero con su PIN', 'Reportes y ganancias protegidos con PIN', 'Respaldo en la nube y app instalable']}
-                cta="Cobra tu primera venta hoy, gratis"
-                note={`15 días gratis, sin tarjeta. Luego $${basico.price} al mes${basico.founder ? ' de por vida' : ''}.`}
-                onClick={onSubscribe}
-              />
-              <Plan
-                featured
-                name="Pro"
-                price={pro.price}
-                regular={pro.founder ? pro.regular : undefined}
-                text="Para negocios con equipo, varias sucursales y ganas de crecer."
-                items={['Todo lo del plan Básico, incluida la tienda en línea', 'Varias sucursales con reporte de todas juntas', 'Empleados ilimitados (meseros, cajeros y gerentes) con su PIN y reporte por persona', 'Inventario que se descuenta solo y avisos al celular', 'Clientes frecuentes y recompensas por visita', 'Reportes avanzados con hoja de cálculo y PDF', 'Facturas de proveedor leídas con IA', 'Soporte prioritario']}
-                cta="Empieza gratis con Pro"
-                note={`15 días gratis, sin tarjeta. Luego $${pro.price} al mes${pro.founder ? ' de por vida' : ''}.`}
-                onClick={onSubscribe}
-              />
-            </div>
-            <p className="mt-8 flex items-center justify-center lg:justify-start max-w-4xl gap-2 text-sm text-carbon-500"><ShieldCheck size={16} className="text-agave-500" /> Pago seguro con tarjeta procesado por Stripe. <a href="/privacidad" className="underline underline-offset-4 hover:text-carbon-800">Aviso de Privacidad</a> · <a href="/terminos" className="underline underline-offset-4 hover:text-carbon-800">Términos</a></p>
-          </div>
-        </section>
-
         {/* Preguntas */}
-        <Section id="preguntas" className="py-24 sm:py-32">
+        <Section id="preguntas" className="pb-16 sm:pb-32">
           <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr]">
             <div>
               <h2 className="font-display text-4xl sm:text-5xl font-bold tracking-[-0.03em]">Preguntas frecuentes</h2>
@@ -665,7 +692,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
         </Section>
 
         {/* Cierre */}
-        <Section className="pb-24 sm:pb-32">
+        <Section className="pb-16 sm:pb-32">
           <div className="relative overflow-hidden rounded-[2rem] bg-agave-600 px-8 py-16 sm:px-16 sm:py-20 text-white">
             <div aria-hidden="true" className="absolute -right-24 -bottom-24 h-80 w-80 rounded-full bg-maiz-400/90" />
             <div className="relative max-w-2xl">
@@ -699,6 +726,13 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
         </div>
         <div className="mx-auto max-w-6xl px-5 sm:px-8 pb-10 text-xs text-carbon-400">© {new Date().getFullYear()} Don Punto</div>
       </footer>
+
+      <div className={`md:hidden fixed bottom-4 left-4 right-[5.5rem] z-[60] transition-all duration-300 ${sticky ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-24 opacity-0'}`}>
+        <button onClick={onSubscribe} tabIndex={sticky ? 0 : -1} className="flex h-14 w-full flex-col items-center justify-center rounded-full bg-agave-600 px-4 text-white shadow-[0_14px_30px_-10px_rgba(4,33,26,0.6)] active:scale-[0.98]">
+          <span className="text-[15px] font-semibold leading-tight">Probar 15 días gratis</span>
+          <span className="text-[11px] leading-tight text-agave-100">Sin tarjeta · Sin contratos</span>
+        </button>
+      </div>
 
       {whatsapp && (
         <a

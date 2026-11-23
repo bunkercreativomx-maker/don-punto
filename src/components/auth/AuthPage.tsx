@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { track } from '../../lib/pixel';
-import { Mail, Lock, Building2, ChevronRight, AlertCircle, Loader2, ArrowLeft, Handshake } from 'lucide-react';
+import { Mail, Lock, Building2, ChevronRight, AlertCircle, Loader2, ArrowLeft, Handshake, Check } from 'lucide-react';
 import { getStoredRef, cleanRefCode, checkRefCode, attachRef } from '../../lib/referral';
 import { pb } from '../../lib/pocketbase';
 import { Logo } from '../brand/Logo';
@@ -17,8 +17,8 @@ function friendlyError(err: any, isLogin: boolean): string {
     return err?.message && !/Failed to|Something went wrong/i.test(err.message) ? err.message : 'Ocurrió un error. Intenta de nuevo.';
 }
 
-export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void; onBack?: () => void }) {
-    const [isLogin, setIsLogin] = useState(true);
+export function AuthPage({ onAuthSuccess, onBack, signup }: { onAuthSuccess: () => void; onBack?: () => void; signup?: boolean }) {
+    const [isLogin, setIsLogin] = useState(!signup);
     const [forgot, setForgot] = useState(false);
     const [resetSent, setResetSent] = useState(false);
     const [email, setEmail] = useState('');
@@ -26,6 +26,7 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
     const [restaurantName, setRestaurantName] = useState('');
     const [linkRef] = useState(() => getStoredRef());
     const [refCode, setRefCode] = useState(linkRef);
+    const [showRef, setShowRef] = useState(!!linkRef);
     
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -91,9 +92,17 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
                     <div className="text-center mb-8">
                         <h1 className="sr-only">Don Punto</h1>
                         <div className="flex justify-center"><Logo size={72} tagline /></div>
+                        {!isLogin && !forgot ? (
+                            <>
+                                <h2 className="mt-4 text-2xl font-black tracking-tight text-carbon-950">Crea tu cuenta</h2>
+                                <p className="mt-1 text-base font-semibold text-agave-700">15 días gratis, sin tarjeta</p>
+                                <p className="text-slate-400 mt-1 text-sm font-medium">Toma un minuto y entras directo a cobrar.</p>
+                            </>
+                        ) : (
                         <p className="text-slate-400 mt-2 text-sm font-medium">
-                            {forgot ? 'Escribe tu correo y te mandamos un enlace para crear una contraseña nueva.' : isLogin ? 'Ingresa a tu cuenta para gestionar tu restaurante.' : 'Crea tu cuenta y comienza a vender en minutos.'}
+                            {forgot ? 'Escribe tu correo y te mandamos un enlace para crear una contraseña nueva.' : 'Ingresa a tu cuenta para gestionar tu restaurante.'}
                         </p>
+                        )}
                     </div>
 
                     {error && (
@@ -177,7 +186,12 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
                         </div>
                         )}
 
-                        {!isLogin && !forgot && (
+                        {!isLogin && !forgot && !showRef && (
+                            <button type="button" onClick={() => setShowRef(true)} className="text-xs font-semibold text-agave-700 hover:underline">
+                                ¿Tienes un código de quien te recomendó?
+                            </button>
+                        )}
+                        {!isLogin && !forgot && showRef && (
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-500 uppercase">Código de quien te recomendó <span className="normal-case font-semibold">(opcional)</span></label>
                                 <div className="relative">
@@ -206,11 +220,18 @@ export function AuthPage({ onAuthSuccess, onBack }: { onAuthSuccess: () => void;
                                 <Loader2 size={20} className="animate-spin" />
                             ) : (
                                 <>
-                                    {forgot ? 'ENVIAR ENLACE' : isLogin ? 'INICIAR SESIÓN' : 'CREAR CUENTA'}
+                                    {forgot ? 'ENVIAR ENLACE' : isLogin ? 'INICIAR SESIÓN' : 'CREAR MI CUENTA'}
                                     <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
                                 </>
                             )}
                         </button>
+                        {!isLogin && !forgot && (
+                            <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs font-semibold text-carbon-700">
+                                {['Sin tarjeta', 'Sin contratos', 'No se te cobra nada'].map((t) => (
+                                    <li key={t} className="inline-flex items-center gap-1"><Check size={14} className="text-agave-600" /> {t}</li>
+                                ))}
+                            </ul>
+                        )}
                         {!isLogin && (
                             <p className="text-[11px] text-slate-500 text-center leading-relaxed">
                                 Al crear tu cuenta aceptas los <a href="/terminos" target="_blank" className="underline hover:text-slate-300">Términos</a> y el <a href="/privacidad" target="_blank" className="underline hover:text-slate-300">Aviso de Privacidad</a>.

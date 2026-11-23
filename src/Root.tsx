@@ -91,6 +91,7 @@ export default function Root() {
 function RootApp() {
   const initialPhase: Phase = pb.authStore.isValid ? 'checking' : window.location.pathname.startsWith('/login') ? 'auth' : 'landing';
   const [phase, setPhase] = useState<Phase>(initialPhase);
+  const [authSignup, setAuthSignup] = useState(false);
   const [uid, setUid] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [sub, setSub] = useState<SubInfo>({ status: 'checking', hasStripeCustomer: false });
@@ -261,7 +262,7 @@ function RootApp() {
   if (phase === 'landing') {
     return withChat(
       <Suspense fallback={<Splash />}>
-        <LandingPage onLogin={() => setPhase('auth')} onSubscribe={() => setPhase('auth')} />
+        <LandingPage onLogin={() => { setAuthSignup(false); setPhase('auth'); }} onSubscribe={() => { setAuthSignup(true); setPhase('auth'); }} />
       </Suspense>
     );
   }
@@ -269,6 +270,7 @@ function RootApp() {
   if (phase === 'auth') {
     return withChat(
       <AuthPage
+        signup={authSignup}
         onBack={() => setPhase('landing')}
         onAuthSuccess={() => {
           const rec = pb.authStore.record;
