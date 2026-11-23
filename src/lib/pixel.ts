@@ -5,3 +5,8 @@ declare global { interface Window { fbq?: (...a: unknown[]) => void } }
 export function track(event: string, params?: Record<string, unknown>, eventId?: string) {
   try { window.fbq?.('track', event, params || {}, eventId ? { eventID: eventId } : undefined); } catch { /* sin pixel */ }
 }
+
+/** Eventos propios (clics en botones, qué tanto bajan): se ven en Meta → Administrador de eventos. */
+export function trackCustom(event: string, params?: Record<string, unknown>) {
+  try { window.fbq?.('trackCustom', event, params); } catch { /* sin pixel */ }
+}

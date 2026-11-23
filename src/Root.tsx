@@ -1,6 +1,7 @@
 import { ResetPasswordPage } from './components/auth/ResetPasswordPage';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { AuthPage } from './components/auth/AuthPage';
+import { getAd } from './lib/adVariant';
 import { SubscriptionGate } from './components/auth/SubscriptionGate';
 import { pb } from './lib/pocketbase';
 import { hydrateUser, attachUserOffline, clearUser, flushAll, onSyncStatus, setReadOnly, type SyncStatus } from './lib/cloudStore';
@@ -137,7 +138,7 @@ function RootApp() {
       // Cuenta nueva: arranca la prueba gratis de 15 días sin tarjeta (el servidor valida que sea la primera vez)
       if (info.canTrial) {
         try {
-          const r = await apiPost<{ started: boolean }>('/api/trial', {});
+          const r = await apiPost<{ started: boolean }>('/api/trial', { src: getAd() || '' });
           if (r.started) track('StartTrial', { value: 0, currency: 'MXN', predicted_ltv: 350 }, 'trial_' + user.id);
           info = await fetchSubscription(user.id);
         } catch (err) {

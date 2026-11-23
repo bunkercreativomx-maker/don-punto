@@ -3,13 +3,15 @@ import { LockKeyhole, Store, UserCog, PackageCheck, HeartHandshake, BarChart3, F
   Check, ChevronDown, Receipt, Calculator, Wallet, Boxes, ChefHat, ScanLine, WifiOff, BellRing,
   Smartphone, MessageCircle, Mail, ArrowRight, ShieldCheck, Globe, Bike, Banknote,
   EyeOff, Ban, TrendingDown, Coffee, Croissant, IceCream, Truck, ShoppingBag, Volume2, VolumeX,
-  Download, Camera,
+  Download, Camera, Phone, Plus,
 } from 'lucide-react';
 import { Logo, Mark, Wordmark } from '../brand/Logo';
 import { InstallAppButton } from '../pwa/InstallApp';
 import { ANDROID_APP_URL } from '../../lib/nativeBridge';
 import { whatsappLink, supportLink, SUPPORT_EMAIL, PLANS, FOUNDER } from '../../config';
 import { useFounders, priceFor } from '../../lib/founders';
+import { AD_HERO, getAd, fillAd } from '../../lib/adVariant';
+import { track, trackCustom } from '../../lib/pixel';
 
 interface LandingPageProps {
   onLogin: () => void;
@@ -112,7 +114,7 @@ function TicketCalculator({ onStart }: { onStart: () => void }) {
         </div>
         <div className="px-6 pb-6">
           <button onClick={onStart} className="w-full rounded-xl py-3 font-semibold text-agave-700 ring-1 ring-agave-200 hover:bg-agave-50 transition-colors">
-            Calcular todo mi menú
+            Probar 15 días gratis
           </button>
         </div>
       </div>
@@ -194,6 +196,8 @@ const FEATURES: { icon: ReactNode; title: string; text: string }[] = [
   { icon: <ScanLine strokeWidth={1.6} />, title: 'Tu menú desde una foto', text: 'Tómale foto a tu menú impreso y la IA lo convierte en productos con precio.' },
   { icon: <WifiOff strokeWidth={1.6} />, title: 'Funciona sin internet', text: 'Si se cae la red sigues vendiendo. Todo se sube a la nube cuando vuelve la conexión.' },
 ];
+
+const MORE_IDS = ['tienda-en-linea', 'apps', 'app', 'pro'];
 
 /* ------------------------------------------------------------------ página */
 /** Video del landing: autoplay en silencio cuando entra en pantalla (los navegadores solo permiten autoplay sin sonido). */
@@ -281,12 +285,55 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
   const perDay = Math.ceil(basico.price / 30);
   const [sticky, setSticky] = useState(false);
   const [story, setStory] = useState(false); // «Leer la historia completa» en celular
+
+  // Anuncio que trajo el clic (?a=05): el inicio repite su promesa
+  const ad = useMemo(() => getAd(), []);
+  const adHero = ad && AD_HERO[ad] && (founderOpen || !AD_HERO[ad].founderOnly) ? AD_HERO[ad] : null;
+  const adVars = { fundador: FOUNDER.prices.basico, normal: PLANS.basico.price, lugares: FOUNDER.limit, dia: perDay };
+  const heroTitle = adHero ? fillAd(adHero.title, adVars) : 'Tu punto de venta para restaurantes';
+
+  // Medición: clic en cada botón (con su lugar) y qué tanto bajan
+  const go = (place: string) => { trackCustom('CTAClick', { place, ad: ad || 'sin-anuncio' }); onSubscribe(); };
+  const depth = useRef(0);
   useEffect(() => {
-    const onScroll = () => setSticky(window.scrollY > 640);
+    const onScroll = () => {
+      // La barra fija se esconde mientras el formulario «Déjanos tu número» está en pantalla (no debe tapar su botón)
+      const lead = document.getElementById('te-marcamos')?.getBoundingClientRect();
+      const onLead = !!lead && lead.top < window.innerHeight - 120 && lead.bottom > 120;
+      setSticky(window.scrollY > 640 && !onLead);
+      const pct = ((window.scrollY + window.innerHeight) / document.documentElement.scrollHeight) * 100;
+      for (const mark of [25, 50, 75, 100]) {
+        if (pct >= mark - 0.5 && depth.current < mark && window.scrollY > 0) { depth.current = mark; trackCustom('ScrollDepth', { depth: mark, ad: ad || 'sin-anuncio' }); }
+      }
+    };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
+  }, [ad]);
+
+  // «Además incluye»: secciones plegadas; los enlaces #tienda-en-linea etc. las abren
+  const [more, setMore] = useState<string | null>(ad === 'a14' ? 'tienda-en-linea' : null);
+  useEffect(() => {
+    const openFromHash = () => {
+      const h = window.location.hash.slice(1);
+      if (MORE_IDS.includes(h)) { setMore(h); setTimeout(() => document.getElementById(h)?.scrollIntoView({ block: 'start' }), 60); }
+    };
+    openFromHash();
+    window.addEventListener('hashchange', openFromHash);
+    return () => window.removeEventListener('hashchange', openFromHash);
   }, []);
+
+  const heroExtras = (
+    <>
+      {founderOpen && (
+        <p className="lg:mt-6 flex max-w-xl gap-3 rounded-2xl bg-maiz-50 px-4 py-3.5 text-[15px] leading-snug text-carbon-800 ring-1 ring-maiz-300">
+          <Camera size={20} className="mt-0.5 shrink-0 text-maiz-700" />
+          <span><b className="font-semibold text-carbon-950">¿No tienes tiempo de capturar tu menú?</b> Con el precio de fundador nosotros te lo cargamos desde una foto y te dejamos listo en una videollamada de 15 minutos.</span>
+        </p>
+      )}
+      <a href="#te-marcamos" className="mt-4 inline-flex items-center gap-2 text-[15px] font-semibold text-agave-700 underline underline-offset-4"><Phone size={16} /> ¿Prefieres que te ayudemos a empezar? Déjanos tu número</a>
+    </>
+  );
 
   return (
     <div className="min-h-[100dvh] bg-[#FAFAF7] text-carbon-950 overflow-x-hidden selection:bg-maiz-200">
@@ -300,14 +347,13 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
             <a href="#precios" className="hover:text-carbon-950">Precios</a>
             <a href="#preguntas" className="hover:text-carbon-950">Preguntas</a>
             <a href="/blog" className="hover:text-carbon-950">Blog</a>
-            <a href={ANDROID_APP_URL} className="hover:text-carbon-950">App para Android</a>
           </nav>
           <div className="flex items-center gap-1 sm:gap-3">
             <button onClick={onLogin} className="whitespace-nowrap rounded-full px-2.5 sm:px-4 py-2 text-[13px] sm:text-sm font-medium text-carbon-700 hover:bg-carbon-100">
               Entrar
             </button>
-            <button onClick={onSubscribe} className="whitespace-nowrap rounded-full bg-agave-600 hover:bg-agave-700 px-3.5 sm:px-5 py-2 text-[13px] sm:text-sm font-semibold text-white transition-colors">
-            Empieza gratis
+            <button onClick={() => go('encabezado')} className="whitespace-nowrap rounded-full bg-agave-600 hover:bg-agave-700 px-3.5 sm:px-5 py-2 text-[13px] sm:text-sm font-semibold text-white transition-colors">
+              Probar gratis
             </button>
           </div>
         </div>
@@ -315,58 +361,59 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
 
       <main id="inicio">
         {/* Hero */}
-        <Section className="pt-12 pb-20 sm:pt-20 sm:pb-28">
+        <Section className="pt-8 pb-14 sm:pt-20 sm:pb-28">
           <div className="hero-in">
             <p className="inline-flex items-center gap-2 rounded-full bg-agave-50 px-3 py-1 text-sm text-agave-700 ring-1 ring-agave-100">
-              <span className="h-1.5 w-1.5 rounded-full bg-maiz-400" /> Restaurantes, cafeterías y negocios de mostrador
+              <span className="h-1.5 w-1.5 rounded-full bg-maiz-400" /> {adHero ? 'Don Punto · Tu punto de venta para restaurantes' : 'Restaurantes, cafeterías y negocios de mostrador'}
             </p>
-            <h1 className="mt-6 max-w-5xl font-display text-[3.1rem] leading-[0.98] sm:text-7xl lg:text-[6.4rem] font-bold tracking-[-0.04em] text-carbon-950">
-              Tu punto de venta para restaurantes<span className="text-maiz-500">.</span>
+            <h1 className={`mt-5 sm:mt-6 max-w-5xl font-display font-bold tracking-[-0.04em] text-carbon-950 leading-[1] sm:leading-[0.98] sm:text-7xl ${adHero ? 'text-[2.45rem] lg:text-[5.4rem]' : 'text-[2.7rem] lg:text-[6.4rem]'}`}>
+              {heroTitle}<span className="text-maiz-500">.</span>
             </h1>
           </div>
-          <div className="mt-10 grid items-center gap-14 lg:grid-cols-[1fr_1fr]">
+          <div className="mt-6 sm:mt-10 grid items-center gap-9 sm:gap-14 lg:grid-cols-[1fr_1fr]">
             <div className="hero-in">
-              <p className="max-w-xl text-lg sm:text-xl leading-relaxed text-carbon-600">
-                Cobra en segundos, manda la comanda a cocina y cuadra tu caja. Don Punto te dice cuánto ganaste hoy, desde el celular, la tablet o la compu que ya tienes.
-              </p>
-              <p className="mt-4 max-w-xl text-base leading-relaxed text-carbon-600">
-                <b className="font-semibold text-carbon-900">¿No tienes restaurante?</b> También es para negocios pequeños y medianos que quieren llevar el control de sus ventas.
-              </p>
-              <div className="mt-9 flex flex-col sm:flex-row gap-3">
-                <button onClick={onSubscribe} className="group inline-flex items-center justify-center gap-3 rounded-full bg-agave-600 hover:bg-agave-700 pl-7 pr-2 py-2 text-base font-semibold text-white transition-colors">
-                  Cobra tu primera venta hoy, gratis
-                  <span className="grid h-9 w-9 place-items-center rounded-full bg-white/15 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5">
-                    <ArrowRight size={18} />
+              {adHero ? (
+                <p className="max-w-xl text-lg sm:text-xl leading-relaxed text-carbon-600">{fillAd(adHero.sub, adVars)}</p>
+              ) : (
+                <>
+                  <p className="max-w-xl text-lg sm:text-xl leading-relaxed text-carbon-600">
+                    Cobra en segundos, manda la comanda a cocina y cuadra tu caja<span className="hidden sm:inline">. Don Punto te dice cuánto ganaste hoy</span>, desde el celular, la tablet o la compu que ya tienes.
+                  </p>
+                  <p className="hidden sm:block mt-4 max-w-xl text-base leading-relaxed text-carbon-600">
+                    <b className="font-semibold text-carbon-900">¿No tienes restaurante?</b> También es para negocios pequeños y medianos que quieren llevar el control de sus ventas.
+                  </p>
+                </>
+              )}
+              <div className="mt-7 sm:mt-9 flex flex-col sm:flex-row gap-3">
+                <button onClick={() => go('inicio')} className="group inline-flex items-center justify-center gap-3 rounded-full bg-agave-600 hover:bg-agave-700 pl-8 pr-2.5 py-2.5 text-lg font-bold text-white shadow-[0_18px_40px_-14px_rgba(4,33,26,0.55)] transition-colors">
+                  Probar 15 días gratis
+                  <span className="grid h-10 w-10 place-items-center rounded-full bg-white/15 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5">
+                    <ArrowRight size={20} />
                   </span>
                 </button>
-                <a href="#precios" className="inline-flex items-center justify-center rounded-full px-7 py-3.5 text-base font-semibold text-carbon-800 ring-1 ring-carbon-300 hover:bg-white">
+                <a href="#precios" className="hidden sm:inline-flex items-center justify-center rounded-full px-7 py-3.5 text-base font-semibold text-carbon-800 ring-1 ring-carbon-300 hover:bg-white">
                   Ver precios
                 </a>
               </div>
-              {founderOpen && (
-                <p className="mt-5 flex max-w-xl gap-3 rounded-2xl bg-maiz-50 px-4 py-3.5 text-[15px] leading-snug text-carbon-800 ring-1 ring-maiz-300">
-                  <Camera size={20} className="mt-0.5 shrink-0 text-maiz-700" />
-                  <span><b className="font-semibold text-carbon-950">¿No tienes tiempo de capturar tu menú?</b> Con el precio de fundador nosotros te lo cargamos desde una foto y te dejamos listo en una videollamada de 15 minutos.</span>
-                </p>
-              )}
-              <a href={ANDROID_APP_URL} className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-agave-700 hover:underline"><Download size={15} /> Descargar app para Android (APK)</a>
-              <ul className="mt-8 flex flex-col sm:flex-row sm:flex-wrap gap-x-6 gap-y-2 text-sm text-carbon-600">
-                {['15 días gratis, sin tarjeta', founderOpen ? `Precio de fundador desde $${FOUNDER.prices.basico} al mes` : `Luego desde $${PLANS.basico.price} al mes`, 'Sin contratos'].map((t) => (
-                  <li key={t} className="flex items-center gap-2"><Check size={16} className="text-agave-500" /> {t}</li>
-                ))}
-              </ul>
+              <p className="mt-3 text-center sm:text-left text-sm text-carbon-600">
+                Sin tarjeta · Sin contratos · {founderOpen ? `Luego desde $${FOUNDER.prices.basico} al mes` : `Luego desde $${PLANS.basico.price} al mes`}
+              </p>
+              <div className="hidden lg:block">{heroExtras}</div>
             </div>
             <div className="hero-in hero-in-late relative">
-              <div className="absolute -inset-6 rounded-[2.5rem] bg-agave-500/10 blur-2xl" aria-hidden="true" />
-              <div className="relative rounded-[1.4rem] bg-carbon-900 p-1.5 ring-1 ring-black/10 shadow-[0_40px_80px_-40px_rgba(4,33,26,0.55)]">
-                <img src="/screens/pos.webp" alt="Pantalla de cobro de Don Punto con el menú y la orden actual" decoding="async" fetchPriority="high" className="block w-full rounded-[1.1rem]" />
+              {/* Celular: captura del cobro en teléfono */}
+              <div className="sm:hidden mx-auto w-full max-w-[250px] rounded-[2.3rem] bg-carbon-950 p-2 shadow-[0_40px_80px_-30px_rgba(4,33,26,0.6)] ring-1 ring-black/20">
+                <img src="/screens/pos-movil.webp" alt="Don Punto cobrando desde un celular" width={780} height={1560} decoding="async" className="block w-full rounded-[1.8rem]" />
               </div>
-              <div className="absolute -bottom-6 left-4 sm:-left-8 w-[15.5rem] rounded-2xl bg-white p-4 shadow-[0_20px_50px_-20px_rgba(4,33,26,0.45)] ring-1 ring-carbon-200/70">
-                <p className="text-xs font-semibold uppercase tracking-wider text-agave-600">Corte de hoy</p>
-                <p className="mt-1 font-semibold text-carbon-950 tabular-nums">$8,940 · 63 ventas</p>
-                <p className="text-sm text-carbon-500">Caja cuadrada <Check size={14} className="inline text-agave-500" /></p>
+              {/* Tablet y compu */}
+              <div className="hidden sm:block">
+                <div className="absolute -inset-6 rounded-[2.5rem] bg-agave-500/10 blur-2xl" aria-hidden="true" />
+                <div className="relative rounded-[1.4rem] bg-carbon-900 p-1.5 ring-1 ring-black/10 shadow-[0_40px_80px_-40px_rgba(4,33,26,0.55)]">
+                  <img src="/screens/pos.webp" alt="Pantalla de cobro de Don Punto con el menú y la orden actual" decoding="async" loading="lazy" className="block w-full rounded-[1.1rem]" />
+                </div>
               </div>
             </div>
+            <div className="lg:hidden">{heroExtras}</div>
           </div>
         </Section>
 
@@ -430,7 +477,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
             </div>
           </div>
           <div className="mt-9 lg:mt-14">
-              <button onClick={onSubscribe} className="group flex w-full sm:w-auto lg:mx-auto items-center justify-center gap-4 rounded-full bg-agave-600 hover:bg-agave-700 pl-9 pr-3 py-3 text-xl sm:text-2xl font-bold text-white shadow-[0_18px_40px_-14px_rgba(4,33,26,0.55)] transition-colors">
+              <button onClick={() => go('quienes-somos')} className="group flex w-full sm:w-auto lg:mx-auto items-center justify-center gap-4 rounded-full bg-agave-600 hover:bg-agave-700 pl-9 pr-3 py-3 text-xl sm:text-2xl font-bold text-white shadow-[0_18px_40px_-14px_rgba(4,33,26,0.55)] transition-colors">
                 Probar 15 días gratis
                 <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-white/15 transition-transform duration-300 group-hover:translate-x-0.5"><ArrowRight size={24} /></span>
               </button>
@@ -448,36 +495,36 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
               <p className="mt-5 text-lg text-agave-100/90 leading-relaxed">La libreta, la calculadora y el cajón funcionan… hasta el día que no. Esto le pasa todos los días a los negocios sin control:</p>
             </div>
             <div className="mt-8 sm:mt-14 grid gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {PAINS.map((p) => (
-                <div key={p.pain} className="rounded-[1.4rem] bg-white/[0.06] p-5 sm:p-7 ring-1 ring-white/10">
+              {PAINS.map((p, i) => (
+                <div key={p.pain} className={`rounded-[1.4rem] bg-white/[0.06] p-5 sm:p-7 ring-1 ring-white/10 ${i >= 4 ? 'hidden sm:block' : ''}`}>
                   <div className="flex items-center gap-3 sm:block">
                     <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-maiz-400/15 text-maiz-400 [&>svg]:h-5 [&>svg]:w-5">{p.icon}</div>
                     <h3 className="text-lg font-semibold leading-snug sm:mt-5">{p.pain}</h3>
                   </div>
-                  <p className="mt-3 sm:mt-2 text-agave-100/70 leading-relaxed">{p.hurt}</p>
-                  <p className="mt-4 flex gap-2.5 border-t border-white/10 pt-4 text-white/90 leading-relaxed"><Check size={18} className="mt-0.5 shrink-0 text-maiz-400" /> {p.fix}</p>
+                  <p className="hidden sm:block mt-2 text-agave-100/70 leading-relaxed">{p.hurt}</p>
+                  <p className="mt-3 sm:mt-4 flex gap-2.5 sm:border-t border-white/10 sm:pt-4 text-white/90 leading-relaxed"><Check size={18} className="mt-0.5 shrink-0 text-maiz-400" /> {p.fix}</p>
                 </div>
               ))}
             </div>
             <p className="mt-12 max-w-3xl text-xl sm:text-2xl font-display font-bold leading-snug">Cada día sin control es dinero que se va. Con Don Punto lo ves todo desde la primera venta.</p>
-            <button onClick={onSubscribe} className="mt-8 rounded-full bg-maiz-400 hover:bg-maiz-300 px-7 py-3.5 font-semibold text-carbon-950 transition-colors">Quiero tener el control</button>
+            <button onClick={() => go('dolores')} className="mt-8 w-full sm:w-auto rounded-full bg-maiz-400 hover:bg-maiz-300 px-8 py-4 text-lg font-bold text-carbon-950 transition-colors">Probar 15 días gratis</button>
           </div>
         </section>
 
         {/* No solo restaurantes */}
         <Section id="negocios" className="pt-16 sm:pt-32">
-          <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] items-center rounded-[2rem] bg-white p-6 sm:p-14 ring-1 ring-carbon-200/70">
+          <div className="grid gap-7 sm:gap-12 lg:grid-cols-[1.1fr_0.9fr] items-center rounded-[2rem] bg-white p-6 sm:p-14 ring-1 ring-carbon-200/70">
             <div>
               <span className="inline-flex rounded-full bg-maiz-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-maiz-800">No solo restaurantes</span>
-              <h2 className="mt-5 font-display text-4xl sm:text-5xl font-bold leading-[1.05] tracking-[-0.03em]">¿Tienes un negocio pequeño o mediano? También es para ti.</h2>
-              <p className="mt-5 text-lg text-carbon-600 leading-relaxed">Si cobras en mostrador y quieres saber cuánto vendes, cuánto te queda y qué se te está acabando, Don Punto te sirve igual. Tú decides qué productos y precios cargar.</p>
-              <ul className="mt-8 space-y-3 text-carbon-700">
+              <h2 className="mt-5 font-display text-3xl sm:text-5xl font-bold leading-[1.05] tracking-[-0.03em]">¿Tienes un negocio pequeño o mediano? También es para ti.</h2>
+              <p className="hidden sm:block mt-5 text-lg text-carbon-600 leading-relaxed">Si cobras en mostrador y quieres saber cuánto vendes, cuánto te queda y qué se te está acabando, Don Punto te sirve igual. Tú decides qué productos y precios cargar.</p>
+              <ul className="hidden sm:block mt-8 space-y-3 text-carbon-700">
                 {['Cobro rápido con ticket impreso', 'Corte de caja diario con IVA separado', 'Reportes de lo que más y lo que menos vendes', 'Tus números protegidos con tu PIN'].map((t) => (
                   <li key={t} className="flex gap-3"><Check size={18} className="mt-0.5 shrink-0 text-agave-500" /> {t}</li>
                 ))}
               </ul>
             </div>
-            <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
               {BUSINESSES.map((b) => (
                 <div key={b.t} className="flex items-center gap-3 rounded-2xl bg-carbon-50 px-3 sm:px-4 py-3 sm:py-4 ring-1 ring-carbon-200/70">
                   <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-agave-600 ring-1 ring-carbon-200 [&>svg]:h-5 [&>svg]:w-5">{b.icon}</span>
@@ -495,11 +542,11 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
             <p className="mt-5 text-lg text-carbon-600 leading-relaxed">Hecho para la hora pico: botones grandes, cobro en dos toques y tickets para cliente y cocina.</p>
           </div>
 
-          <div className="mt-14 grid gap-6 lg:grid-cols-12">
+          <div className="mt-8 sm:mt-14 grid gap-5 sm:gap-6 lg:grid-cols-12">
             <div className="hidden lg:block lg:col-span-8">
               <Shot src="/screens/pos.webp" alt="Pantalla de cobro de Don Punto con el menú y la orden actual" />
             </div>
-            <div className="lg:col-span-4 flex flex-col justify-between gap-6 rounded-[1.4rem] bg-white p-8 ring-1 ring-carbon-200/70">
+            <div className="lg:col-span-4 flex flex-col justify-between gap-6 rounded-[1.4rem] bg-white p-6 sm:p-8 ring-1 ring-carbon-200/70">
               <div>
                 <Calculator className="text-agave-600" strokeWidth={1.6} />
                 <h3 className="mt-5 font-display text-2xl font-bold tracking-tight">Cobra rápido, sin errores</h3>
@@ -514,24 +561,26 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
               </ul>
             </div>
 
-            <div className="lg:col-span-5 rounded-[1.4rem] bg-white p-8 ring-1 ring-carbon-200/70">
+            <div className="lg:col-span-5 rounded-[1.4rem] bg-white p-6 sm:p-8 ring-1 ring-carbon-200/70">
               <h3 className="font-display text-2xl font-bold tracking-tight">Precios por app, platillo por platillo</h3>
               <p className="mt-3 text-carbon-600 leading-relaxed">Pones tu costo y lo que quieres recibir; Don Punto te dice a cuánto subirlo en cada plataforma.</p>
               <Shot src="/screens/pricing.webp" alt="Tabla de precios por plataforma" className="mt-6" />
             </div>
-            <div className="lg:col-span-7 rounded-[1.4rem] bg-white p-8 ring-1 ring-carbon-200/70">
+            <div className="lg:col-span-7 rounded-[1.4rem] bg-white p-6 sm:p-8 ring-1 ring-carbon-200/70">
               <h3 className="font-display text-2xl font-bold tracking-tight">Reportes que entiendes en 10 segundos</h3>
               <p className="mt-3 text-carbon-600 leading-relaxed">Ventas de hoy, la semana y el mes, por canal y con el IVA ya separado. Imprime tu corte Z al cerrar.</p>
               <Shot src="/screens/reports.webp" alt="Reporte de ventas por canal" className="mt-6" />
             </div>
           </div>
 
-          <div className="mt-20 grid gap-x-10 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 sm:mt-20 grid gap-x-10 gap-y-4 sm:gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map((f) => (
-              <div key={f.title}>
-                <div className="grid h-11 w-11 place-items-center rounded-xl bg-agave-50 text-agave-600 ring-1 ring-agave-100 [&>svg]:h-5 [&>svg]:w-5">{f.icon}</div>
-                <h3 className="mt-5 text-lg font-semibold">{f.title}</h3>
-                <p className="mt-2 text-carbon-600 leading-relaxed">{f.text}</p>
+              <div key={f.title} className="flex items-center gap-4 sm:block">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-agave-50 text-agave-600 ring-1 ring-agave-100 [&>svg]:h-5 [&>svg]:w-5">{f.icon}</div>
+                <div>
+                  <h3 className="sm:mt-5 text-[17px] sm:text-lg font-semibold leading-snug">{f.title}</h3>
+                  <p className="hidden sm:block mt-2 text-carbon-600 leading-relaxed">{f.text}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -540,16 +589,18 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
         {/* Cómo empiezas */}
         <Section className="pb-16 sm:pb-32">
           <h2 className="font-display text-4xl sm:text-5xl font-bold tracking-[-0.03em]">Empiezas hoy mismo</h2>
-          <ol className="mt-12 grid gap-8 md:grid-cols-3">
+          <ol className="mt-8 sm:mt-12 grid gap-6 sm:gap-8 md:grid-cols-3">
             {[
               ['Crea tu cuenta', 'Tu correo y el nombre de tu negocio. Sin tarjeta: entras directo y tienes 15 días gratis.'],
               ['Sube tu menú', 'Captúralo, impórtalo desde una hoja de cálculo o tómale foto y la IA lo digitaliza.'],
               ['Cobra y cuadra', 'Vende en mostrador y apps, imprime tickets y haz tu corte con el IVA ya separado.'],
             ].map(([t, d], i) => (
-              <li key={t} className="border-t-2 border-carbon-950 pt-6">
+              <li key={t} className="flex gap-5 md:block border-t-2 border-carbon-950 pt-5 md:pt-6">
                 <span className="font-display text-5xl font-bold text-agave-600 tabular-nums">{i + 1}</span>
-                <h3 className="mt-4 text-xl font-semibold">{t}</h3>
-                <p className="mt-2 text-carbon-600 leading-relaxed">{d}</p>
+                <div>
+                  <h3 className="md:mt-4 text-xl font-semibold">{t}</h3>
+                  <p className="mt-1.5 md:mt-2 text-carbon-600 leading-relaxed">{d}</p>
+                </div>
               </li>
             ))}
           </ol>
@@ -591,9 +642,9 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 regular={basico.founder ? basico.regular : undefined}
                 text="Para un negocio con una sucursal que quiere orden y vender más."
                 items={['1 sucursal, ventas ilimitadas', 'Tienda en línea propia, sin comisión por pedido', 'Calculadora de precios para apps de delivery', 'Tu menú desde una foto con IA', 'Combos sugeridos para mover tus platillos', 'Corte de caja con IVA, inventario y recetario', '2 usuarios: tú y 1 cajero con su PIN', 'Reportes y ganancias protegidos con PIN', 'Respaldo en la nube y app instalable']}
-                cta="Cobra tu primera venta hoy, gratis"
+                cta="Probar 15 días gratis"
                 note={`15 días gratis, sin tarjeta. Luego $${basico.price} al mes${basico.founder ? ' de por vida' : ''}.`}
-                onClick={onSubscribe}
+                onClick={() => go('plan-basico')}
               />
               <Plan
                 featured
@@ -602,118 +653,186 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 regular={pro.founder ? pro.regular : undefined}
                 text="Para negocios con equipo, varias sucursales y ganas de crecer."
                 items={['Todo lo del plan Básico, incluida la tienda en línea', 'Varias sucursales con reporte de todas juntas', 'Empleados ilimitados (meseros, cajeros y gerentes) con su PIN y reporte por persona', 'Inventario que se descuenta solo y avisos al celular', 'Clientes frecuentes y recompensas por visita', 'Reportes avanzados con hoja de cálculo y PDF', 'Facturas de proveedor leídas con IA', 'Soporte prioritario']}
-                cta="Empieza gratis con Pro"
+                cta="Probar 15 días gratis"
                 note={`15 días gratis, sin tarjeta. Luego $${pro.price} al mes${pro.founder ? ' de por vida' : ''}.`}
-                onClick={onSubscribe}
+                onClick={() => go('plan-pro')}
               />
             </div>
             <p className="mt-8 flex items-center justify-center lg:justify-start max-w-4xl gap-2 text-sm text-carbon-500"><ShieldCheck size={16} className="text-agave-500" /> Pago seguro con tarjeta procesado por Stripe. <a href="/privacidad" className="underline underline-offset-4 hover:text-carbon-800">Aviso de Privacidad</a> · <a href="/terminos" className="underline underline-offset-4 hover:text-carbon-800">Términos</a></p>
           </div>
         </section>
 
-        {/* Si vendes en apps de reparto */}
-        <section id="apps" className="bg-agave-950 text-white">
-          <div className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-28 grid gap-14 lg:grid-cols-[1.05fr_0.95fr] items-center">
+        {/* Te marcamos */}
+        <Section id="te-marcamos" className="pt-16 sm:pt-28 scroll-mt-16">
+          <div className="grid gap-8 lg:gap-14 lg:grid-cols-[1fr_0.9fr] items-center rounded-[2rem] bg-maiz-50 p-6 sm:p-14 ring-1 ring-maiz-300">
             <div>
-              <span className="inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-maiz-400">¿También vendes en apps de reparto?</span>
-              <h2 className="mt-5 font-display text-4xl sm:text-5xl font-bold leading-[1.05] tracking-[-0.03em]">
-                Un platillo de $100 en una app de reparto te deja <span className="text-maiz-400">$56</span>.
-              </h2>
-              <div className="mt-6 space-y-5 text-lg text-agave-100/90 leading-relaxed">
-                <p>La comisión de 30%, el IVA de esa comisión y las retenciones del SAT se llevan casi la mitad. Si pones el mismo precio que en tu mostrador, vendes más y ganas menos.</p>
-                <p>Don Punto calcula el precio exacto de cada platillo en cada app para que te llegue lo que quieres ganar, y te lo vuelve a calcular cuando cambias un costo. Pruébalo aquí:</p>
-              </div>
+              <span className="inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-bold uppercase tracking-wider text-maiz-800 ring-1 ring-maiz-300"><Phone size={13} /> Te ayudamos a empezar</span>
+              <h2 className="mt-5 font-display text-3xl sm:text-5xl font-bold leading-[1.05] tracking-[-0.03em]">¿No quieres hacerlo solo? Déjanos tu número.</h2>
+              <p className="mt-4 text-lg text-carbon-700 leading-relaxed">Te marca una persona de nuestro equipo, de 9 de la mañana a 6 de la tarde. Resolvemos tus dudas y te ayudamos a dejar Don Punto listo para cobrar.</p>
             </div>
-            <TicketCalculator onStart={onSubscribe} />
+            <LeadForm ad={ad} />
           </div>
-        </section>
+        </Section>
 
-        {/* Tienda en línea */}
-        <Section id="tienda-en-linea" className="py-16 sm:py-32">
-          <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
-            <div>
-              <p className="inline-flex items-center gap-2 rounded-full bg-maiz-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-maiz-800">Nuevo · incluido en todos los planes</p>
-              <h2 className="mt-5 font-display text-4xl sm:text-5xl font-bold leading-[1.05] tracking-[-0.03em]">
-                Tu propia tienda en línea. <span className="text-agave-600">Cero comisión por pedido.</span>
-              </h2>
-              <p className="mt-5 text-lg text-carbon-600 leading-relaxed">
-                Tus clientes de siempre te piden directo desde <b className="font-semibold text-carbon-900 whitespace-nowrap">donpunto.com/tu-negocio</b>, con tu menú, tus fotos y tus precios. El dinero llega completo a ti, no a una plataforma de reparto.
-              </p>
-              <div className="mt-10 grid gap-x-8 gap-y-8 sm:grid-cols-2">
-                {[
-                  { icon: <Globe strokeWidth={1.6} />, t: 'Lista en minutos', d: 'Se arma sola con el menú que ya tienes en tu caja. Agrega fotos, marca lo agotado y comparte tu enlace.' },
-                  { icon: <Bike strokeWidth={1.6} />, t: 'Para recoger o a domicilio', d: 'Tú decides hasta cuántos kilómetros entregas y cuánto cobras de envío. El cliente confirma su ubicación.' },
-                  { icon: <Banknote strokeWidth={1.6} />, t: 'Cobras directo', d: 'Efectivo al recoger o transferencia CoDi a tu cuenta. Sin intermediarios ni porcentajes por venta.' },
-                  { icon: <BellRing strokeWidth={1.6} />, t: 'Te suena cada pedido', d: 'Aviso en el celular y en la caja. Aceptas, tu cliente ve el avance y la venta cae sola en tu corte.' },
-                ].map((f) => (
-                  <div key={f.t}>
-                    <div className="grid h-11 w-11 place-items-center rounded-xl bg-agave-50 text-agave-600 ring-1 ring-agave-100 [&>svg]:h-5 [&>svg]:w-5">{f.icon}</div>
-                    <h3 className="mt-4 text-lg font-semibold">{f.t}</h3>
-                    <p className="mt-1.5 text-carbon-600 leading-relaxed">{f.d}</p>
+        {/* Además incluye (plegado: tienda, calculadora, app, Pro) */}
+        <Section id="mas" className="py-16 sm:py-28">
+          <h2 className="font-display text-4xl sm:text-5xl font-bold tracking-[-0.03em] leading-[1.05]">Y además incluye</h2>
+          <p className="mt-4 text-lg text-carbon-600">Toca lo que te interese para verlo a detalle.</p>
+          <div className="mt-8 sm:mt-10 divide-y divide-carbon-200 border-y border-carbon-200">
+            <div id="tienda-en-linea" className="scroll-mt-20">
+              <button type="button" onClick={() => { const next = more === 'tienda-en-linea' ? null : 'tienda-en-linea'; setMore(next); if (next) trackCustom('MasAbrir', { seccion: 'tienda-en-linea' }); }} aria-expanded={more === 'tienda-en-linea'} className="flex w-full items-center gap-4 py-5 text-left">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-agave-50 text-agave-600 ring-1 ring-agave-100"><Globe size={20} strokeWidth={1.6} /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-lg font-semibold leading-snug text-carbon-950">Tu propia tienda en línea</span>
+                  <span className="mt-0.5 block text-[15px] text-carbon-600 leading-snug">Cero comisión por pedido. Incluida en todos los planes.</span>
+                </span>
+                <Plus size={22} className={`shrink-0 text-carbon-400 transition-transform duration-300 ${more === 'tienda-en-linea' ? 'rotate-45' : ''}`} />
+              </button>
+              {more === 'tienda-en-linea' && (
+                <div className="pb-10 pt-3">
+              <div>
+                <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
+                  <div>
+                    <p className="inline-flex items-center gap-2 rounded-full bg-maiz-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-maiz-800">Nuevo · incluido en todos los planes</p>
+                    <h2 className="mt-5 font-display text-4xl sm:text-5xl font-bold leading-[1.05] tracking-[-0.03em]">
+                      Tu propia tienda en línea. <span className="text-agave-600">Cero comisión por pedido.</span>
+                    </h2>
+                    <p className="mt-5 text-lg text-carbon-600 leading-relaxed">
+                      Tus clientes de siempre te piden directo desde <b className="font-semibold text-carbon-900 whitespace-nowrap">donpunto.com/tu-negocio</b>, con tu menú, tus fotos y tus precios. El dinero llega completo a ti, no a una plataforma de reparto.
+                    </p>
+                    <div className="mt-10 grid gap-x-8 gap-y-8 sm:grid-cols-2">
+                      {[
+                        { icon: <Globe strokeWidth={1.6} />, t: 'Lista en minutos', d: 'Se arma sola con el menú que ya tienes en tu caja. Agrega fotos, marca lo agotado y comparte tu enlace.' },
+                        { icon: <Bike strokeWidth={1.6} />, t: 'Para recoger o a domicilio', d: 'Tú decides hasta cuántos kilómetros entregas y cuánto cobras de envío. El cliente confirma su ubicación.' },
+                        { icon: <Banknote strokeWidth={1.6} />, t: 'Cobras directo', d: 'Efectivo al recoger o transferencia CoDi a tu cuenta. Sin intermediarios ni porcentajes por venta.' },
+                        { icon: <BellRing strokeWidth={1.6} />, t: 'Te suena cada pedido', d: 'Aviso en el celular y en la caja. Aceptas, tu cliente ve el avance y la venta cae sola en tu corte.' },
+                      ].map((f) => (
+                        <div key={f.t}>
+                          <div className="grid h-11 w-11 place-items-center rounded-xl bg-agave-50 text-agave-600 ring-1 ring-agave-100 [&>svg]:h-5 [&>svg]:w-5">{f.icon}</div>
+                          <h3 className="mt-4 text-lg font-semibold">{f.t}</h3>
+                          <p className="mt-1.5 text-carbon-600 leading-relaxed">{f.d}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-10 flex flex-col sm:flex-row gap-3">
+                      <button onClick={() => go('tienda')} className="rounded-full bg-agave-600 hover:bg-agave-700 px-7 py-3.5 font-semibold text-white transition-colors">Probar 15 días gratis</button>
+                      <a href="/donchuy" target="_blank" rel="noopener" className="inline-flex items-center justify-center gap-2 rounded-full px-7 py-3.5 font-semibold text-carbon-800 ring-1 ring-carbon-300 hover:bg-white">Ver tienda de ejemplo <ArrowRight size={16} /></a>
+                    </div>
                   </div>
-                ))}
-              </div>
-              <div className="mt-10 flex flex-col sm:flex-row gap-3">
-                <button onClick={onSubscribe} className="rounded-full bg-agave-600 hover:bg-agave-700 px-7 py-3.5 font-semibold text-white transition-colors">Quiero mi tienda en línea</button>
-                <a href="/donchuy" target="_blank" rel="noopener" className="inline-flex items-center justify-center gap-2 rounded-full px-7 py-3.5 font-semibold text-carbon-800 ring-1 ring-carbon-300 hover:bg-white">Ver tienda de ejemplo <ArrowRight size={16} /></a>
-              </div>
-            </div>
-            <div className="relative mx-auto w-full max-w-[320px]">
-              <div className="absolute -inset-8 rounded-[3rem] bg-maiz-300/25 blur-2xl" aria-hidden="true" />
-              <div className="relative rounded-[2.6rem] bg-carbon-950 p-2.5 shadow-[0_40px_80px_-30px_rgba(4,33,26,0.6)] ring-1 ring-black/20">
-                <StoreTutorialVideo />
-              </div>
+                  <div className="relative mx-auto w-full max-w-[320px]">
+                    <div className="absolute -inset-8 rounded-[3rem] bg-maiz-300/25 blur-2xl" aria-hidden="true" />
+                    <div className="relative rounded-[2.6rem] bg-carbon-950 p-2.5 shadow-[0_40px_80px_-30px_rgba(4,33,26,0.6)] ring-1 ring-black/20">
+                      <StoreTutorialVideo />
+                    </div>
               
-            </div>
-          </div>
-        </Section>
-
-        {/* App instalable + notificaciones */}
-        <Section className="pb-16 sm:pb-32">
-          <div className="grid overflow-hidden rounded-[2rem] bg-carbon-950 text-white lg:grid-cols-2">
-            <div className="p-10 sm:p-14">
-              <Smartphone className="text-maiz-400" strokeWidth={1.6} />
-              <h2 className="mt-6 font-display text-4xl font-bold leading-[1.05] tracking-[-0.03em]">Instálala como app. Recibe tu cierre del día en el celular.</h2>
-              <p className="mt-5 text-lg text-carbon-300 leading-relaxed">
-                Don Punto se instala en cualquier celular, tablet o computadora sin pasar por ninguna tienda de apps. Cada noche te llega una notificación con lo que vendiste, aunque no estés en el negocio.
-              </p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <button onClick={onSubscribe} className="rounded-full bg-maiz-400 hover:bg-maiz-300 px-6 py-3 font-semibold text-carbon-950 transition-colors">Empezar ahora</button>
-                <InstallAppButton className="rounded-full px-6 py-3 font-semibold text-white ring-1 ring-white/20 hover:bg-white/5" />
-                <a href={ANDROID_APP_URL} className="inline-flex items-center gap-2 rounded-full px-6 py-3 font-semibold text-white ring-1 ring-white/20 hover:bg-white/5"><Download size={18} /> App para Android (APK)</a>
-              </div>
-              <p className="mt-4 text-sm text-carbon-400">¿Impresora Bluetooth en tablet o celular Android? Instala la app para Android: imprime directo, sin ventana ni apps extra.</p>
-            </div>
-            <div className="relative flex items-center justify-center p-10 sm:p-14 bg-[radial-gradient(120%_80%_at_70%_20%,rgba(22,137,95,0.35),transparent_60%)]">
-              <div className="w-full max-w-sm space-y-3">
-                <Notification time="10:02 p.m." title="Cierre de hoy: $8,940" body="63 ventas · ticket promedio $142. Toca para ver tu reporte." />
-                <Notification time="Ayer" title="Cierre de hoy: $7,310" body="51 ventas · ticket promedio $143." muted />
-                <Notification time="Lunes" title="Tu membresía está activa" body="Gracias por tu pago. Don Punto ya está listo para cobrar." muted />
-              </div>
-            </div>
-          </div>
-        </Section>
-
-        {/* Plan Pro */}
-        <Section className="pb-16 sm:pb-32">
-          <div className="rounded-[2rem] bg-gradient-to-br from-maiz-50 via-white to-agave-50 ring-1 ring-carbon-200/70 p-8 sm:p-14">
-            <span className="inline-flex rounded-full bg-maiz-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-maiz-800">Plan Pro</span>
-            <h2 className="mt-5 max-w-2xl font-display text-4xl sm:text-5xl font-bold leading-[1.05] tracking-[-0.03em]">Para cuando ya tienes equipo, más de un local y quieres crecer.</h2>
-            <div className="mt-12 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-              {[
-                { icon: <Store strokeWidth={1.6} />, t: 'Varias sucursales', d: 'Cada local cobra con su caja, su corte y su inventario. Tú ves todas juntas: cuál vende más y cuál va para abajo.' },
-                { icon: <UserCog strokeWidth={1.6} />, t: 'Todo tu equipo con su PIN', d: 'Meseros que mandan órdenes a cocina, cajeros y gerentes con permisos distintos. Sabes quién cobró, quién hizo descuentos y quién canceló.' },
-                { icon: <PackageCheck strokeWidth={1.6} />, t: 'Inventario que se descuenta solo', d: 'Al vender un platillo se restan los insumos de su receta. Te llega un aviso al celular cuando algo se está acabando.' },
-                { icon: <HeartHandshake strokeWidth={1.6} />, t: 'Clientes que regresan', d: 'Guarda a tus clientes con su teléfono, mira lo que compran y prémialos: "tu orden 10 va por la casa".' },
-                { icon: <BarChart3 strokeWidth={1.6} />, t: 'Reportes avanzados', d: 'Esta semana contra la pasada, horas pico, mejores días y platillos estrella. Descarga en hoja de cálculo o PDF.' },
-                { icon: <FileScan strokeWidth={1.6} />, t: 'Facturas leídas con IA', d: 'Tómale foto a la factura del proveedor y las compras se capturan solas en tu inventario.' },
-              ].map((f) => (
-                <div key={f.t}>
-                  <div className="grid h-11 w-11 place-items-center rounded-xl bg-white text-agave-700 ring-1 ring-carbon-200 [&>svg]:h-5 [&>svg]:w-5">{f.icon}</div>
-                  <h3 className="mt-5 text-lg font-semibold">{f.t}</h3>
-                  <p className="mt-2 text-carbon-600 leading-relaxed">{f.d}</p>
+                  </div>
                 </div>
-              ))}
+              </div>
+                </div>
+              )}
+            </div>
+            <div id="apps" className="scroll-mt-20">
+              <button type="button" onClick={() => { const next = more === 'apps' ? null : 'apps'; setMore(next); if (next) trackCustom('MasAbrir', { seccion: 'apps' }); }} aria-expanded={more === 'apps'} className="flex w-full items-center gap-4 py-5 text-left">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-agave-50 text-agave-600 ring-1 ring-agave-100"><Calculator size={20} strokeWidth={1.6} /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-lg font-semibold leading-snug text-carbon-950">Calculadora de precios para apps de reparto</span>
+                  <span className="mt-0.5 block text-[15px] text-carbon-600 leading-snug">Sabes a cuánto subir cada platillo para que te llegue lo que quieres ganar.</span>
+                </span>
+                <Plus size={22} className={`shrink-0 text-carbon-400 transition-transform duration-300 ${more === 'apps' ? 'rotate-45' : ''}`} />
+              </button>
+              {more === 'apps' && (
+                <div className="pb-10 pt-3">
+              <div className="rounded-[1.6rem] sm:rounded-[2rem] bg-agave-950 text-white">
+                <div className="px-5 sm:px-12 py-9 sm:py-14 grid gap-10 sm:gap-14 lg:grid-cols-[1.05fr_0.95fr] items-center">
+                  <div>
+                    <span className="inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-maiz-400">¿También vendes en apps de reparto?</span>
+                    <h2 className="mt-5 font-display text-4xl sm:text-5xl font-bold leading-[1.05] tracking-[-0.03em]">
+                      Un platillo de $100 en una app de reparto te deja <span className="text-maiz-400">$56</span>.
+                    </h2>
+                    <div className="mt-6 space-y-5 text-lg text-agave-100/90 leading-relaxed">
+                      <p>La comisión de 30%, el IVA de esa comisión y las retenciones del SAT se llevan casi la mitad. Si pones el mismo precio que en tu mostrador, vendes más y ganas menos.</p>
+                      <p>Don Punto calcula el precio exacto de cada platillo en cada app para que te llegue lo que quieres ganar, y te lo vuelve a calcular cuando cambias un costo. Pruébalo aquí:</p>
+                    </div>
+                  </div>
+                  <TicketCalculator onStart={() => go('calculadora')} />
+                </div>
+              </div>
+                </div>
+              )}
+            </div>
+            <div id="app" className="scroll-mt-20">
+              <button type="button" onClick={() => { const next = more === 'app' ? null : 'app'; setMore(next); if (next) trackCustom('MasAbrir', { seccion: 'app' }); }} aria-expanded={more === 'app'} className="flex w-full items-center gap-4 py-5 text-left">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-agave-50 text-agave-600 ring-1 ring-agave-100"><Smartphone size={20} strokeWidth={1.6} /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-lg font-semibold leading-snug text-carbon-950">App instalable y cierre del día en tu celular</span>
+                  <span className="mt-0.5 block text-[15px] text-carbon-600 leading-snug">Cada noche te llega lo que vendiste, aunque no estés en el negocio.</span>
+                </span>
+                <Plus size={22} className={`shrink-0 text-carbon-400 transition-transform duration-300 ${more === 'app' ? 'rotate-45' : ''}`} />
+              </button>
+              {more === 'app' && (
+                <div className="pb-10 pt-3">
+              <div>
+                <div className="grid overflow-hidden rounded-[2rem] bg-carbon-950 text-white lg:grid-cols-2">
+                  <div className="p-7 sm:p-14">
+                    <Smartphone className="text-maiz-400" strokeWidth={1.6} />
+                    <h2 className="mt-6 font-display text-4xl font-bold leading-[1.05] tracking-[-0.03em]">Instálala como app. Recibe tu cierre del día en el celular.</h2>
+                    <p className="mt-5 text-lg text-carbon-300 leading-relaxed">
+                      Don Punto se instala en cualquier celular, tablet o computadora sin pasar por ninguna tienda de apps. Cada noche te llega una notificación con lo que vendiste, aunque no estés en el negocio.
+                    </p>
+                    <div className="mt-8 flex flex-wrap gap-3">
+                      <button onClick={() => go('app')} className="rounded-full bg-maiz-400 hover:bg-maiz-300 px-6 py-3 font-semibold text-carbon-950 transition-colors">Probar 15 días gratis</button>
+                      <InstallAppButton className="rounded-full px-6 py-3 font-semibold text-white ring-1 ring-white/20 hover:bg-white/5" />
+                      <a href={ANDROID_APP_URL} className="inline-flex items-center gap-2 rounded-full px-6 py-3 font-semibold text-white ring-1 ring-white/20 hover:bg-white/5"><Download size={18} /> App para Android (APK)</a>
+                    </div>
+                    <p className="mt-4 text-sm text-carbon-400">¿Impresora Bluetooth en tablet o celular Android? Instala la app para Android: imprime directo, sin ventana ni apps extra.</p>
+                  </div>
+                  <div className="relative flex items-center justify-center p-10 sm:p-14 bg-[radial-gradient(120%_80%_at_70%_20%,rgba(22,137,95,0.35),transparent_60%)]">
+                    <div className="w-full max-w-sm space-y-3">
+                      <Notification time="10:02 p.m." title="Cierre de hoy: $8,940" body="63 ventas · ticket promedio $142. Toca para ver tu reporte." />
+                      <Notification time="Ayer" title="Cierre de hoy: $7,310" body="51 ventas · ticket promedio $143." muted />
+                      <Notification time="Lunes" title="Tu membresía está activa" body="Gracias por tu pago. Don Punto ya está listo para cobrar." muted />
+                    </div>
+                  </div>
+                </div>
+              </div>
+                </div>
+              )}
+            </div>
+            <div id="pro" className="scroll-mt-20">
+              <button type="button" onClick={() => { const next = more === 'pro' ? null : 'pro'; setMore(next); if (next) trackCustom('MasAbrir', { seccion: 'pro' }); }} aria-expanded={more === 'pro'} className="flex w-full items-center gap-4 py-5 text-left">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-agave-50 text-agave-600 ring-1 ring-agave-100"><Store size={20} strokeWidth={1.6} /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-lg font-semibold leading-snug text-carbon-950">Plan Pro: equipo, sucursales e inventario</span>
+                  <span className="mt-0.5 block text-[15px] text-carbon-600 leading-snug">Para cuando ya tienes más gente, más de un local y quieres crecer.</span>
+                </span>
+                <Plus size={22} className={`shrink-0 text-carbon-400 transition-transform duration-300 ${more === 'pro' ? 'rotate-45' : ''}`} />
+              </button>
+              {more === 'pro' && (
+                <div className="pb-10 pt-3">
+              <div>
+                <div className="rounded-[2rem] bg-gradient-to-br from-maiz-50 via-white to-agave-50 ring-1 ring-carbon-200/70 p-8 sm:p-14">
+                  <span className="inline-flex rounded-full bg-maiz-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-maiz-800">Plan Pro</span>
+                  <h2 className="mt-5 max-w-2xl font-display text-4xl sm:text-5xl font-bold leading-[1.05] tracking-[-0.03em]">Para cuando ya tienes equipo, más de un local y quieres crecer.</h2>
+                  <div className="mt-12 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+                    {[
+                      { icon: <Store strokeWidth={1.6} />, t: 'Varias sucursales', d: 'Cada local cobra con su caja, su corte y su inventario. Tú ves todas juntas: cuál vende más y cuál va para abajo.' },
+                      { icon: <UserCog strokeWidth={1.6} />, t: 'Todo tu equipo con su PIN', d: 'Meseros que mandan órdenes a cocina, cajeros y gerentes con permisos distintos. Sabes quién cobró, quién hizo descuentos y quién canceló.' },
+                      { icon: <PackageCheck strokeWidth={1.6} />, t: 'Inventario que se descuenta solo', d: 'Al vender un platillo se restan los insumos de su receta. Te llega un aviso al celular cuando algo se está acabando.' },
+                      { icon: <HeartHandshake strokeWidth={1.6} />, t: 'Clientes que regresan', d: 'Guarda a tus clientes con su teléfono, mira lo que compran y prémialos: "tu orden 10 va por la casa".' },
+                      { icon: <BarChart3 strokeWidth={1.6} />, t: 'Reportes avanzados', d: 'Esta semana contra la pasada, horas pico, mejores días y platillos estrella. Descarga en hoja de cálculo o PDF.' },
+                      { icon: <FileScan strokeWidth={1.6} />, t: 'Facturas leídas con IA', d: 'Tómale foto a la factura del proveedor y las compras se capturan solas en tu inventario.' },
+                    ].map((f) => (
+                      <div key={f.t}>
+                        <div className="grid h-11 w-11 place-items-center rounded-xl bg-white text-agave-700 ring-1 ring-carbon-200 [&>svg]:h-5 [&>svg]:w-5">{f.icon}</div>
+                        <h3 className="mt-5 text-lg font-semibold">{f.t}</h3>
+                        <p className="mt-2 text-carbon-600 leading-relaxed">{f.d}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+                </div>
+              )}
             </div>
           </div>
         </Section>
@@ -757,9 +876,10 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
               <Mark size={64} />
               <h2 className="mt-8 font-display text-4xl sm:text-6xl font-bold leading-[1.02] tracking-[-0.035em]">Deja de adivinar cuánto ganas.</h2>
               <p className="mt-5 text-lg text-agave-100">Crea tu cuenta en un minuto y cobra tu primera venta hoy.</p>
-              <button onClick={onSubscribe} className="mt-9 rounded-full bg-white px-8 py-4 text-base font-semibold text-agave-800 hover:bg-agave-50 transition-colors">
-                Cobra tu primera venta hoy, gratis
+              <button onClick={() => go('cierre')} className="mt-9 w-full sm:w-auto rounded-full bg-white px-9 py-4 text-lg font-bold text-agave-800 hover:bg-agave-50 transition-colors">
+                Probar 15 días gratis
               </button>
+              <p className="mt-3 text-sm text-agave-100">Sin tarjeta · Sin contratos</p>
             </div>
           </div>
         </Section>
@@ -786,7 +906,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
       </footer>
 
       <div className={`md:hidden fixed bottom-4 left-4 right-[5.5rem] z-[60] transition-all duration-300 ${sticky ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-24 opacity-0'}`}>
-        <button onClick={onSubscribe} tabIndex={sticky ? 0 : -1} className="flex h-14 w-full flex-col items-center justify-center rounded-full bg-agave-600 px-4 text-white shadow-[0_14px_30px_-10px_rgba(4,33,26,0.6)] active:scale-[0.98]">
+        <button onClick={() => go('barra-fija')} tabIndex={sticky ? 0 : -1} className="flex h-14 w-full flex-col items-center justify-center rounded-full bg-agave-600 px-4 text-white shadow-[0_14px_30px_-10px_rgba(4,33,26,0.6)] active:scale-[0.98]">
           <span className="text-[15px] font-semibold leading-tight">Probar 15 días gratis</span>
           <span className="text-[11px] leading-tight text-agave-100">Sin tarjeta · Sin contratos</span>
         </button>
@@ -807,6 +927,62 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
   );
 }
 
+/** «Déjanos tu número»: avisa al equipo (Telegram) para que le marquen. */
+function LeadForm({ ad }: { ad: string | null }) {
+  const [name, setName] = useState('');
+  const [business, setBusiness] = useState('');
+  const [phone, setPhone] = useState('');
+  const [trap, setTrap] = useState('');
+  const [state, setState] = useState<'idle' | 'sending' | 'done'>('idle');
+  const [error, setError] = useState('');
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (phone.replace(/\D/g, '').length < 10) { setError('Escribe tu teléfono a 10 dígitos.'); return; }
+    setState('sending');
+    try {
+      const eid = 'lead_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); // mismo id que manda el servidor (CAPI)
+      const r = await fetch('/api/lead', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, business, phone, ad: ad || '', website: trap, eid }) });
+      const d = await r.json().catch(() => null);
+      if (!r.ok) throw new Error(d?.error || 'No se pudo enviar. Intenta de nuevo.');
+      track('Lead', { content_name: 'te-marcamos' }, eid);
+      setState('done');
+    } catch (err: any) {
+      setError(err?.message || 'No se pudo enviar. Intenta de nuevo.');
+      setState('idle');
+    }
+  };
+  if (state === 'done') {
+    return (
+      <div className="rounded-[1.4rem] bg-white p-7 sm:p-9 ring-1 ring-carbon-200/70 text-center">
+        <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-agave-50 text-agave-600 ring-1 ring-agave-100"><Check size={28} /></span>
+        <p className="mt-4 font-display text-2xl font-bold">Listo, {name.trim().split(' ')[0]}.</p>
+        <p className="mt-2 text-carbon-600 leading-relaxed">Ya tenemos tu número. Te marcamos en horario de 9 de la mañana a 6 de la tarde.</p>
+      </div>
+    );
+  }
+  const input = 'mt-1.5 w-full rounded-xl bg-white px-4 py-3.5 text-base text-carbon-950 ring-1 ring-carbon-300 placeholder:text-carbon-400 focus:outline-none focus:ring-2 focus:ring-agave-500';
+  return (
+    <form onSubmit={submit} className="rounded-[1.4rem] bg-white p-6 sm:p-8 ring-1 ring-carbon-200/70 space-y-4">
+      <label className="block text-sm font-semibold text-carbon-800">Tu nombre
+        <input className={input} value={name} onChange={(e) => setName(e.target.value)} required minLength={2} maxLength={60} autoComplete="name" placeholder="Ej. Juan Pérez" />
+      </label>
+      <label className="block text-sm font-semibold text-carbon-800">Tu teléfono
+        <input className={input} value={phone} onChange={(e) => setPhone(e.target.value)} required type="tel" inputMode="tel" maxLength={20} autoComplete="tel" placeholder="10 dígitos" />
+      </label>
+      <label className="block text-sm font-semibold text-carbon-800">Tu negocio <span className="font-normal text-carbon-500">(opcional)</span>
+        <input className={input} value={business} onChange={(e) => setBusiness(e.target.value)} maxLength={80} autoComplete="organization" placeholder="Ej. Taquería Don Juan" />
+      </label>
+      <input className="hidden" tabIndex={-1} autoComplete="off" aria-hidden="true" value={trap} onChange={(e) => setTrap(e.target.value)} name="website" />
+      {error && <p role="alert" className="text-sm font-semibold text-red-700">{error}</p>}
+      <button type="submit" disabled={state === 'sending'} className="w-full rounded-full bg-carbon-950 hover:bg-carbon-800 py-4 text-lg font-bold text-white transition-colors disabled:opacity-60">
+        {state === 'sending' ? 'Enviando…' : 'Quiero que me marquen'}
+      </button>
+      <p className="text-center text-xs text-carbon-500">Solo usamos tu número para contactarte sobre Don Punto. <a href="/privacidad" className="underline underline-offset-2">Aviso de Privacidad</a></p>
+    </form>
+  );
+}
+
 function Notification({ time, title, body, muted }: { time: string; title: string; body: string; muted?: boolean }) {
   return (
     <div className={`flex gap-3 rounded-2xl p-4 ${muted ? 'bg-white/[0.07] ring-1 ring-white/5' : 'bg-white/[0.13] ring-1 ring-white/20'}`}>
@@ -824,6 +1000,8 @@ function Notification({ time, title, body, muted }: { time: string; title: strin
 }
 
 function Plan({ name, price, regular, text, items, cta, note, onClick, featured }: { name: string; price: number; regular?: number; text: string; items: string[]; cta: string; note?: string; onClick: () => void; featured?: boolean }) {
+  const [all, setAll] = useState(false);
+  const SHORT = 5; // en celular se ven 5 y el resto con «Ver todo»
   return (
     <div className={featured ? 'rounded-[1.6rem] bg-agave-950 p-1.5 shadow-[0_40px_80px_-40px_rgba(4,33,26,0.7)]' : 'rounded-[1.6rem] bg-carbon-100 p-1.5'}>
       <div className={`h-full rounded-[1.25rem] p-8 sm:p-10 flex flex-col ${featured ? 'bg-agave-900 text-white ring-1 ring-white/10' : 'bg-white ring-1 ring-carbon-200/70'}`}>
@@ -839,16 +1017,21 @@ function Plan({ name, price, regular, text, items, cta, note, onClick, featured 
         </p>
         {regular && <p className={`mt-1 text-sm font-semibold ${featured ? 'text-maiz-300' : 'text-maiz-700'}`}>Precio de fundador, de por vida</p>}
         <ul className="mt-8 space-y-3 flex-1">
-          {items.map((it) => (
-            <li key={it} className="flex gap-3">
+          {items.map((it, i) => (
+            <li key={it} className={`gap-3 ${i >= SHORT && !all ? 'hidden sm:flex' : 'flex'}`}>
               <Check size={18} className={featured ? 'text-maiz-400 shrink-0 mt-0.5' : 'text-agave-500 shrink-0 mt-0.5'} />
               <span className={featured ? 'text-white/90' : 'text-carbon-700'}>{it}</span>
             </li>
           ))}
+          {items.length > SHORT && !all && (
+            <li className="sm:hidden">
+              <button type="button" onClick={() => setAll(true)} className={`text-sm font-semibold underline underline-offset-4 ${featured ? 'text-maiz-300' : 'text-agave-700'}`}>Ver todo lo que incluye ({items.length})</button>
+            </li>
+          )}
         </ul>
         <button
           onClick={onClick}
-          className={`mt-10 w-full rounded-full py-3.5 font-semibold transition-colors ${featured ? 'bg-maiz-400 hover:bg-maiz-300 text-carbon-950' : 'bg-carbon-950 hover:bg-carbon-800 text-white'}`}
+          className={`mt-8 sm:mt-10 w-full rounded-full py-4 text-lg font-bold transition-colors ${featured ? 'bg-maiz-400 hover:bg-maiz-300 text-carbon-950' : 'bg-carbon-950 hover:bg-carbon-800 text-white'}`}
         >
           {cta}
         </button>
