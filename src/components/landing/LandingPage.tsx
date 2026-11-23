@@ -370,13 +370,38 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
         </Section>
 
         {/* Video de introducción */}
-        <Section id="video" className="pb-20 sm:pb-28">
+        <Section id="video" className="pb-12 sm:pb-28">
           <div className="text-center">
             <p className="text-sm font-semibold uppercase tracking-wider text-agave-600">Conoce Don Punto</p>
             <h2 className="mt-3 font-display text-3xl sm:text-5xl font-bold tracking-[-0.03em] text-carbon-950">Míralo en 40 segundos<span className="text-maiz-500">.</span></h2>
           </div>
           <div className="mt-10 rounded-[2.2rem] md:rounded-[1.9rem] bg-carbon-900 p-1.5 ring-1 ring-black/10 shadow-[0_40px_80px_-40px_rgba(4,33,26,0.55)] md:p-2 max-w-sm md:max-w-none mx-auto">
             <IntroVideo />
+          </div>
+        </Section>
+
+        {/* Quiénes somos */}
+        <Section id="nosotros" className="pb-16 sm:pb-28">
+          <div className="grid gap-8 lg:gap-14 lg:grid-cols-2 items-center">
+            <figure>
+              <img src="/equipo.webp" alt="Francisco Cota y Tlaloc, el equipo de Don Punto" width={1200} height={704} loading="lazy" decoding="async" className="block w-full rounded-[1.6rem] ring-1 ring-carbon-200/70" />
+              <figcaption className="mt-4 grid grid-cols-2 gap-4 text-center text-sm">
+                <span><b className="block text-base font-semibold text-carbon-950">Francisco Cota</b><span className="text-carbon-600">Desarrollo y tecnología</span></span>
+                <span><b className="block text-base font-semibold text-carbon-950">Tlaloc</b><span className="text-carbon-600">Soporte y atención al cliente</span></span>
+              </figcaption>
+            </figure>
+            <div>
+              <span className="inline-flex rounded-full bg-agave-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-agave-800">Quiénes somos</span>
+              <h2 className="mt-5 font-display text-4xl sm:text-5xl font-bold leading-[1.05] tracking-[-0.03em]">Lo hicimos porque nos pasó a nosotros.</h2>
+              <p className="mt-5 text-lg text-carbon-700 leading-relaxed">Yo, Francisco, tenía un restaurante. No sabía cuánto apartar de IVA, batallaba con el SAT y una libreta ya no me alcanzaba para llevar el negocio.</p>
+              <p className="mt-4 text-lg text-carbon-700 leading-relaxed">Tlaloc se dedicaba a asesorar restaurantes que venden por plataformas. Juntamos lo que sabíamos los dos e hicimos Don Punto, para hacerle la vida más fácil a quien tiene un restaurante o un negocio pequeño.</p>
+              <p className="mt-4 text-lg text-carbon-700 leading-relaxed">Somos un negocio chico, igual que el tuyo.{founderOpen && <> Y como vamos empezando, los primeros {FOUNDER.limit} negocios se quedan con el precio de fundador.</>}</p>
+              <ul className="mt-7 space-y-3 text-carbon-800">
+                <li className="flex gap-3"><Check size={18} className="mt-1 shrink-0 text-agave-500" /> <span><b className="font-semibold text-carbon-950">Te contesta una persona,</b> de 9 de la mañana a 6 de la tarde.</span></li>
+                <li className="flex gap-3"><Check size={18} className="mt-1 shrink-0 text-agave-500" /> <span>Los negocios que ya cobran con Don Punto nos dicen que ahora llevan sus ventas en orden y en menos tiempo.</span></li>
+              </ul>
+              <button onClick={onSubscribe} className="mt-8 rounded-full bg-agave-600 hover:bg-agave-700 px-7 py-3.5 font-semibold text-white transition-colors">Probar 15 días gratis</button>
+            </div>
           </div>
         </Section>
 
