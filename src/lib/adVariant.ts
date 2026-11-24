@@ -21,6 +21,7 @@ export const AD_HERO: Record<string, AdHero> = {
   a13: { title: 'Menos de ${dia} al día', sub: '¿Crees que un punto de venta es caro? Como fundador te sale en menos de ${dia} al día: cobras en segundos, el corte de caja sale solo y ves tus reportes desde el celular.', founderOnly: true },
   a14: { title: 'Tu tienda en línea, 0% comisión', sub: 'De cada $100 que vendes en apps de comida, a veces te quedan $56. Con Don Punto tienes tu propia tienda en línea, con tu menú y tu nombre, y cero comisión por pedido. Incluida en todos los planes.' },
   a15: { title: 'Cobra tu primera venta hoy, gratis', sub: 'Sin tarjeta, sin contratos y sin comprar equipo. Le tomas foto a tu menú, la IA lo carga y en minutos ya estás cobrando desde tu celular.' },
+  a16: { title: 'Reloj checador para tus empleados, ya incluido', sub: 'Desde el 1 de enero de 2027 la ley pide llevar un registro electrónico de la entrada y la salida de cada trabajador. Con Don Punto tus empleados checan con su PIN en el mismo equipo donde cobras, y tú ves las horas de cada quien por semana.' },
 };
 
 const KEY = 'dp_ad';
