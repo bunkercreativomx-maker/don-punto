@@ -3,7 +3,7 @@ import { LockKeyhole, Store, UserCog, PackageCheck, HeartHandshake, BarChart3, F
   Check, ChevronDown, Receipt, Calculator, Wallet, Boxes, ChefHat, ScanLine, WifiOff, BellRing,
   Smartphone, MessageCircle, Mail, ArrowRight, ShieldCheck, Globe, Bike, Banknote,
   EyeOff, Ban, TrendingDown, Coffee, Croissant, IceCream, Truck, ShoppingBag, Volume2, VolumeX,
-  Download, Camera, Phone, Plus,
+  Download, Camera, Phone, Plus, Clock,
 } from 'lucide-react';
 import { Logo, Mark, Wordmark } from '../brand/Logo';
 import { InstallAppButton } from '../pwa/InstallApp';
@@ -161,6 +161,7 @@ function Shot({ src, alt, className = '' }: { src: string; alt: string; classNam
 const FAQS = [
   { q: '¿Cómo funciona la prueba gratis?', a: 'Creas tu cuenta y usas Don Punto completo 15 días, sin tarjeta. Antes de que termine te avisamos. Si te gusta, eliges tu plan y sigues cobrando; si no, no pasa nada: no se te cobra y tus datos se quedan guardados.' },
   { q: '¿Qué es el precio de fundador?', a: `Los primeros ${FOUNDER.limit} negocios que se suscriban pagan $${FOUNDER.prices.basico} al mes en Básico (en lugar de $${PLANS.basico.price}) o $${FOUNDER.prices.pro} en Pro (en lugar de $${PLANS.pro.price}), y ese precio se les queda de por vida mientras sigan suscritos. Además les cargamos su menú desde una foto y les damos una videollamada de 15 minutos para dejarlos listos.` },
+  { q: '¿Tiene reloj checador para mis empleados?', a: 'Sí, en todos los planes. Desde el 1 de enero de 2027 la Ley Federal del Trabajo pide llevar un registro electrónico de la hora de entrada y salida de cada trabajador. En Don Punto cada empleado checa con su PIN, la hora la pone el sistema y tú ves las horas por semana en un reporte que puedes imprimir o bajar en hoja de cálculo. El personal que solo checa (cocina, reparto, limpieza) no cuenta como usuario de tu plan.' },
   { q: '¿La tienda en línea cobra comisión?', a: 'No. Está incluida en tu plan. Tus clientes te pagan directo: efectivo al recoger o transferencia CoDi a tu cuenta. Don Punto no se queda con ningún porcentaje de tus pedidos.' },
   { q: '¿Tengo que firmar contrato?', a: 'No. Pagas mes a mes y cancelas cuando quieras desde "Mi plan" dentro de tu cuenta. No hay penalizaciones.' },
   { q: '¿Necesito comprar equipo?', a: 'No. Funciona en la computadora, tablet o celular que ya tienes. Puedes instalarla como app y abrirla desde tu pantalla de inicio.' },
@@ -586,6 +587,33 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
           </div>
         </Section>
 
+        {/* Reloj checador (registro electrónico de jornada, LFT 2027) */}
+        <Section id="checador" className="pb-16 sm:pb-28 scroll-mt-20">
+          <div className="grid gap-8 lg:gap-14 lg:grid-cols-[1.05fr_0.95fr] items-center rounded-[2rem] bg-agave-950 p-6 sm:p-14 text-white">
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full bg-maiz-400 px-3 py-1 text-xs font-bold uppercase tracking-wider text-carbon-950"><Clock size={13} /> Obligatorio desde 2027</span>
+              <h2 className="mt-5 font-display text-3xl sm:text-5xl font-bold leading-[1.05] tracking-[-0.03em]">Reloj checador para tus empleados, <span className="text-maiz-400">ya incluido.</span></h2>
+              <p className="mt-5 text-lg text-agave-100/85 leading-relaxed">Desde el 1 de enero de 2027 la Ley Federal del Trabajo te pide llevar un registro electrónico de la hora de entrada y de salida de cada trabajador. Con Don Punto ya lo tienes: tus empleados checan con su PIN en el mismo equipo donde cobras.</p>
+            </div>
+            <div>
+              <ul className="space-y-4">
+                {[
+                  ['Checan en 5 segundos', 'Escriben su PIN y tocan Entrada o Salida. No necesitas comprar otro aparato.'],
+                  ['La hora la pone el sistema', 'Las checadas no se borran. Si corriges una, queda guardado el motivo.'],
+                  ['Horas por semana de cada empleado', 'Reporte listo para imprimir o bajar en hoja de cálculo.'],
+                  ['En todos los planes', 'Cocina, reparto y quien solo checa no cuentan como usuarios de tu plan.'],
+                ].map(([t, d]) => (
+                  <li key={t} className="flex gap-3">
+                    <Check size={20} className="mt-0.5 shrink-0 text-maiz-400" />
+                    <span><b className="block font-semibold text-white">{t}</b><span className="text-agave-100/75 leading-snug">{d}</span></span>
+                  </li>
+                ))}
+              </ul>
+              <button onClick={() => go('checador')} className="mt-8 w-full sm:w-auto rounded-full bg-maiz-400 hover:bg-maiz-300 px-8 py-4 text-lg font-bold text-carbon-950 transition-colors">Probar 15 días gratis</button>
+            </div>
+          </div>
+        </Section>
+
         {/* Cómo empiezas */}
         <Section className="pb-16 sm:pb-32">
           <h2 className="font-display text-4xl sm:text-5xl font-bold tracking-[-0.03em]">Empiezas hoy mismo</h2>
@@ -641,7 +669,7 @@ export function LandingPage({ onLogin, onSubscribe }: LandingPageProps) {
                 price={basico.price}
                 regular={basico.founder ? basico.regular : undefined}
                 text="Para un negocio con una sucursal que quiere orden y vender más."
-                items={['1 sucursal, ventas ilimitadas', 'Tienda en línea propia, sin comisión por pedido', 'Calculadora de precios para apps de delivery', 'Tu menú desde una foto con IA', 'Combos sugeridos para mover tus platillos', 'Corte de caja con IVA, inventario y recetario', '2 usuarios: tú y 1 cajero con su PIN', 'Reportes y ganancias protegidos con PIN', 'Respaldo en la nube y app instalable']}
+                items={['1 sucursal, ventas ilimitadas', 'Reloj checador para tus empleados (entrada y salida)', 'Tienda en línea propia, sin comisión por pedido', 'Calculadora de precios para apps de delivery', 'Tu menú desde una foto con IA', 'Combos sugeridos para mover tus platillos', 'Corte de caja con IVA, inventario y recetario', '2 usuarios: tú y 1 cajero con su PIN', 'Reportes y ganancias protegidos con PIN', 'Respaldo en la nube y app instalable']}
                 cta="Probar 15 días gratis"
                 note={`15 días gratis, sin tarjeta. Luego $${basico.price} al mes${basico.founder ? ' de por vida' : ''}.`}
                 onClick={() => go('plan-basico')}
